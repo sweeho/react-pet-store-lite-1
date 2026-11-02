@@ -72,29 +72,42 @@ only as a failed job in Control-M. The job is `CRITICAL="1"`, priority `AA`, and
 ## Record-key collisions
 
 Several record keys were minted independently by different shards and mean different things. The
-server ingested 37 records against 41 distinct keys found in the pass files. Mapping used for the
-delta spec:
+server ingested 37 records; the pass files hold 83 record variants under 41 distinct keys, 36 of them
+approved. Each approved key is one requirement in `spec.md`. Where a key has several variants, the
+requirement is written from the variant below; the others are true to the code and are covered by
+another keyed requirement.
 
-| Requirement in `spec.md`                       | Contributing records (pass file)                                                                                                                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Catalog hierarchy and identity                 | CDI-ENT-0001 (db/schema/a, populate/a, ddl-001/b), CATDI-ENT-0001, CDI-RULE-0002 (ddl-002/b), CDI-RULE-0004, CDI-ENT-0003 (ddl-002/c), CDI-BR-0001 (populate/b), CDI-BR-0002 (populate/b, db/schema/b) |
-| Category and product display text per locale   | CDI-ENT-0001 (data/migration/b, populate/b), CDI-ENT-0002 (all), CDI-RULE-0003, CDI-BR-0001 (ddl-001/b), CDI-BR-0004 (populate/a), CATINT-ENT-0002                                                     |
-| Item details per locale                        | CDI-ENT-0003 (data/migration/b, db/schema/a, populate/b), CDI-ENT-0004, CDI-RULE-0005, CDI-BR-0004 (populate/a)                                                                                        |
-| Item price precision                           | CATDI-BR-0002, CDI-BR-0003 (populate/a), CDI-RULE-0002 (ddl-002/c), CDI-RULE-0005                                                                                                                      |
-| List price never below unit cost               | CDI-RULE-0001, CATINT-BR-0003, CDI-BR-0001 (db/schema/b), CDI-BR-0002 (populate/a), CDI-BR-0003 (populate/b), CAT-BR-0003 (db/batch/a), CAT-BR-0004 (batch/a), CATDI-BR-0002                           |
-| Localised text refers to an existing record    | CATDI-BR-0001, CDI-BR-0002 (db/schema/b, ddl-001/b)                                                                                                                                                    |
-| Locale codes                                   | CDI-BR-0004 (populate/b), CDI-RULE-0006 (length only)                                                                                                                                                  |
-| Rule C1                                        | CAT-BR-0001, CAT-BR-0002 (batch/a), CATINT-BR-0001, CDI-BR-0001 (db/batch/b, docs/guides/b, c, data/migration/b)                                                                                       |
-| Rule C2                                        | CAT-BR-0002 (db/batch/a), CAT-BR-0003 (batch/a), CATINT-BR-0002, CDI-BR-0002 (db/batch/b)                                                                                                              |
-| Rule C3 re-check                               | CAT-BR-0003 (db/batch/a), CAT-BR-0004 (batch/a), CDI-BR-0003 (db/batch/b)                                                                                                                              |
-| Rule C4                                        | CAT-BR-0004 (db/batch/a), CAT-BR-0005, CATINT-BR-0004, CDI-BR-0004 (db/batch/b), INTEG-BR-0001, CATDI-BR-0003, CATINT-ENT-0002                                                                         |
-| Daily catalog integrity check (`SWHR5-R-0019`) | CATINT-WF-0005 (approved); corroborated by CAT-WF-0001, CAT-WF-0005, CATINT-WF-0001, CDI-WF-0001                                                                                                       |
-| Catalog check log content                      | CAT-BR-0006, CATINT-REQ-0002, CDI-WF-0001 (db/batch/b), CAT-WF-0001                                                                                                                                    |
-| First load when the catalog does not exist     | CATINT-BR-0006, CDI-WF-0001 (docs/guides/b, c); exit 8 from `psl_catalog_check.sh:12`                                                                                                                  |
-| Catalog team alert                             | CATI-REQ-0001, CATINT-REQ-0001                                                                                                                                                                         |
+| Key (ID)                      | Variant used (pass file)                  | Other variants of the key                                                           |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| CAT-BR-0002 (SWHR5-R-0118)    | C2 report (db/batch/a)                    | C1 report (batch/a)                                                                 |
+| CAT-BR-0003 (SWHR5-R-0281)    | price guard plus C3 report (db/batch/a)   | C2 report (batch/a)                                                                 |
+| CAT-BR-0004 (SWHR5-R-0065)    | C4, items only (db/batch/a)               | price guard plus C3 report (batch/a)                                                |
+| CATINT-BR-0001 (SWHR5-R-0070) | C1 to C3 combined (data/migration/c)      | C1 alone (docs/guides/a)                                                            |
+| CDI-BR-0001 (SWHR5-R-0074)    | C1 to C4 at all times (docs/guides/c)     | C1 report, price guard, product FK, one text per category and locale, migrated data |
+| CDI-BR-0002 (SWHR5-R-0284)    | referential integrity (db/schema/b)       | C2 report, item FK and identity, price guard, price precision, category text FK     |
+| CDI-BR-0003 (SWHR5-R-0285)    | price guard with examples (populate/b)    | price guard plus C3 report, price precision                                         |
+| CDI-BR-0004 (SWHR5-R-0120)    | seed details and locale form (populate/b) | C4 report, text field limits                                                        |
+| CDI-ENT-0001 (SWHR5-R-0278)   | three-level hierarchy (db/schema/a)       | category text, product identity, category identity                                  |
+| CDI-ENT-0002 (SWHR5-R-0121)   | descriptive text per locale (db/schema/a) | product text variants, category text per locale                                     |
+| CDI-ENT-0003 (SWHR5-R-0273)   | item details per locale (db/schema/a)     | item identity and parent (ddl-002/a, c)                                             |
+| CDI-ENT-0004 (SWHR5-R-0274)   | ddl-002/c                                 | ddl-002/a (same meaning)                                                            |
+| CDI-RULE-0001 (SWHR5-R-0275)  | 20.00 / 19.99 boundary (db/schema/a)      | ddl-002/b, c (same meaning)                                                         |
+| CDI-WF-0001 (SWHR5-R-0075)    | breaching rows and totals (db/batch/b)    | first load on missing tables (docs/guides/b, c), covered by CATINT-BR-0006          |
 
-Not written as requirements: CATALOG-DATA-INTEGRITY-BR-0001, INTEG-BR-0002 (minimum counts),
-CDI-RULE-0002 in db/schema/a (view), CDI-RULE-0006 padding aspect.
+Not written as requirements (not approved; see `legacy-analysis/ir/_recommendations/catalog-data-integrity.yaml`):
+CATALOG-DATA-INTEGRITY-BR-0001 (minimum counts), CATINT-ENT-0002 (per-locale text entity),
+CATINT-REQ-0001 (duplicate of CATI-REQ-0001), CATINT-WF-0001 (combined workflow), CDI-RULE-0002
+(view, product identity or price precision, depending on the variant).
+
+Behaviour that is in the legacy code but carries no approved key, so is absent from `spec.md`: exit
+code 8 when the first-load request fails (`batch/psl_catalog_check.sh:12`), and that the first load is
+requested non-forced (`forcefully=false`). Both are stated in records whose keys are approved for a
+different variant (CDI-WF-0001 docs/guides variants) or are unapproved.
+
+Approved records that conflict with the code: CATDI-BR-0003 (SWHR5-R-0068) requires en_US text for
+every category and product and forbids other locales, while check C4 (`catalog_check.sql:11-13`)
+checks items only and nothing forbids other locales. It is written as approved; the conflict goes to
+Intent for the Business Owner (Q4).
 
 ## Open questions for the SME
 

@@ -19,16 +19,16 @@ states both as one capability so the rebuild keeps them.
 
 ## Scope
 
-In scope: the 41 IR record keys tagged `catalog-data-integrity` (the server reports 37; several keys
-are reused across pass files with different content, see `design.md`). One record is approved
-(`CATINT-WF-0005` → `SWHR5-R-0019`); every other requirement in the delta spec is a draft without an
-`ID:` line.
+In scope: the 36 approved IR records tagged `catalog-data-integrity`, each written as one keyed
+requirement. Several keys are reused across pass files with different content; `design.md` says which
+variant each requirement is written from.
 
-Out of scope, held for an SME decision (not written as requirements):
+Not specified (not approved, left out of the delta spec):
 
-- Minimum catalog size of 5 categories and 28 items (`CATALOG-DATA-INTEGRITY-BR-0001`, `INTEG-BR-0002`).
-- The combined catalog-item view (`CDI-RULE-0002` in `db/schema/a.yaml`), which has no reader.
-- Fixed-width versus variable-width identifier storage (`CDI-RULE-0006`).
+- Minimum catalog size of 5 categories and 28 items as a rule (`CATALOG-DATA-INTEGRITY-BR-0001`). The
+  approved `INTEG-BR-0002` states only that the declared minimums are not enforced.
+- `CDI-RULE-0002` (combined catalog-item view, which has no reader), `CATINT-ENT-0002`,
+  `CATINT-REQ-0001` and `CATINT-WF-0001`.
 
 Catalog browsing, the populate/reload administration and the catalog page size belong to other
 capabilities.
