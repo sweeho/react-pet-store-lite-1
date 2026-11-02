@@ -1,0 +1,136 @@
+records:
+  - record_key: SIGNON-REQ-0001
+    kind: requirement
+    capability_key: sign-on
+    requirement: >
+      The system SHALL decode the text of every incoming web request (form fields
+      and query parameters) using the UTF-8 character set, and SHALL apply this
+      decoding before any sign-on or access check reads the request, so that user
+      names, passwords, search keywords and other submitted text containing
+      non-ASCII characters are received intact.
+    plain_text: >
+      Everything a user types into the store (sign-in details, registration
+      details, search words) is read as international (UTF-8) text on every page,
+      and this happens before the sign-in check looks at it.
+    technical_note: >
+      EncodingFilter.doFilter calls request.setCharacterEncoding(targetEncoding)
+      and then continues the chain. targetEncoding comes from the filter's
+      "encoding" init-param, set to UTF-8 in WEB-INF/web.xml. The filter is
+      mapped to /* and its filter-mapping is declared before SignOnFilter's
+      (also /*), so the container runs it first and the encoding is fixed before
+      SignOnFilter or any servlet reads a parameter. Only the request encoding is
+      set; the filter does not set a response content type or charset.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      High because the behaviour is stated in two independent places that agree:
+      the Java filter applies the configured encoding unconditionally to every
+      request, and the deployment descriptor both supplies the value UTF-8 and
+      describes the filter as "Sets UTF-8 on every request", mapped to /*. The
+      ordering relative to the sign-on filter is read from the declaration order
+      of filter-mapping elements, which the servlet specification makes the
+      execution order. No test or extracted document exists to corroborate further.
+    risk_class: operational
+    basis: >
+      web.xml declares EncodingFilter with init-param encoding=UTF-8 and maps it
+      to /* ahead of SignOnFilter; EncodingFilter applies that encoding to each
+      request before passing it on. Filed under sign-on as the closest listed
+      capability: the filter is cross-cutting request plumbing with no dedicated
+      capability, and its ordering ahead of the sign-on gate is the one place it
+      bears directly on a listed capability (credentials submitted to
+      j_signon_check). It equally affects account-registration and catalog-search
+      input.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+        line_start: 61
+        line_end: 78
+        excerpt: |
+              public void init(FilterConfig config) throws ServletException {
+                  this.config = config;
+                  this.targetEncoding = config.getInitParameter("encoding");
+              }
+
+              public void destroy() {
+                  config = null;
+                  targetEncoding = null;
+              }
+
+               public  void doFilter(ServletRequest srequest, ServletResponse  sresponse, FilterChain chain)
+                  throws IOException, ServletException {
+
+                  HttpServletRequest request = (HttpServletRequest)srequest;
+                  request.setCharacterEncoding(targetEncoding);
+                  // move on to the next
+                 chain.doFilter(srequest,sresponse);
+              }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 19
+        line_end: 48
+        excerpt: |
+            <filter>
+              <filter-name>EncodingFilter</filter-name>
+              <display-name>EncodingFilter</display-name>
+              <description>Sets UTF-8 on every request</description>
+              <filter-class>com.sun.j2ee.blueprints.encodingfilter.web.EncodingFilter</filter-class>
+              <init-param>
+                <param-name>encoding</param-name>
+                <param-value>UTF-8</param-value>
+              </init-param>
+            </filter>
+            <!-- Encoding Filter Declaration End -->
+
+            <!-- Signon Filter Declaration Start -->
+            <filter>
+              <filter-name>SignOnFilter</filter-name>
+              <display-name>SignOnFilter</display-name>
+              <description>Guards the protected resources in signon-config.xml and handles j_signon_check</description>
+              <filter-class>com.sun.j2ee.blueprints.signon.web.SignOnFilter</filter-class>
+            </filter>
+            <!-- Signon Filter Declaration End -->
+
+            <filter-mapping>
+              <filter-name>EncodingFilter</filter-name>
+              <url-pattern>/*</url-pattern>
+            </filter-mapping>
+
+            <filter-mapping>
+              <filter-name>SignOnFilter</filter-name>
+              <url-pattern>/*</url-pattern>
+            </filter-mapping>
+    stack_metadata:
+      framework: servlet-2.3-filter
+      filter.name: EncodingFilter
+      filter.url_pattern: /*
+      filter.init_param.encoding: UTF-8
+      filter.chain_position: 1 (before SignOnFilter)
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+    description: >
+      No legacy-analysis/sources/**/extracted.md documents exist in the tree, so
+      no document trace could be checked for this module. The filter sets only the
+      request character encoding; the encoding used for responses (pages sent back)
+      is decided elsewhere (JSP page directives or container defaults) and was not
+      in this shard. A human should confirm whether the rebuild must also
+      guarantee UTF-8 output, which this module does not establish.
+suspected_defects:
+  - capability_key: sign-on
+    record_keys: [SIGNON-REQ-0001]
+    severity: low
+    category: unreachable-branch
+    title: Documented ASCII default is never used; a missing setting yields no encoding
+    description: >
+      The field is initialised to "ASCII" with the comment "default to ASCII", but
+      init() unconditionally overwrites it with the "encoding" init-param. If that
+      parameter were absent the value would become null rather than ASCII, and every
+      request would be given a null encoding (container default decoding). With the
+      current deployment descriptor the parameter is present (UTF-8), so the
+      fallback is unreachable today; the stated default is misleading rather than
+      live.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+        line_start: 57
+        line_end: 64
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 24
+        line_end: 27
