@@ -1,0 +1,614 @@
+# SX-0001 extract-c (tie-breaker, independent read) for
+# j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf
+# Framework module: page composition, language selection, screen loading.
+# No capability in capabilities.csv owns page composition; all records are
+# filed under catalog-browsing as the closest home (stated in each basis).
+records:
+  - record_key: CATB-SCR-0001
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: "The system SHALL compose every store page from one common layout made of five named parts: a page title, a banner, a sidebar, a page body and a footer, where each page declares its own title text and its own body content and shares the banner, sidebar and footer."
+    plain_text: "Every page of the store has the same frame: a title, a banner across the top, a sidebar on the left, the page content, and a footer. Only the title and the main content change from page to page."
+    technical_note: "TemplateServlet (mapped to *.screen in web.xml) looks the requested screen up in WEB-INF/screendefinitions_en_US.xml, stores it as a request attribute and forwards to the screen's template (default-template /template.jsp; no screen declares its own). template.jsp places five <template:insert> tags (title, banner, sidebar, body, footer); InsertTag prints a parameter verbatim when direct=\"true\" (the titles) and otherwise includes the named JSP fragment."
+    interface: false
+    confidence: high
+    confidence_basis: "Read in three agreeing places: the composition code (TemplateServlet/Screens/InsertTag), the screen definitions file (all 15 screens declare the same five parameters) and template.jsp's five insert points. The admin guide also states \"15 screens on one template\". Not higher-risk than presentational."
+    risk_class: presentational
+    basis: "Screens.getTemplate falls back to the default template when a screen names none; the definitions file declares only a default template and 15 screens each with title/banner/sidebar/body/footer; InsertTag distinguishes direct text from an included fragment. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 236
+        line_end: 241
+        excerpt: |4
+                        if (screen != null) {
+                            request.setAttribute(WebKeys.CURRENT_SCREEN, screen);
+                            String templateName = localeScreens.getTemplate(screenName);
+                            if (templateName != null) {
+                                insertTemplate(request, response, templateName);
+                            }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/Screens.java"
+        line_start: 90
+        line_end: 101
+        excerpt: |4
+                public String getTemplate(String screenName) {
+                    if (screenMap.containsKey(screenName)) {
+                        String templateName = ((Screen)screenMap.get(screenName)).getTemplate();
+                        if ((templateName != null) && templateMap.containsKey(templateName)) {
+                                return (String)templateMap.get(templateName);
+                        } else {
+                            // return the default if template not defined for screen
+                            return defaultTemplate;
+                        }
+                    } else {
+                            System.err.println("Screens:getTemplate() error: Screen " + screenName + " not defined.");
+                            return null;
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java"
+        line_start: 94
+        line_end: 100
+        excerpt: |4
+                public int doEndTag() throws JspTagException {
+                    try {
+                        if (directInclude && parameterRef != null) {
+                            pageContext.getOut().print(parameterRef.getValue());
+                        } else if (parameterRef != null)  {
+                            if (parameterRef.getValue() != null) pageContext.getRequest().getRequestDispatcher(parameterRef.getValue()).include(pageContext.getRequest(), pageContext.getResponse());
+                        }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 11
+        line_end: 19
+        excerpt: |4
+            <screen-definitions>
+              <default-template>/template.jsp</default-template>
+              <screen name="main">
+                <parameter key="title" value="Welcome to the BluePrints Petstore" direct="true"/>
+                <parameter key="banner" value="/banner.jsp" />
+                <parameter key="sidebar" value="/sidebar.jsp" />
+                <parameter key="body" value="/main.jsp" />
+                <parameter key="footer" value="/footer.jsp" />
+              </screen>
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/template.jsp"
+        line_start: 36
+        line_end: 48
+        excerpt: |4
+              <title><template:insert parameter="title" /></title>
+             </head>
+             <body bgcolor="#FFFFFF">
+              <table width="100%" border="0" cellpadding="5" cellspacing="0">
+               <tr height="100" valign="top">
+                <td colspan="2"><template:insert parameter="banner" /></td>
+               </tr>
+               <tr valign="top">
+                 <td width="20%" valign="top"><template:insert parameter="sidebar" /></td>
+                 <td width="80%" valign="top"><template:insert parameter="body" /></td>
+               </tr>
+               <tr>
+                <td colspan="2"><template:insert parameter="footer" /></td>
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 108
+        line_end: 108
+        excerpt: |4
+             <tr><td>Screens</td><td><code>WEB-INF/screendefinitions_en_US.xml</code></td><td>15 screens on one template</td></tr>
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      jsp.page: "/template.jsp"
+      db.object: "n/a"
+      screen_definitions: "WEB-INF/screendefinitions_en_US.xml"
+      url_pattern: "*.screen"
+  - record_key: CATB-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: "The system SHALL serve a page for each of exactly these named screens: main (title \"Welcome to the BluePrints Petstore\"), category (\"Products\"), product (\"Items\"), item (\"Item\"), search (\"Search\"), signon (\"Sign On\"), signon_welcome (\"Welcome\"), signon_error (\"Sign On Error\"), signon_locked (\"Account Locked\"), user_creation_error (\"Create Account Error\"), signoff (\"Sign Off\"), account (\"My Account\"), access_denied (\"Access Denied\"), populate_admin (\"Catalog Administration\") and general_error (\"General Error\"), where signon_welcome shows the same body as main under the title \"Welcome\"."
+    plain_text: "The store has fifteen pages, each with a fixed title: the home page, category, product, item, search, sign-in, the welcome page after sign-in, sign-in error, account locked, account creation error, signed out, My Account, access denied, catalog administration, and a general error page. The welcome page after sign-in shows the home page content."
+    technical_note: "The page inventory is data, not code: screendefinitions_en_US.xml lists the 15 <screen> elements read by ScreenDefinitionDAO.getScreens at servlet start-up; a page is reached as <name>.screen. signon_welcome reuses /main.jsp as its body."
+    interface: false
+    confidence: high
+    confidence_basis: "The screen list is read directly from the definitions file loaded by this module, and its count (15) matches the admin guide's configuration table. Filed under catalog-browsing although several pages belong to sign-on/access-control, because the inventory is one cross-cutting list."
+    risk_class: presentational
+    basis: "Fifteen <screen name=...> entries with a direct=\"true\" title parameter; admin guide says 15 screens on one template. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 153
+        line_end: 182
+        excerpt: |4
+                public static Screens getScreens(Element root) {
+                    // get the template
+                    String defaultTemplate = getTagValue(root, DEFAULT_TEMPLATE);
+                    if (defaultTemplate == null) {
+                        System.err.println("*** ScreenDefinitionDAO error: " +
+                                           " Default Template not Defined.");
+                        return null;
+                    }
+
+                    Screens screens = new Screens(defaultTemplate);
+                    getTemplates(root, screens);
+                    // get screens
+                    NodeList list = root.getElementsByTagName(SCREEN);
+                    for (int loop = 0; loop < list.getLength(); loop++) {
+                        Node node = list.item(loop);
+                        if ((node != null) && node instanceof Element) {
+                            String templateName = ((Element)node).getAttribute(TEMPLATE);
+                            String screenName = ((Element)node).getAttribute(NAME);
+                            HashMap parameters = getParameters(node);
+                            Screen screen = new Screen(screenName, templateName, parameters);
+                            if (!screens.containsScreen(screenName)) {
+                                screens.addScreen(screenName, screen);
+                            } else {
+                                System.err.println("*** Non Fatal errror: Screen " + screenName +
+                                                   " defined more than once in screen definitions file");
+                            }
+                        }
+                    }
+                    return screens;
+                }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 55
+        line_end: 61
+        excerpt: |4
+              <screen name="signon_welcome">
+                <parameter key="title" value="Welcome" direct="true"/>
+                <parameter key="banner" value="/banner.jsp" />
+                <parameter key="sidebar" value="/sidebar.jsp" />
+                <parameter key="body" value="/main.jsp" />
+                <parameter key="footer" value="/footer.jsp" />
+              </screen>
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 111
+        line_end: 118
+        excerpt: |4
+              <screen name="general_error">
+                <parameter key="title" value="General Error" direct="true"/>
+                <parameter key="banner" value="/banner.jsp" />
+                <parameter key="sidebar" value="/sidebar.jsp" />
+                <parameter key="body" value="/general_error.jsp" />
+                <parameter key="footer" value="/footer.jsp" />
+              </screen>
+            </screen-definitions>
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 108
+        line_end: 108
+        excerpt: |4
+             <tr><td>Screens</td><td><code>WEB-INF/screendefinitions_en_US.xml</code></td><td>15 screens on one template</td></tr>
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      screen_definitions: "WEB-INF/screendefinitions_en_US.xml"
+  - record_key: CATB-BR-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: "The system SHALL choose the display language for each page request in this order: a language named on the request itself, else the language remembered in the visitor's session, else the store default; and WHEN the chosen language has no page definitions THEN the system SHALL use the store default, which is US English (en_US) and is the only language configured."
+    plain_text: "The store is shown in US English. A link may ask for another language, but since only US English exists, every page is always shown in US English. A language asked for on a link applies to that one page only and is not remembered."
+    technical_note: "TemplateServlet.process reads request parameter \"locale\", else session attribute com.sun.j2ee.blueprints.waf.LOCALE, then falls back to init-param default_locale when allScreens has no entry; web.xml sets locales=en_US and default_locale=en_US. The parameter is never written back to the session. If a screen is missing from the chosen locale it is retried in the default locale."
+    interface: false
+    confidence: high
+    confidence_basis: "Precedence read in one clear code block, the configured value read from web.xml, and the user guide states the store is in English (en_US) — code + config + document agree on the effective outcome. The per-request-only override is read from code, not observed."
+    risk_class: presentational
+    basis: "Code comment \"The language when specified as a parameter overrides the language set in the session\"; web.xml configures one locale; user guide states en_US only. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 151
+        line_end: 160
+        excerpt: |4
+                    String languageParam = request.getParameter("locale");
+                    // The language when specified as a parameter overrides the language set in the session
+                    if (languageParam != null) {
+                        localeString = languageParam;
+                    } else if (request.getSession().getAttribute(WebKeys.LOCALE) != null) {
+                        localeString = ((Locale)request.getSession().getAttribute(WebKeys.LOCALE)).toString();
+                    }
+                    if (allScreens.get(localeString) == null) {
+                       localeString = defaultLocale;
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 96
+        line_end: 106
+        excerpt: |4
+                    defaultLocale = config.getInitParameter("default_locale");
+                    if (defaultLocale == null) {
+                        defaultLocale = (Locale.getDefault()).toString();
+                    }
+                    String locales = config.getInitParameter("locales");
+                    if (locales != null) {
+                        StringTokenizer strTok = new StringTokenizer(locales,",");
+                        while (strTok.hasMoreTokens()) {
+                            initScreens(config.getServletContext(), strTok.nextToken());
+                        }
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 229
+        line_end: 235
+        excerpt: |4
+                        if (localeScreens != null) screen = (Screen)localeScreens.getScreen(screenName);
+                        // default to the default locale screen if it was not defined in the locale specific definitions
+                        if (screen == null) {
+                            System.err.println("Screen not Found loading default from " + defaultLocale);
+                            localeScreens = (Screens)allScreens.get(defaultLocale);
+                            screen = (Screen)localeScreens.getScreen(screenName);
+                        }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 56
+        line_end: 63
+        excerpt: |4
+                <init-param>
+                  <param-name>locales</param-name>
+                  <param-value>en_US</param-value>
+                </init-param>
+                <init-param>
+                  <param-name>default_locale</param-name>
+                  <param-value>en_US</param-value>
+                </init-param>
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 25
+        line_end: 25
+        excerpt: |4
+            <p>The store is in English (en_US) and shows prices in US dollars.</p>
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      session.scope: "com.sun.j2ee.blueprints.waf.LOCALE"
+      request.parameter: "locale"
+      servlet.init_param: "locales=en_US; default_locale=en_US"
+  - record_key: CATB-BR-0002
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: "GIVEN a page request names a screen that is not defined WHEN the page is requested THEN the system SHALL respond with an inline message \"Error: Definition for screen <name> not found\" in place of the page, rather than the store's General Error page."
+    plain_text: "If someone asks for a page that does not exist, the store shows a bare one-line \"definition not found\" message naming the page, not the normal store error page."
+    technical_note: "TemplateServlet.process: when neither the chosen nor the default locale defines the screen it writes the message straight to the response with content type text/html;charset=8859_1 and no status code set (so HTTP 200). web.xml's error-page for java.lang.Exception -> /general_error.screen does not apply because no exception is thrown."
+    interface: false
+    confidence: medium
+    confidence_basis: "One clear code path; nothing in docs or tests describes unknown-page behaviour. The user guide's error table lists only a generic \"Error\" page, which this path does not use."
+    risk_class: operational
+    basis: "Explicit else-branch writing the message text; no exception raised, so the declarative error page is not triggered. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 242
+        line_end: 246
+        excerpt: |4
+                        } else {
+                            response.setContentType("text/html;charset=8859_1");
+                            PrintWriter out = response.getWriter();
+                            out.println("<font size=+4>Error:</font><br>Definition for screen " + screenName + " not found");
+                        }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 131
+        line_end: 134
+        excerpt: |4
+              <error-page>
+                <exception-type>java.lang.Exception</exception-type>
+                <location>/general_error.screen</location>
+              </error-page>
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      http.status: "200 (not set)"
+      content_type: "text/html;charset=8859_1"
+  - record_key: CATB-WF-0001
+    kind: workflow
+    capability_key: catalog-browsing
+    requirement: "The system SHALL remember, per visitor session, the last named page the visitor requested, and WHEN the visitor requests the special page name \"PREVIOUS\" THEN the system SHALL show that remembered page again (without re-applying that page's original request parameters, because previous-request caching is not enabled), and SHALL NOT overwrite the remembered page with \"PREVIOUS\"."
+    plain_text: "The store keeps track of the last page each visitor looked at and has a special \"go back to previous page\" address that redisplays it. Nothing in the store currently links to that address."
+    technical_note: "TemplateServlet stores <screen>.<ext> in session attribute com.sun.j2ee.blueprints.waf.PREVIOUS_SCREEN on every non-PREVIOUS request; PREVIOUS.screen reads it back. Replay of previous parameters/attributes is gated by init-params cache_previous_screen_parameters / cache_previous_screen_attributes, neither of which web.xml sets, so both are off. No JSP, servlet or config in the application links to PREVIOUS.screen."
+    interface: false
+    confidence: medium
+    confidence_basis: "Behaviour is read clearly from one code path and the web.xml init-params, but no caller was found, so whether anyone relies on it is not established."
+    dispute:
+      reason: unresolved-reachability
+      detail: "The path is reachable by typing PREVIOUS.screen (web.xml maps *.screen to the servlet), but no page, link or redirect in the application references PREVIOUS.screen. A search of access logs for PREVIOUS.screen, or an SME confirming whether any bookmark/external link uses it, would settle whether to keep it."
+    risk_class: presentational
+    basis: "PREVIOUS_SCREEN constant and branch in TemplateServlet.process; caching flags default false and are not configured in web.xml. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 73
+        line_end: 73
+        excerpt: |4
+                private static final String PREVIOUS_SCREEN = "PREVIOUS";
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 168
+        line_end: 176
+        excerpt: |4
+                     // check if request is for the previous screen
+                    if (screenName.equals(PREVIOUS_SCREEN)) {
+                        String longScreenName  =  (String)request.getSession().getAttribute(WebKeys.PREVIOUS_SCREEN);
+                        int lastDot2 = longScreenName.lastIndexOf(".");
+                        if ( lastDot2 != -1 && lastDot2 > 0) {
+                            screenName = longScreenName.substring(0, lastDot2);
+                         }
+                        // put the request attributes stored in the session in the request
+                        if (cachePreviousScreenParameters) {
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 197
+        line_end: 199
+        excerpt: |4
+                    } else {
+                              String extension = selectedUrl.substring(lastDot, selectedUrl.length());
+                              request.getSession().setAttribute(WebKeys.PREVIOUS_SCREEN, screenName + extension);
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 80
+        line_end: 94
+        excerpt: |4
+                    String cachePreviousScreenAttributesString = config.getInitParameter("cache_previous_screen_attributes");
+                    if (cachePreviousScreenAttributesString != null) {
+                        if (cachePreviousScreenAttributesString.toLowerCase().equals("true")) {
+                            System.out.println("TemplateServlet: Enabled caching of previous screen attributes.");
+                            cachePreviousScreenAttributes = true;
+                        }
+                    }
+                    // enable the caching of previous screen parameters
+                    String cachePreviousScreenParametersString = config.getInitParameter("cache_previous_screen_parameters");
+                    if (cachePreviousScreenParametersString != null) {
+                        if (cachePreviousScreenParametersString.toLowerCase().equals("true")) {
+                            System.out.println("TemplateServlet: Enabled caching of previous screen parameters.");
+                            cachePreviousScreenParameters = true;
+                        }
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 51
+        line_end: 65
+        excerpt: |4
+              <servlet>
+                <servlet-name>TemplateServlet</servlet-name>
+                <display-name>TemplateServlet</display-name>
+                <description>Composes each *.screen from the screen definitions</description>
+                <servlet-class>com.sun.j2ee.blueprints.waf.view.template.TemplateServlet</servlet-class>
+                <init-param>
+                  <param-name>locales</param-name>
+                  <param-value>en_US</param-value>
+                </init-param>
+                <init-param>
+                  <param-name>default_locale</param-name>
+                  <param-value>en_US</param-value>
+                </init-param>
+                <load-on-startup>2</load-on-startup>
+              </servlet>
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      session.scope: "com.sun.j2ee.blueprints.waf.PREVIOUS_SCREEN"
+      servlet.init_param: "cache_previous_screen_parameters, cache_previous_screen_attributes (unset)"
+  - record_key: CATB-REQ-0002
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: "The system SHALL load the page definitions for each configured language once at start-up, and WHEN a page, part or template is defined more than once in the definitions THEN the system SHALL keep the first definition, ignore the later ones and log a non-fatal warning; WHEN a language's definitions file is missing or unreadable THEN the system SHALL log an error and serve that language from the default language."
+    plain_text: "The list of pages is read once when the store starts. If the same page is listed twice, the first listing wins. If a language's page list is missing, the store logs it and uses the default language."
+    technical_note: "TemplateServlet.init/initScreens loads /WEB-INF/screendefinitions_<locale>.xml for each token of init-param locales (load-on-startup 2); ScreenDefinitionDAO.getScreens/getTemplates/getParameters each check contains* before adding and print \"*** Non Fatal errror ... defined more than once\". Parse errors are caught and printed by loadDocument, which returns null."
+    interface: false
+    confidence: medium
+    confidence_basis: "First-wins duplicate handling is read in three parallel DAO methods; start-up loading in TemplateServlet.init. No test or document describes it. Note Screens.addScreen itself would let a later entry replace an earlier one; the DAO's pre-check is what makes the first win."
+    risk_class: operational
+    basis: "contains-check-then-add in getScreens, getTemplates and getParameters; initScreens error logging. Filed under catalog-browsing as the closest listed capability: page composition is cross-cutting and has no capability of its own."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 100
+        line_end: 106
+        excerpt: |4
+                    String locales = config.getInitParameter("locales");
+                    if (locales != null) {
+                        StringTokenizer strTok = new StringTokenizer(locales,",");
+                        while (strTok.hasMoreTokens()) {
+                            initScreens(config.getServletContext(), strTok.nextToken());
+                        }
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 109
+        line_end: 126
+        excerpt: |4
+                private void initScreens(ServletContext context, String language) {
+                    URL screenDefinitionURL = null;
+                    try {
+                        screenDefinitionURL = context.getResource("/WEB-INF/screendefinitions_" + language + ".xml");
+                    } catch (java.net.MalformedURLException ex) {
+                        System.err.println("TemplateServlet: malformed URL exception: " + ex);
+                    }
+                    if (screenDefinitionURL != null) {
+                        Screens screenDefinitions = ScreenDefinitionDAO.loadScreenDefinitions(screenDefinitionURL);
+                        if (screenDefinitions != null) {
+                            allScreens.put(language, screenDefinitions);
+                        } else {
+                            System.err.println("Template Servlet Error Loading Screen Definitions: Confirm that file at URL /WEB-INF/screendefinitions_" + language + ".xml contains the screen definitions");
+                        }
+                    } else {
+                        System.err.println("Template Servlet Error Loading Screen Definitions: URL /WEB-INF/screendefinitions_" + language + ".xml not found");
+                    }
+                }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 173
+        line_end: 178
+        excerpt: |4
+                            if (!screens.containsScreen(screenName)) {
+                                screens.addScreen(screenName, screen);
+                            } else {
+                                System.err.println("*** Non Fatal errror: Screen " + screenName +
+                                                   " defined more than once in screen definitions file");
+                            }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 225
+        line_end: 231
+        excerpt: |4
+                                    if (!params.containsKey(key)) {
+                                        params.put(key, new Parameter(key, value, direct));
+                                    } else {
+                                        System.err.println("*** Non Fatal errror: " +
+                                                           "Parameter " + key + " is defined more than once");
+
+                                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 105
+        line_end: 118
+        excerpt: |4
+                    } catch (SAXParseException err) {
+                        System.err.println ("ScreenFlowXmlDAO ** Parsing error" + ", line " +
+                                    err.getLineNumber () + ", uri " + err.getSystemId ());
+                        System.err.println("ScreenFlowXmlDAO error: " + err.getMessage ());
+                    } catch (SAXException e) {
+                        System.err.println("ScreenFlowXmlDAO error: " + e);
+                    } catch (java.net.MalformedURLException mfx) {
+                        System.err.println("ScreenFlowXmlDAO error: " + mfx);
+                    } catch (java.io.IOException e) {
+                        System.err.println("ScreenFlowXmlDAO error: " + e);
+                    } catch (Exception pce) {
+                        System.err.println("ScreenFlowXmlDAO error: " + pce);
+                    }
+                    return null;
+    stack_metadata:
+      framework: "BluePrints WAF template servlet"
+      load_on_startup: "2"
+findings:
+  - kind: ambiguity
+    path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/controller/web/util/WebKeys.java"
+    description: "WebKeys declares session/request key names for components that are not present in this module or anywhere else found in the application (COMPONENT_MANAGER, SCREEN_FLOW_MANAGER, REQUEST_PROCESSOR, URL_MAPPINGS, EVENT_MAPPINGS, MISSING_FORM_DATA, WEB_CONTROLLER, EJB_CONTROLLER - the last with a trailing space in its value). Only CURRENT_SCREEN, PREVIOUS_SCREEN, CURRENT_URL, PREVIOUS_REQUEST_PARAMETERS, PREVIOUS_REQUEST_ATTRIBUTES and LOCALE are used by the template code. No requirement was emitted for the unused keys; a human may confirm they are residue of the full Petstore and can be dropped."
+  - kind: ambiguity
+    path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+    description: "Every page request removes session attribute com.sun.j2ee.blueprints.waf.CURRENT_URL (TemplateServlet.process, lines 147-149), but nothing in this module or the rest of the application sets it. Whether any other component (e.g. the sign-on filter) was meant to rely on it for return-after-sign-in could not be established from this shard; no record emitted."
+  - kind: unparseable
+    path: "legacy-analysis/sources"
+    description: "The stage asked for legacy-analysis/sources/**/extracted.md documents to be read and cited; that directory does not exist in this tree. The HTML guides under legacy-source/j2ee-pet-store-lite/docs/guides were cited directly by path and line instead of as document pointers with anchors."
+suspected_defects:
+  - capability_key: catalog-browsing
+    record_keys: ["CATB-BR-0002"]
+    severity: medium
+    category: other
+    title: "Unknown-page message echoes the requested page name into HTML unescaped"
+    description: "The page name is taken from the address the visitor typed and written into the \"Definition for screen ... not found\" HTML response without escaping, so markup placed in the address is rendered by the browser (reflected cross-site scripting surface). The response also carries HTTP 200 rather than a not-found status, and declares the charset as \"8859_1\" while every other page is UTF-8."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 163
+        line_end: 167
+        excerpt: |4
+                    int lastPathSeparator = selectedUrl.lastIndexOf("/") + 1;
+                    int lastDot = selectedUrl.lastIndexOf(".");
+                    if (lastPathSeparator != -1 && lastDot != -1 && lastDot > lastPathSeparator) {
+                        screenName = selectedUrl.substring(lastPathSeparator, lastDot);
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 242
+        line_end: 246
+        excerpt: |4
+                        } else {
+                            response.setContentType("text/html;charset=8859_1");
+                            PrintWriter out = response.getWriter();
+                            out.println("<font size=+4>Error:</font><br>Definition for screen " + screenName + " not found");
+                        }
+  - capability_key: catalog-browsing
+    record_keys: ["CATB-WF-0001"]
+    severity: low
+    category: error-swallowed
+    title: "'Previous page' with no page visited yet fails with an internal error"
+    description: "When PREVIOUS.screen is the first page requested in a session there is no remembered page; the code dereferences the missing value and throws a NullPointerException, which the container turns into the General Error page instead of a defined outcome."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 169
+        line_end: 171
+        excerpt: |4
+                    if (screenName.equals(PREVIOUS_SCREEN)) {
+                        String longScreenName  =  (String)request.getSession().getAttribute(WebKeys.PREVIOUS_SCREEN);
+                        int lastDot2 = longScreenName.lastIndexOf(".");
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 131
+        line_end: 134
+        excerpt: |4
+              <error-page>
+                <exception-type>java.lang.Exception</exception-type>
+                <location>/general_error.screen</location>
+              </error-page>
+  - capability_key: catalog-browsing
+    record_keys: ["CATB-SCR-0001"]
+    severity: medium
+    category: error-swallowed
+    title: "A page part that fails to render is logged and silently dropped"
+    description: "When the banner, sidebar, body or footer fragment throws while being included, the error is caught, printed to the server log, and the rest of the page is rendered with that part missing or truncated. The visitor sees a partial page with no error indication, and the declared General Error page is not used. Output flush failures at the start of each part are also swallowed with no log at all."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java"
+        line_start: 73
+        line_end: 78
+        excerpt: |4
+                public int doStartTag() throws JspTagException {
+                     try{
+                         pageContext.getOut().flush();
+                     } catch (Exception e){
+                         // do nothing
+                     }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java"
+        line_start: 94
+        line_end: 106
+        excerpt: |4
+                public int doEndTag() throws JspTagException {
+                    try {
+                        if (directInclude && parameterRef != null) {
+                            pageContext.getOut().print(parameterRef.getValue());
+                        } else if (parameterRef != null)  {
+                            if (parameterRef.getValue() != null) pageContext.getRequest().getRequestDispatcher(parameterRef.getValue()).include(pageContext.getRequest(), pageContext.getResponse());
+                        }
+                     } catch (Exception ex) {
+                         System.err.println("InsertTag:doEndTag caught: " + ex);
+                         ex.printStackTrace();
+                    }
+                    return EVAL_PAGE;
+                }
+  - capability_key: catalog-browsing
+    record_keys: ["CATB-REQ-0002"]
+    severity: low
+    category: unreachable-branch
+    title: "Missing default-template check can never fire"
+    description: "The loader rejects a definitions file with no default template only if the lookup returns null, but the lookup returns an empty string when the element is absent. A file without a default template is therefore accepted with an empty template path, and the failure surfaces later on every page request instead of at start-up."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 155
+        line_end: 160
+        excerpt: |4
+                    String defaultTemplate = getTagValue(root, DEFAULT_TEMPLATE);
+                    if (defaultTemplate == null) {
+                        System.err.println("*** ScreenDefinitionDAO error: " +
+                                           " Default Template not Defined.");
+                        return null;
+                    }
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java"
+        line_start: 293
+        line_end: 304
+        excerpt: |4
+                public static String getTagValue(Element root, String tagName) {
+                    String returnString = "";
+                    NodeList list = root.getElementsByTagName(tagName);
+                    for (int loop = 0; loop < list.getLength(); loop++) {
+                        Node node = list.item(loop);
+                        if (node != null) {
+                            Node child = node.getFirstChild();
+                            if ((child != null) && child.getNodeValue() != null) return child.getNodeValue();
+                        }
+                    }
+                    return returnString;
+                }
+  - capability_key: catalog-browsing
+    record_keys: ["CATB-BR-0001", "CATB-REQ-0002"]
+    severity: low
+    category: other
+    title: "If the default language fails to load, every page request crashes"
+    description: "When the default language's definitions could not be loaded at start-up, the fallback lookup returns nothing and is dereferenced without a check, so every page request throws a NullPointerException (shown as the General Error page, which is itself a page served by the same mechanism)."
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 228
+        line_end: 234
+        excerpt: |4
+                        Screens localeScreens = (Screens)allScreens.get(localeString);
+                        if (localeScreens != null) screen = (Screen)localeScreens.getScreen(screenName);
+                        // default to the default locale screen if it was not defined in the locale specific definitions
+                        if (screen == null) {
+                            System.err.println("Screen not Found loading default from " + defaultLocale);
+                            localeScreens = (Screens)allScreens.get(defaultLocale);
+                            screen = (Screen)localeScreens.getScreen(screenName);
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java"
+        line_start: 109
+        line_end: 126
+        excerpt: |4
+                private void initScreens(ServletContext context, String language) {
+                    URL screenDefinitionURL = null;
+                    try {
+                        screenDefinitionURL = context.getResource("/WEB-INF/screendefinitions_" + language + ".xml");
+                    } catch (java.net.MalformedURLException ex) {
+                        System.err.println("TemplateServlet: malformed URL exception: " + ex);
+                    }
+                    if (screenDefinitionURL != null) {
+                        Screens screenDefinitions = ScreenDefinitionDAO.loadScreenDefinitions(screenDefinitionURL);
+                        if (screenDefinitions != null) {
+                            allScreens.put(language, screenDefinitions);
+                        } else {
+                            System.err.println("Template Servlet Error Loading Screen Definitions: Confirm that file at URL /WEB-INF/screendefinitions_" + language + ".xml contains the screen definitions");
+                        }
+                    } else {
+                        System.err.println("Template Servlet Error Loading Screen Definitions: URL /WEB-INF/screendefinitions_" + language + ".xml not found");
+                    }
+                }
