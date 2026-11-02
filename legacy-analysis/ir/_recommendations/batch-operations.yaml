@@ -1,0 +1,238 @@
+# Recommendations for batch-operations (SX-0001 synthesize). Recommendations only, not decisions.
+# Several record_keys are reused by different passes with different content (BATCH-REQ-0001/0002/0003,
+# BATCH-INT-0001, BATCH-BR-0001, BAT-BR-0001/0002, BATCH-WF-0001). Where that happens the reason
+# names the pass file (under legacy-analysis/ir/_passes/j2ee-pet-store-lite/) each variant comes from.
+recommendations:
+  - record_key: BATCH-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      All three variants (batch/a, batch/b, scheduler/control-m/a) state the same chain and times, and the
+      Control-M INCOND/OUTCOND, script headers and runbook section 2 agree. Prefer the batch/a wording,
+      which also names the independent catalog check and 15-minute unlock.
+  - record_key: BATCH-WFL-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same chain as BATCH-WF-0001 without times; consistent with the scheduler export. Duplicate; merge into it.
+  - record_key: BAT-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Runbook restatement of the chain; matches the scheduler export exactly. Duplicate of BATCH-WF-0001.
+  - record_key: BAT-WF-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Chain plus the hold-on-backup-failure edge case; both read directly from PSL_PETSTORE.xml lines 15-85.
+  - record_key: BO-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Chain plus start/end log lines; both confirmed by the scheduler export and psl_log in conf/env.sh.
+  - record_key: BATCH-OPERATIONS-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Extract gating, exit 8 and the security mail match PSL_PETSTORE.xml lines 27-39 and psl_audit_extract.sh.
+      Note the suspected defect that an unchecked rename can still end 0 (design.md SD2) goes to the defect register.
+  - record_key: BATCH-WF-0007
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Gating and exit codes are right, but "allow one rerun" is not shown to be automatic (MAXRERUN=1 with no
+      INTERVAL), and a successful extract also releases the sign-on report, not only the Sunday purge.
+    edited_requirement: >
+      The system SHALL run the sign-on audit extract daily no earlier than 01:30, only after that day's database
+      backup has succeeded, with at most one rerun; a failed export step SHALL end with exit code 8 and a
+      successful run SHALL end with exit code 0 and release that day's sign-on report and, on Sundays, the audit purge.
+  - record_key: BATCH-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Three different records share this key. Dockerfile/a (batch reaches the live DB while the store runs) and
+      conf/a (default folders, overrides, shared batch.log) both match their code exactly. scheduler/control-m/a
+      (critical backup, 2 reruns 10 minutes apart) matches MAXRERUN=2 INTERVAL=00010M. Accept each, but re-key
+      the collisions so each record is addressable on its own.
+  - record_key: BATCH-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Six records share this key: separate output locations (Dockerfile/a, Dockerfile/b), daily dated backup with
+      retention (batch/a), ERROR-line failure detection (conf/a), and the failed-backup mail plus hold
+      (scheduler/control-m/a and /b). Each matches its source. The batch/a variant inherits the retention
+      dispute (see BAT-BR-0002), and conf/a describes SD1 behaviour that must be confirmed in the defect
+      register. Re-key the collisions before approval.
+  - record_key: BATCH-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Four records share this key: packaging in one deployable unit (Dockerfile/a, medium), backup failure
+      reruns, mail and hold (batch/a), daily dated online backup (batch/b), and backup-fail mail with extract
+      not started (scheduler/control-m/b). All agree with PSL_PETSTORE.xml and psl_db_backup.sh. Re-key the collisions.
+  - record_key: BATCH-REQ-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Exit codes and log lines match env.sh and the runbook, but "8 on a file error" is documentation only: no
+      script checks its file steps (SD2), and the catalog check ignores psl_ij failures (SD3). Code wins for what
+      production does; the gap between runbook and code goes to Intent for the Business Owner.
+    edited_requirement: >
+      Every batch job SHALL end with exit code 0 on success, 4 when the catalog integrity check finds bad catalog
+      data, and 8 when a database step reports an error line or the sample-data load request fails, and SHALL write
+      one time-stamped line naming the job to the shared batch log when it starts and when it ends.
+  - record_key: BATCH-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      The alert matrix is exactly the three ON/DOMAIL blocks in PSL_PETSTORE.xml; every other job has none.
+      Whether the silent failures are acceptable is a defect-register question (SD4), not a reason to change the record.
+  - record_key: BATCH-REQ-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The "yesterday" window, same-day overwrite and manual older-day rerun match audit_extract.sql and runbook 4.2.
+      "Rerun automatically at most once" is not proven automatic (Q2), and the gap-free-extract question (Q5) goes to Intent.
+  - record_key: BATCH-REQ-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      psl_log and the per-job detail logs are visible in env.sh and the unlock, purge and catalog wrappers.
+  - record_key: BATCH-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Four records share this key (Dockerfile/b embedded DB plus 1527 listener; conf/a HTTP store URL and 1527;
+      pom.xml/a and pom.xml/b DB tools shipped at server level). All match their files. Merge the two pom.xml
+      variants and re-key the rest.
+  - record_key: BATCH-OPERATIONS-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Default folders and overrides match conf/env.sh lines 3-9 exactly. The fixed paths in the SQL (SD2) are a defect to confirm.
+  - record_key: BATCH-OPERATIONS-INT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      PSL_DB_URL in env.sh line 10 states the database, host, port and user. The embedded password is a security defect (SD9).
+  - record_key: BATCH-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Two records share this key (conf/a and scheduler/control-m/a), both "keep 7 days". Documents say 7 days;
+      the code (find -mtime +7) keeps about 8 copies. Trust the code for what runs today; which one is intended
+      goes to Intent for the Business Owner.
+    edited_requirement: >
+      After each successful backup the system SHALL delete dated backups older than the 7-day backup retention
+      setting; whether a backup aged between 7 and 8 days is kept is to be decided by the Business Owner.
+  - record_key: BATCH-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      The hold and the urgent operations mail are read directly from the INCOND/OUTCOND and DOMAIL in PSL_PETSTORE.xml.
+  - record_key: BATCH-BR-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Says "older than 7 days"; the same retention dispute as BAT-BR-0002 applies. Use the BATCH-BR-0001 edited wording.
+    edited_requirement: >
+      After each successful backup the system SHALL delete dated backups older than the 7-day backup retention
+      setting; whether a backup aged between 7 and 8 days is kept is to be decided by the Business Owner.
+  - record_key: BATCH-BR-0005
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Retry counts match the scheduler, but "critical" is a Control-M flag, not a behaviour, and the extract
+      rerun is not shown to be automatic (Q2). Drop the critical wording and say the account unlock is not rerun either.
+    edited_requirement: >
+      A failed backup SHALL be rerun automatically up to 2 more times, 10 minutes apart, and a failed audit
+      extract SHALL be rerun at most once; the sign-on report, the audit purge, the catalog check and the
+      account unlock SHALL NOT be rerun automatically.
+  - record_key: BATCH-BR-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Matches the three DOMAIL blocks word for word, including the message texts.
+  - record_key: BATCH-BR-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The 0/4/8 mapping matches the wrappers, but "file step failed" ending with 8 is runbook-only (SD2).
+      The conflict goes to Intent; confirm in the defect register what the code does today.
+  - record_key: BATCH-OPERATIONS-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Same retention dispute as BAT-BR-0002; "one per calendar day" is correct (same-date replace).
+    edited_requirement: >
+      The system SHALL keep one database backup per calendar day and, after each successful backup, SHALL delete
+      dated backups older than the 7-day retention setting; whether a backup aged between 7 and 8 days is kept is
+      to be decided by the Business Owner.
+  - record_key: BATCH-OPERATIONS-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      The timestamp format and the ERROR-line rule are both literal in conf/env.sh lines 19-31. SD1 (exit status ignored) is a defect to confirm.
+  - record_key: BAT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Three records share this key (db/batch/a, db/batch/b, docs/guides/b): online dated backup with same-date
+      replace, the last two adding retention and reruns. They match psl_db_backup.sh and the scheduler; the
+      retention part inherits the BAT-BR-0002 dispute. Re-key the collisions.
+  - record_key: BAT-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Two variants. db/batch/a states the code exactly (more than 7 whole days, keeps about 8) and is disputed
+      contradicts-docs; docs/guides/b states exit codes and log lines, which match env.sh. Accept both as
+      descriptions of production; the 7-day vs 8-copies question goes to Intent for the Business Owner.
+  - record_key: BAT-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Exit codes and the alert matrix agree with the scheduler ON blocks and wrapper exits; the silent failures are SD4.
+  - record_key: BAT-BR-0005
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Backup retry is exact; "retry the extract automatically once" is not established by MAXRERUN=1 without
+      INTERVAL (Q2). An operator with Control-M access should confirm.
+    edited_requirement: >
+      GIVEN the nightly backup fails, THEN the system SHALL rerun it automatically up to 2 more times, 10 minutes
+      apart. GIVEN the audit extract fails, THEN it SHALL be rerun at most once. Other batch jobs SHALL NOT be
+      rerun automatically.
+  - record_key: BAT-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Runbook 4.1 is the only source for the restore procedure; nothing in code contradicts it. Duplicate of BO-REQ-0002.
+  - record_key: BO-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      The runbook restatement of backup, retention and failure handling matches the scheduler; it inherits the retention dispute.
+  - record_key: BO-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Same restore procedure as BAT-REQ-0001, documented only. Merge the two.
+  - record_key: BO-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      The exit codes and "rerun after the cause is fixed" match runbook section 4 and the wrappers.
+  - record_key: BATCH-RULE-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      "Keep 7 days" carries the same retention dispute as BAT-BR-0002; use the shared edited wording.
+    edited_requirement: >
+      After each successful backup the system SHALL delete dated backups older than the 7-day backup retention
+      setting; whether a backup aged between 7 and 8 days is kept is to be decided by the Business Owner.
+  - record_key: BO-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The pool size and wait come from a single webapp configuration source. It is store database configuration
+      more than batch behaviour; consider moving it to the capability that owns data access.
