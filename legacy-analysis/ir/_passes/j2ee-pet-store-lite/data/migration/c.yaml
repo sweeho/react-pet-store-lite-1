@@ -1,0 +1,556 @@
+# Pass C (tie-breaker) for j2ee-pet-store-lite/data/migration.
+# This module is a data snapshot (7 CSV tables), not code. Every record below is
+# inferred from the shape and content of the exported data, so nothing here is
+# graded "high". No legacy-analysis/sources/**/extracted.md exists in this repo,
+# so no document traces could be cited. Traces stay inside this shard.
+records:
+  - record_key: ACCTLOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL lock an account after three consecutive failed sign-in
+      attempts, record the lock time on the account, and keep the account's
+      failed-attempt count at 3 while it is locked.
+      GIVEN an account with two consecutive failed sign-ins WHEN a third consecutive
+      sign-in fails THEN the account is marked locked and an account-locked event is recorded.
+    plain_text: >
+      Three wrong passwords in a row lock the account.
+    technical_note: >
+      Seen in the data only. In signon_audit.csv each of the 23 ACCOUNT_LOCKED events
+      follows exactly three SIGNON_FAIL events for that user with no SIGNON_OK between them.
+      No sequence of three or more consecutive failures appears without a lock.
+      signon.csv carries failed_attempts=3, locked=Y and locked_ts equal to the
+      ACCOUNT_LOCKED event time for the two accounts locked at export (cal.ng41, deekoh).
+      The lock event is stamped 8-59 seconds after the third failure, not at the same instant.
+      The code that applies the lock is outside this shard.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Corroborated in two tables (the audit sequence and the account row state) and
+      consistent across 23 lock events with no counter-example. It is still inferred
+      from data, not read from the code that enforces it, so it is not graded high.
+    risk_class: regulated
+    basis: >
+      23/23 ACCOUNT_LOCKED events are preceded by exactly 3 consecutive SIGNON_FAIL;
+      1- and 2-failure runs followed by SIGNON_OK never produce a lock.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 843
+        line_end: 846
+        excerpt: |
+          842,shopper,SIGNON_FAIL,2026-09-29 15:42:52.0,10.0.0.219
+          843,shopper,SIGNON_FAIL,2026-09-29 15:43:22.0,10.0.0.219
+          844,shopper,SIGNON_FAIL,2026-09-29 15:44:00.0,10.0.0.219
+          845,shopper,ACCOUNT_LOCKED,2026-09-29 15:44:36.0,10.0.0.219
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 10
+        line_end: 10
+        excerpt: |
+          cal.ng41,pw6463,CUSTOMER,3,Y,2026-10-29 23:39:00.0,2026-10-27 19:42:33.0,2026-08-31 11:09:00.0
+    stack_metadata:
+      db.table: [signon, signon_audit]
+      audit.event: ACCOUNT_LOCKED
+
+  - record_key: ACCTLOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL reset an account's failed-attempt count when a sign-in succeeds,
+      so only consecutive failures count toward a lock.
+      GIVEN an account with one or two failed sign-ins WHEN the next sign-in succeeds
+      THEN the failure count returns to 0.
+    plain_text: >
+      A correct sign-in clears earlier wrong-password attempts.
+    technical_note: >
+      Over 150 runs of 1-2 SIGNON_FAIL events end with a SIGNON_OK and no lock follows.
+      Every account not locked at export has failed_attempts=0 in signon.csv, and none
+      of them has trailing unmatched failures in the audit trail.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Consistent across both tables with no counter-example; inferred from data, not read
+      from code.
+    risk_class: regulated
+    basis: >
+      Failure runs reset by SIGNON_OK (e.g. eli.ng5 on 2026-10-29); unlocked accounts all show failed_attempts 0.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1673
+        line_end: 1675
+        excerpt: |
+          1672,eli.ng5,SIGNON_FAIL,2026-10-29 20:41:13.0,10.11.69.248
+          1673,eli.ng5,SIGNON_OK,2026-10-29 20:42:00.0,10.11.69.248
+          1674,eli.ng5,SIGNOFF,2026-10-29 20:47:00.0,10.11.69.248
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 18
+        line_end: 18
+        excerpt: |
+          eli.ng5,pw9158,CUSTOMER,0,N,,2026-10-29 20:42:00.0,2026-08-04 20:46:00.0
+    stack_metadata:
+      db.column: signon.failed_attempts
+
+  - record_key: ACCTLOCK-BR-0003
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL refuse a sign-in attempt on a locked account, record it as a
+      distinct locked-account attempt (not as a failed attempt), and not extend the lock.
+    plain_text: >
+      While an account is locked, sign-in is refused and the attempt is logged separately.
+    technical_note: >
+      11 SIGNON_LOCKED events, each between an ACCOUNT_LOCKED and the next ACCOUNT_UNLOCKED
+      for the same user. None is followed by a SIGNON_OK before the unlock, and the unlock
+      time is not pushed back by them.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Consistent placement in all 11 cases; inferred from data only. Whether the user is
+      shown a specific message cannot be seen here.
+    risk_class: regulated
+    basis: >
+      SIGNON_LOCKED occurs only within lock windows.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 846
+        line_end: 850
+        excerpt: |
+          845,shopper,ACCOUNT_LOCKED,2026-09-29 15:44:36.0,10.0.0.219
+          846,wes_brown,SIGNON_OK,2026-09-29 15:48:22.0,10.5.209.180
+          847,shopper,SIGNON_LOCKED,2026-09-29 15:56:36.0,10.0.0.219
+          848,wes_brown,SIGNOFF,2026-09-29 15:58:22.0,10.5.209.180
+          849,shopper,ACCOUNT_UNLOCKED,2026-09-29 16:15:00.0,batch:PSL_ACCT_UNLOCK
+    stack_metadata:
+      audit.event: SIGNON_LOCKED
+
+  - record_key: ACCTLOCK-BR-0004
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL automatically unlock a locked account using a scheduled job, once
+      the lock is at least 30 minutes old. The job runs every 15 minutes, on the quarter hour.
+      Each unlock SHALL be recorded as an account-unlocked event attributed to the job,
+      not to an address.
+    plain_text: >
+      A locked account unlocks itself about 30-45 minutes later, without anyone stepping in.
+    technical_note: >
+      All 21 ACCOUNT_UNLOCKED events carry remote_addr "batch:PSL_ACCT_UNLOCK" and occur at
+      :00/:15/:30/:45 exactly. Lock age at unlock ranges from 30.4 to 44.9 minutes, which matches
+      a 30-minute threshold applied by a 15-minute sweep. The 30-minute and 15-minute values
+      are inferred from timings, not read from configuration. The job itself is outside this shard.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      The existence of the batch unlock is clear (21/21 events tagged with the job name).
+      The threshold and cadence are inferred from timestamp spread, not read, so the
+      exact numbers are graded low.
+    risk_class: regulated
+    basis: >
+      Unlock timestamps all on quarter-hour boundaries; minimum lock age 30.4 min, maximum 44.9 min.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 248
+        line_end: 249
+        excerpt: |
+          247,admin,ACCOUNT_LOCKED,2026-08-27 15:31:14.0,10.0.0.134
+          248,admin,ACCOUNT_UNLOCKED,2026-08-27 16:15:00.0,batch:PSL_ACCT_UNLOCK
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 846
+        line_end: 850
+        excerpt: |
+          845,shopper,ACCOUNT_LOCKED,2026-09-29 15:44:36.0,10.0.0.219
+          846,wes_brown,SIGNON_OK,2026-09-29 15:48:22.0,10.5.209.180
+          847,shopper,SIGNON_LOCKED,2026-09-29 15:56:36.0,10.0.0.219
+          848,wes_brown,SIGNOFF,2026-09-29 15:58:22.0,10.5.209.180
+          849,shopper,ACCOUNT_UNLOCKED,2026-09-29 16:15:00.0,batch:PSL_ACCT_UNLOCK
+    stack_metadata:
+      job.entrypoint: PSL_ACCT_UNLOCK
+      schedule.trigger: "every 15 min (inferred)"
+
+  - record_key: ACCTLOCK-BR-0005
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL apply lockout and automatic unlock to every role, including administrators.
+    plain_text: >
+      Administrator accounts lock and unlock exactly like customer accounts.
+    technical_note: >
+      The admin account (role ADMIN) was locked three times (2026-08-27, 09-26, 10-12) and each
+      lock was released by batch:PSL_ACCT_UNLOCK.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Three observed admin lock/unlock cycles; data only.
+    risk_class: regulated
+    basis: >
+      ACCOUNT_LOCKED/ACCOUNT_UNLOCKED events for user admin.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 245
+        line_end: 249
+        excerpt: |
+          244,admin,SIGNON_FAIL,2026-08-27 15:29:27.0,10.0.0.134
+          245,admin,SIGNON_FAIL,2026-08-27 15:30:15.0,10.0.0.134
+          246,admin,SIGNON_FAIL,2026-08-27 15:30:46.0,10.0.0.134
+          247,admin,ACCOUNT_LOCKED,2026-08-27 15:31:14.0,10.0.0.134
+          248,admin,ACCOUNT_UNLOCKED,2026-08-27 16:15:00.0,batch:PSL_ACCT_UNLOCK
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 4
+        line_end: 4
+        excerpt: |
+          admin,admin,ADMIN,0,N,,2026-10-25 07:49:08.0,2026-08-01 00:00:00.0
+
+  - record_key: SIGNONAUD-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on audit event with a sequential identifier, the user
+      name, an event type, a timestamp, and the originating address. The event type is one of
+      USER_CREATED, SIGNON_OK, SIGNON_FAIL, SIGNOFF, ACCOUNT_LOCKED, SIGNON_LOCKED or ACCOUNT_UNLOCKED.
+      For events raised by a batch job, the address field SHALL hold the job's identity instead.
+    plain_text: >
+      Every account creation, sign-in, failed sign-in, sign-out, lock, blocked attempt and unlock
+      is logged with who, what, when and from where.
+    technical_note: >
+      Table signon_audit(audit_id, username, event_type, event_ts, remote_addr), 1,685 rows.
+      audit_id runs 1..1685 with no gaps, and event_ts is non-decreasing in id order.
+      Counts: SIGNON_OK 791, SIGNOFF 553, SIGNON_FAIL 247, USER_CREATED 40, ACCOUNT_LOCKED 23,
+      ACCOUNT_UNLOCKED 21, SIGNON_LOCKED 11. Every audited user exists in signon and vice versa.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The structure is read directly from the header and the full row set. The closed list of
+      event types is what the data contains; other types may exist in code that never fired.
+    risk_class: regulated
+    basis: >
+      CSV header and the distinct event_type values.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1
+        line_end: 4
+        excerpt: |
+          audit_id,username,event_type,event_ts,remote_addr
+          1,jo.khan,USER_CREATED,2026-08-01 12:12:00.0,10.15.152.66
+          2,admin,SIGNON_OK,2026-08-02 15:15:41.0,10.0.0.134
+          3,admin,SIGNOFF,2026-08-02 15:26:41.0,10.0.0.134
+    stack_metadata:
+      db.table: signon_audit
+
+  - record_key: SIGNONAUD-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL keep sign-on audit events for about 90 days.
+      GIVEN the export of 2026-10-29 WHEN the oldest retained event is inspected THEN it
+      is no older than 90 days.
+    plain_text: >
+      Sign-in history goes back about three months.
+    technical_note: >
+      The oldest event is 2026-08-01 12:12, the newest 2026-10-29 23:40, a span of 89 days.
+      That fits a 90-day purge, but the data cannot prove one ran. No event older than the
+      window exists that could have been purged, unless the seeded accounts' creation events
+      were removed (see findings).
+    interface: false
+    confidence: low
+    confidence_basis: >
+      The span is consistent with 90-day retention, but the span alone does not establish it.
+      The purge job is outside this shard.
+    risk_class: regulated
+    basis: >
+      First and last audit timestamps.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          1,jo.khan,USER_CREATED,2026-08-01 12:12:00.0,10.15.152.66
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1687
+        line_end: 1687
+        excerpt: |
+          1686,deekoh,ACCOUNT_LOCKED,2026-10-29 23:40:00.0,10.35.138.73
+
+  - record_key: SIGNONAUD-BR-0003
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record a sign-off event only when the user explicitly signs out. A session
+      that ends any other way (timeout, browser closed) SHALL leave no sign-off event.
+    plain_text: >
+      Only deliberate sign-outs are logged. Sessions that simply expire are not.
+    technical_note: >
+      791 SIGNON_OK against 553 SIGNOFF. Every SIGNOFF follows a SIGNON_OK for the same user, but
+      238 sign-ins have no matching sign-off.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      Inferred from the count gap. The cause (timeouts not audited) is the likely reading, but it
+      is not visible in this shard.
+    risk_class: regulated
+    basis: >
+      Event counts and pairing.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 26
+        line_end: 28
+        excerpt: |
+          25,shopper,SIGNON_OK,2026-08-08 13:10:29.0,10.0.0.219
+          26,pam_smith58,USER_CREATED,2026-08-08 13:35:00.0,10.29.170.61
+          27,ted_khan81,SIGNON_OK,2026-08-08 16:56:41.0,10.6.192.232
+
+  - record_key: SIGNON-ENT-0001
+    kind: entity
+    capability_key: sign-on
+    requirement: >
+      The system SHALL hold one account record per user name. Each record carries the password,
+      a role, the failed-attempt count, a locked flag (Y/N), the lock timestamp (empty when not
+      locked), the last successful sign-in time, and the creation time. The last successful
+      sign-in time SHALL equal the time of the user's most recent successful sign-in.
+    plain_text: >
+      Each account remembers its role, lock state, last sign-in and creation date.
+    technical_note: >
+      Table signon(username, password, role, failed_attempts, locked, locked_ts, last_signon,
+      created_ts), 43 rows. For every user, last_signon equals the latest SIGNON_OK event_ts in
+      signon_audit. For 40 users, created_ts equals their USER_CREATED event. Values are stored
+      with '.0' fractional seconds.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Cross-table consistency checked for all 43 rows; no code read.
+    risk_class: regulated
+    basis: >
+      signon.csv header and row comparison with signon_audit.csv.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 4
+        excerpt: |
+          username,password,role,failed_attempts,locked,locked_ts,last_signon,created_ts
+          j2ee,j2ee,CUSTOMER,0,N,,2026-10-26 17:29:32.0,2026-08-01 00:00:00.0
+          shopper,j2ee,CUSTOMER,0,N,,2026-10-27 13:37:40.0,2026-08-01 00:00:00.0
+          admin,admin,ADMIN,0,N,,2026-10-25 07:49:08.0,2026-08-01 00:00:00.0
+    stack_metadata:
+      db.table: signon
+
+  - record_key: ACCESS-BR-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      The system SHALL assign each account exactly one role, either CUSTOMER or ADMIN.
+      Self-registered accounts SHALL hold CUSTOMER.
+    plain_text: >
+      Every account is either a customer or an administrator. People who sign themselves up are customers.
+    technical_note: >
+      signon.role takes only CUSTOMER or ADMIN. Only 'admin' is ADMIN. All 40 accounts with a
+      USER_CREATED audit event are CUSTOMER.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Value domain read from all rows; "self-registered = CUSTOMER" is inferred from the 40/40 pattern.
+    risk_class: regulated
+    basis: >
+      Distinct role values.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 2
+        line_end: 5
+        excerpt: |
+          j2ee,j2ee,CUSTOMER,0,N,,2026-10-26 17:29:32.0,2026-08-01 00:00:00.0
+          shopper,j2ee,CUSTOMER,0,N,,2026-10-27 13:37:40.0,2026-08-01 00:00:00.0
+          admin,admin,ADMIN,0,N,,2026-10-25 07:49:08.0,2026-08-01 00:00:00.0
+          al.khan,pw5164,CUSTOMER,0,N,,2026-10-27 21:06:10.0,2026-09-20 16:36:00.0
+
+  - record_key: ACCTREG-BR-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL accept user names made of lowercase letters, digits, '.' and '_'. Existing
+      user names are 4 to 11 characters long, and existing passwords are at least 4 characters long.
+    plain_text: >
+      Existing user names use only lowercase letters, numbers, dots and underscores.
+    technical_note: >
+      All 43 usernames match [a-z0-9._]+ with lengths 4-11. Passwords are 4-6 characters long.
+      These are observed ranges, not enforced limits read from code.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      Bare observation over 43 rows. The real validation rules are not visible here and may be
+      looser. Recorded so migration does not reject existing names.
+    risk_class: operational
+    basis: >
+      Distribution of username/password values.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 5
+        line_end: 10
+        excerpt: |
+          al.khan,pw5164,CUSTOMER,0,N,,2026-10-27 21:06:10.0,2026-09-20 16:36:00.0
+          al.tan,pw9334,CUSTOMER,0,N,,2026-10-28 11:47:12.0,2026-09-01 09:29:00.0
+          bea.khan,pw5306,CUSTOMER,0,N,,2026-10-29 14:43:26.0,2026-10-02 19:46:00.0
+          bea.ong,pw3343,CUSTOMER,0,N,,2026-10-25 14:45:56.0,2026-08-14 08:35:00.0
+          beadas9,pw2155,CUSTOMER,0,N,,2026-10-27 14:54:41.0,2026-08-15 15:53:00.0
+          cal.ng41,pw6463,CUSTOMER,3,Y,2026-10-29 23:39:00.0,2026-10-27 19:42:33.0,2026-08-31 11:09:00.0
+
+  - record_key: ACCTREG-BR-0002
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL record an account-created audit event when a customer registers. Its
+      timestamp SHALL equal the account's creation time.
+    plain_text: >
+      Each self-service sign-up is logged at the moment the account is created.
+    technical_note: >
+      For 40 accounts, the USER_CREATED event_ts equals signon.created_ts exactly. The three
+      seeded accounts (j2ee, shopper, admin, created 2026-08-01 00:00) have no USER_CREATED event.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      40/40 exact matches across two tables.
+    risk_class: regulated
+    basis: >
+      Cross-table timestamp equality.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          1,jo.khan,USER_CREATED,2026-08-01 12:12:00.0,10.15.152.66
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 26
+        line_end: 26
+        excerpt: |
+          jo.khan,pw4539,CUSTOMER,0,N,,2026-10-29 17:38:47.0,2026-08-01 12:12:00.0
+
+  - record_key: CATINT-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The catalog SHALL satisfy these rules: every category has at least one product, every
+      product has at least one item, and every item's list price is at or above its unit cost.
+    plain_text: >
+      No empty categories, no products with nothing to sell, and nothing priced below cost.
+    technical_note: >
+      Five categories (BIRDS, CATS, DOGS, FISH, REPTILES), 16 products, 28 items (EST-1..EST-28).
+      All three rules hold in the export. The smallest margin is EST-13 (12.50 list, 11.10 cost).
+      Prices are stored with 2 decimals.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Every row checked, and the capability list names these exact rules. The enforcing check
+      is outside this shard.
+    risk_class: financial
+    basis: >
+      Join of category/product/item and comparison of listprice vs unitcost.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 14
+        line_end: 14
+        excerpt: |
+          EST-13,12.50,11.10,en_US,lizard2.gif,Friendly green friend,Green Adult,,,,
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          productid,catid
+          FI-SW-01,FISH
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/category.csv
+        line_start: 1
+        line_end: 6
+        excerpt: |
+          catid
+          BIRDS
+          CATS
+          DOGS
+          FISH
+          REPTILES
+
+  - record_key: CATINT-ENT-0002
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: >
+      The catalog SHALL store language-dependent text (name, image, description, and for items
+      the price, cost and up to five attributes) per locale, separately from the identity rows.
+      An en_US entry SHALL exist for every category, product and item.
+    plain_text: >
+      Every category, product and item has its English (US) text.
+    technical_note: >
+      category/product/item hold ids and parent keys only. category_details, product_details and
+      item_details are keyed by id + locale. Only en_US exists, with exactly one row per id. Item
+      price and cost live on the locale row (item_details), so price is per-locale. Item attributes
+      are attr1..attr5; only attr1/attr2 are used.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Read from headers and every row. The per-locale price design is visible, but whether other
+      locales were ever used is unknown.
+    risk_class: operational
+    basis: >
+      Table headers and locale column values.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          itemid,listprice,unitcost,locale,image,descn,attr1,attr2,attr3,attr4,attr5
+          EST-1,16.50,10.00,en_US,fish3.gif,Fresh Water fish from Japan,Large,Cuddly,,,
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/category_details.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          catid,name,image,descn,locale
+          FISH,Fish,fish_icon.gif,,en_US
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product_details.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          productid,locale,name,image,descn
+          FI-SW-01,en_US,Angelfish,fish1.jpg,Salt Water fish from Australia
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+    record_key: ACCTREG-BR-0002
+    description: >
+      The seeded accounts j2ee, shopper and admin (created 2026-08-01 00:00) have no USER_CREATED
+      event, while every other account does. Two explanations fit: sample-data population does not
+      audit account creation, or those events fell just outside the 90-day purge cutoff. A human
+      should confirm which, because it decides whether a rebuilt seed load must write audit rows.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+    description: >
+      The two final lock sequences (cal.ng41 lines 1680-1683, deekoh lines 1684-1687) are evenly
+      spaced: failures exactly 20 s apart and locks on whole minutes. Every earlier lock has
+      irregular gaps. These may be injected test or migration-rehearsal data, not real traffic.
+      Confirm before migrating these two accounts as locked.
+
+suspected_defects:
+  - capability_key: sign-on
+    record_keys: [SIGNON-ENT-0001]
+    severity: high
+    category: other
+    title: Passwords are stored in plain text
+    description: >
+      The account table holds passwords as readable text (e.g. 'j2ee', 'admin', 'pw5164').
+      The administrator's password equals its user name, and two seeded customer accounts share
+      the password 'j2ee'. Anyone with read access to the database or this export can sign in as
+      any user, including the administrator.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 4
+  - capability_key: catalog-browsing
+    record_keys: [CATINT-ENT-0002]
+    severity: low
+    category: data-corruption
+    title: Some item descriptions and images contradict their product
+    description: >
+      Items EST-1 and EST-2 belong to Angelfish ("Salt Water fish from Australia", fish1.jpg) but
+      their own text says "Fresh Water fish from Japan" and shows the Koi image fish3.gif. EST-11
+      (Rattlesnake) reads "More Bark than bite". Shoppers see item text that disagrees with the
+      product page.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 2
+        line_end: 3
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product_details.csv
+        line_start: 2
+        line_end: 2
