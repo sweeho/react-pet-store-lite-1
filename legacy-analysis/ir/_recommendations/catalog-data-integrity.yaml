@@ -1,0 +1,282 @@
+# Recommendations for catalog-data-integrity (SX-0001, synthesize stage). Advisory only.
+# Several record keys were minted by more than one shard with different content; where that happens
+# the reason says which variant the recommendation addresses and the edit merges or splits them.
+recommendations:
+  - record_key: CAT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      C1 query at db/batch/catalog_check.sql:3-5 and Administrator Guide 3.3 agree. Accept as the C1
+      check requirement.
+  - record_key: CAT-BR-0002
+    recommendation: edit
+    confidence: high
+    reason: >
+      Key collision: batch/a uses it for C1, db/batch/a for C2. Both match the code. Keep the C2 meaning
+      (C1 is CAT-BR-0001) so each rule has one key.
+    edited_requirement: >
+      Every product SHALL have at least one item. The daily catalog check SHALL report each product that
+      has none as a breach of rule C2.
+  - record_key: CAT-BR-0003
+    recommendation: edit
+    confidence: high
+    reason: >
+      Key collision: batch/a uses it for C2, db/batch/a for C3. Keep the C3 meaning; it is backed by the
+      check constraint petstore_derby.sql:66 and the C3 query.
+    edited_requirement: >
+      An item's list price SHALL never be below its unit cost, in any locale. The system SHALL refuse to
+      store such a price, and the daily catalog check SHALL report any item details row where it holds as
+      a breach of rule C3.
+  - record_key: CAT-BR-0004
+    recommendation: edit
+    confidence: high
+    reason: >
+      Key collision: batch/a uses it for C3, db/batch/a for C4. Keep the C4 meaning with the
+      items-only scope, which matches catalog_check.sql:11-13.
+    edited_requirement: >
+      Every item SHALL have a description in the en_US locale. The daily catalog check SHALL report each
+      item without one as a breach of rule C4. Categories and products SHALL NOT be checked by this rule.
+  - record_key: CAT-BR-0005
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Duplicate of CAT-BR-0004 (C4) once that key is fixed to C4. Matches the code; reject only to
+      avoid two keys for one rule.
+  - record_key: CAT-BR-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      catalog_check.sql:14-16 counts categories and items and psl_catalog_check.sh only greps for C1-C4
+      rows, so the totals never fail the run.
+  - record_key: CAT-WF-0001
+    recommendation: reject
+    confidence: high
+    reason: >
+      Same behaviour as approved CATINT-WF-0005 (SWHR5-R-0019) and accurate to psl_catalog_check.sh:9-21.
+      The log-content part is covered by CAT-BR-0006. Reject as a duplicate.
+  - record_key: CAT-WF-0005
+    recommendation: reject
+    confidence: high
+    reason: >
+      Duplicate of approved CATINT-WF-0005. Code, Control-M job and guide all agree; no new behaviour.
+  - record_key: CATALOG-DATA-INTEGRITY-BR-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      petstore.properties:28-29 declares 5 categories and 28 items, but no code reads the keys and the
+      migrated sample data has exactly 5 categories and 28 items, so the keys most likely describe the
+      sample set. Whether a minimum is wanted is a conflict for Intent and the Business Owner.
+  - record_key: CATDI-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      fk_category_details_1 (petstore_derby.sql:19-20, same in Oracle) refuses orphan text and, with no
+      cascade, refuses deleting a category that still has text.
+  - record_key: CATDI-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      decimal(10,2) not null plus ck_item_details_price in both DDLs; sample data conforms.
+  - record_key: CATDI-BR-0003
+    recommendation: edit
+    confidence: medium
+    reason: >
+      The sample data is en_US only, but nothing requires en_US text for categories or products and
+      nothing forbids other locales; only items are checked (C4). The "no other locale" clause is a
+      property of the data set, not a rule.
+    edited_requirement: >
+      The system SHALL hold catalog text per locale; every item SHALL have en_US details (rule C4).
+  - record_key: CATDI-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Hierarchy and FKs are database-enforced; the "at least one" parts are C1/C2 and are checked daily
+      rather than enforced, which the spec states separately.
+  - record_key: CATI-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      PSL_PETSTORE.xml:62-71 has no INCOND (independent of the nightly chain), TIMEFROM 0600 and an
+      urgent DOMAIL on COMPSTAT=4 naming the log.
+  - record_key: CATINT-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Key collision: data/migration/c states C1+C2+C3 as one rule, docs/guides/a states C1 alone. Keep
+      the C1 meaning; C2 and C3 have their own records.
+    edited_requirement: >
+      Every category SHALL have at least one product (rule C1); the daily catalog check SHALL report each
+      category with none.
+  - record_key: CATINT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      C2 rule from the Administrator Guide, confirmed by catalog_check.sql:6-8.
+  - record_key: CATINT-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Guide and check constraint petstore_derby.sql:66 agree; equality is allowed.
+  - record_key: CATINT-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Guide and catalog_check.sql:11-13 agree. The rule covers items only.
+  - record_key: CATINT-BR-0006
+    recommendation: edit
+    confidence: high
+    reason: >
+      Runbook and psl_catalog_check.sh:10-14 agree; the script also exits 8 when the load request fails,
+      which the record omits.
+    edited_requirement: >
+      WHEN the daily catalog check finds that the catalog tables do not exist THEN the system SHALL
+      request a non-forced first load of sample data and run the checks again; IF the load request fails
+      THEN the run SHALL end with exit code 8.
+  - record_key: CATINT-ENT-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      The per-locale structure matches the DDL, but "an en_US entry SHALL exist for every category,
+      product and item" is only checked for items (C4).
+    edited_requirement: >
+      The catalog SHALL store language-dependent text (name, image, description, and for items the
+      price, cost and up to five attributes) per locale, separately from the identity rows. Every item
+      SHALL have an en_US entry.
+  - record_key: CATINT-REQ-0001
+    recommendation: reject
+    confidence: high
+    reason: >
+      Same as CATI-REQ-0001 from the other pass of the same shard; both accurate. Keep one.
+  - record_key: CATINT-REQ-0002
+    recommendation: reject
+    confidence: high
+    reason: >
+      Same as CAT-BR-0006; accurate. Reject as a duplicate.
+  - record_key: CATINT-WF-0001
+    recommendation: reject
+    confidence: high
+    reason: >
+      Combines C1-C4 and the daily run; all accurate, but fully covered by the C1-C4 records and the
+      approved CATINT-WF-0005.
+  - record_key: CDI-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Seven different statements share this key (C1-C4 summary, C1 alone, price guard, product FK, one
+      text per category and locale). All are true to the code. Keep the C1 report meaning and let the
+      other statements be covered by their dedicated records.
+    edited_requirement: >
+      The system SHALL report as a catalog integrity breach every category that has no product.
+  - record_key: CDI-BR-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Five statements share this key (C2 report, referential integrity, item FK, price guard, category
+      text FK). All true to the DDL. Keep the referential-integrity meaning, which no other single
+      record states in full.
+    edited_requirement: >
+      The system SHALL reject a product that names a non-existent category, an item that names a
+      non-existent product, and any localised text or price record that names a non-existent category,
+      product or item.
+  - record_key: CDI-BR-0003
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Three statements share this key: price guard plus C3 report, price guard with examples, and price
+      precision. Keep the price guard with the worked boundary, which matches the check constraint.
+    edited_requirement: >
+      The system SHALL NOT hold an item details entry, in any locale, whose list price is below its unit
+      cost; a list price equal to the unit cost SHALL be accepted, and the daily check SHALL report any
+      such entry as a breach of rule C3.
+  - record_key: CDI-BR-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Three statements share this key: C4 report, locale normalisation on seed load, and text field
+      limits. Keep the locale normalisation, confirmed at XMLDBHandler.java:180; the others are covered
+      by C4 and entity records.
+    edited_requirement: >
+      The system SHALL store locale codes in underscore form; a seed language tag "en-US" SHALL be
+      stored as "en_US".
+  - record_key: CDI-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Six variants all describe the category/hierarchy keys and agree with both DDLs and PopulateSQL.xml.
+      Accept the db/schema/a wording (three-level hierarchy, unique 10-character codes).
+  - record_key: CDI-ENT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      All variants describe per-locale display text with name 80 required, image and description 255
+      optional; matches petstore_derby.sql:14-39.
+  - record_key: CDI-ENT-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Variants agree on item details (two required amounts, required image and description, five
+      attributes); the ddl-002/c variant (item identity) is also true. Matches petstore_derby.sql:41-67.
+  - record_key: CDI-ENT-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Matches pk_item_details, fk_item_details_1 and the not-null columns in both DDLs.
+  - record_key: CDI-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      ck_item_details_price (listprice >= unitcost) in both DDLs and PopulateSQL.xml; boundary examples
+      are correct.
+  - record_key: CDI-RULE-0002
+    recommendation: edit
+    confidence: low
+    reason: >
+      Key collision: db/schema/a uses it for the v_catalog_item view (no reader found, unresolved
+      reachability), ddl-002/b for product identity, ddl-002/c for price precision. Recommend keeping the
+      price-precision meaning (decimal(10,2), max 99,999,999.99) and asking a DBA whether the view exists
+      in production before recording it under a new key.
+    edited_requirement: >
+      The system SHALL store each item's list price and unit cost as mandatory amounts with exactly two
+      decimal places and a maximum of 99,999,999.99.
+  - record_key: CDI-RULE-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      pk_product_details and fk_product_details_1 plus column definitions in both DDLs.
+  - record_key: CDI-RULE-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      pk_item and fk_item_1 in both DDLs.
+  - record_key: CDI-RULE-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      pk_item_details, fk_item_details_1 and decimal(10,2) in both DDLs.
+  - record_key: CDI-RULE-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The 10-character limit holds in both dialects. Derby char(10) pads while Oracle varchar(10) does not;
+      which database is live and whether padding matters goes to Intent for the Business Owner.
+  - record_key: CDI-WF-0001
+    recommendation: reject
+    confidence: high
+    reason: >
+      All three variants are accurate but are covered by approved CATINT-WF-0005, CAT-BR-0006 and
+      CATINT-BR-0006.
+  - record_key: INTEG-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      catalog.locale=en_US in petstore.properties:26 and C4 agree for items; "require catalog text in
+      en_US" overstates it for categories and products.
+    edited_requirement: >
+      Every item SHALL have en_US details, and the daily integrity check SHALL report every item that has
+      none.
+  - record_key: INTEG-BR-0002
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Same finding as CATALOG-DATA-INTEGRITY-BR-0001: the minimums are declared but never read and equal
+      the sample data counts. Whether a minimum is intended goes to Intent for the Business Owner.
