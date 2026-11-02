@@ -1,0 +1,120 @@
+records:
+  - record_key: CATSRCH-REQ-0001
+    kind: requirement
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL interpret the text of every incoming request (form fields and
+      query parameters, on every page and endpoint) as UTF-8 before any page or
+      business logic reads it, so that non-ASCII characters typed by a user (for
+      example in a catalog search keyword or a user name) are received unaltered.
+    plain_text: >
+      Whatever a shopper types into any form, including accented or non-Latin
+      characters, is read by the store exactly as typed, on every page.
+    technical_note: >
+      EncodingFilter.doFilter calls request.setCharacterEncoding(targetEncoding) and
+      passes the request on. targetEncoding is read from the filter init-param
+      "encoding", which web.xml sets to UTF-8. The filter is mapped to /* and is
+      declared (and mapped) before SignOnFilter, so it runs first on every request.
+      Responses are separately declared UTF-8 by template.jsp
+      (contentType text/html;charset=UTF-8), which is outside this shard.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The behaviour is visible in two independent places that agree: the filter code
+      applies whatever encoding is configured, and the deployment descriptor both
+      configures UTF-8 and maps the filter to every URL. Not higher-certainty on the
+      ordering claim only because filter order follows mapping order in web.xml,
+      which I read but did not see exercised by a test.
+    risk_class: operational
+    basis: >
+      web.xml declares EncodingFilter with init-param encoding=UTF-8 and description
+      "Sets UTF-8 on every request", mapped to url-pattern /*; the filter sets that
+      encoding on the request before continuing the chain. No capability in the closed
+      list covers request character decoding; it is filed under catalog-search as the
+      closest home because the free-text search keyword is the main user-typed text
+      whose matching depends on correct decoding. It applies equally to sign-on and
+      account-registration input.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+        line_start: 61
+        line_end: 78
+        excerpt: |
+              public void init(FilterConfig config) throws ServletException {
+                  this.config = config;
+                  this.targetEncoding = config.getInitParameter("encoding");
+              }
+
+              public void destroy() {
+                  config = null;
+                  targetEncoding = null;
+              }
+
+               public  void doFilter(ServletRequest srequest, ServletResponse  sresponse, FilterChain chain)
+                  throws IOException, ServletException {
+
+                  HttpServletRequest request = (HttpServletRequest)srequest;
+                  request.setCharacterEncoding(targetEncoding);
+                  // move on to the next
+                 chain.doFilter(srequest,sresponse);
+              }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 18
+        line_end: 29
+        excerpt: |
+            <!-- Encoding Filter Declaration Start -->
+            <filter>
+              <filter-name>EncodingFilter</filter-name>
+              <display-name>EncodingFilter</display-name>
+              <description>Sets UTF-8 on every request</description>
+              <filter-class>com.sun.j2ee.blueprints.encodingfilter.web.EncodingFilter</filter-class>
+              <init-param>
+                <param-name>encoding</param-name>
+                <param-value>UTF-8</param-value>
+              </init-param>
+            </filter>
+            <!-- Encoding Filter Declaration End -->
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 40
+        line_end: 48
+        excerpt: |
+            <filter-mapping>
+              <filter-name>EncodingFilter</filter-name>
+              <url-pattern>/*</url-pattern>
+            </filter-mapping>
+
+            <filter-mapping>
+              <filter-name>SignOnFilter</filter-name>
+              <url-pattern>/*</url-pattern>
+            </filter-mapping>
+    stack_metadata:
+      framework: servlet-filter
+      web.filter: EncodingFilter
+      web.filter.url_pattern: /*
+      web.filter.init_param.encoding: UTF-8
+      web.filter.order: 1 (before SignOnFilter)
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+    description: >
+      No capability in legacy-analysis/discovery/capabilities.csv covers cross-cutting
+      request character decoding. The single record is filed under catalog-search as
+      the closest fit; a human should decide whether it belongs to a general
+      platform/non-functional home instead. No legacy-analysis/sources/**/extracted.md
+      documents exist in the tree, so no document traces could be cited.
+suspected_defects:
+  - capability_key: catalog-search
+    record_keys: [CATSRCH-REQ-0001]
+    severity: low
+    category: other
+    title: The stated ASCII fallback is overwritten when no encoding is configured
+    description: >
+      The filter's field is initialised to "ASCII" with the comment "default to ASCII",
+      but init() unconditionally replaces it with the configured value. If the
+      deployment ever omits the encoding setting, the value becomes empty (null) rather
+      than ASCII, and the request is handed an unset encoding, so the container's own
+      default (typically ISO-8859-1) applies instead of the documented fallback. With
+      the current configuration (UTF-8) this path is not taken.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/encodingfilter/web/EncodingFilter.java
+        line_start: 57
+        line_end: 64
