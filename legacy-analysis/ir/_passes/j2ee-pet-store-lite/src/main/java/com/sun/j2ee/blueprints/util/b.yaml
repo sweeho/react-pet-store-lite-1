@@ -1,0 +1,23 @@
+# Pass B — j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/util
+# The shard holds one file, util/tracer/Debug.java (80 lines): a developer
+# debug-print helper whose output is switched off by a compile-time constant.
+# It carries no business rule, entity, screen, workflow or integration, so no
+# record is emitted. No legacy-analysis/sources/**/extracted.md documents exist
+# in this tree, so no document trace applies.
+records: []
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/util/tracer/Debug.java
+    description: >
+      The only class in this module (Debug, lines 44-80) is a diagnostic print
+      helper. Every method is guarded by `public static final boolean
+      debuggingOn = false` (line 46), so with the shipped constant it writes
+      nothing to stdout/stderr; enabling it needs a recompile. Its one importer,
+      catalog/dao/GenericCatalogDAO.java (line 57), imports it but never calls
+      it (no `Debug.` call found anywhere in legacy-source). No requirement was
+      emitted because nothing here is user- or business-visible. A human only
+      needs to confirm that the rebuild owes no equivalent of this tracer
+      (logging/observability is a fresh design decision, not a carried-over
+      rule). Filed as an ambiguity rather than a record because no listed
+      capability covers developer diagnostics.
+suspected_defects: []
