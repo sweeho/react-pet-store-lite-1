@@ -1,0 +1,6 @@
+# Binds the acceptance suite to the new system (initiative SWHR5-N-0001).
+# The app is a Vite SPA + Nitro server in one process; `bun run dev` serves both
+# on :5000 (vite.config.ts server.port). "/" returns the SPA shell once Vite is up.
+baseUrl: http://localhost:5000
+start: bun run dev
+ready: /
