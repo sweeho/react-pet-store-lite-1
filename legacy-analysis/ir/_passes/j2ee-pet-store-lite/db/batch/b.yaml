@@ -1,0 +1,1009 @@
+# SX-0001 extract-b, shard j2ee-pet-store-lite/db/batch (independent second reading).
+# Primary sources: legacy-source/j2ee-pet-store-lite/db/batch/*.sql (6 files, all read in full).
+# Corroborating sources read: batch/*.sh wrappers, conf/env.sh, conf/petstore.properties,
+# scheduler/control-m/PSL_PETSTORE.xml, db/schema/petstore_derby.sql, UserDAO.java,
+# PopulateServlet.java, signon_locked.jsp, data/interface sample, and the three guides.
+# No legacy-analysis/sources/**/extracted.md exists in this tree; the guides are cited
+# directly as documents (kind: document) with the HTML heading as anchor.
+records:
+
+  # ---------------------------------------------------------------- account-lockout
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL automatically unlock every locked account whose lock was set
+      strictly more than 30 minutes before the unlock run, and on unlocking SHALL set the
+      account's consecutive failed sign-in count to 0 and clear its recorded lock time.
+    plain_text: >
+      A locked account is unlocked automatically once the lock is more than 30 minutes
+      old. Unlocking also wipes the count of failed sign-ins, so the customer gets three
+      fresh attempts.
+    technical_note: >
+      db/batch/acct_unlock.sql lines 12-15: UPDATE signon SET locked='N',
+      failed_attempts=0, locked_ts=NULL WHERE locked='Y' AND locked_ts <
+      CURRENT_TIMESTAMP - 30 minutes (Derby TIMESTAMPADD). The comparison is strict (<).
+      This is the only automatic unlock path: UserDAO.authenticate refuses any account
+      with locked='Y' and has no time-based check of its own. The 30 is a literal in the
+      SQL; signon.unlockAfterMinutes=30 in petstore.properties is not read by the SQL.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Stated by the SQL itself and independently by the DDL table comment, the
+      properties file, the Operations Runbook 3.6 and the Admin Guide R5. All give
+      30 minutes and the reset of failed attempts. The value is a literal in the SQL,
+      but enough independent sources agree to grade it high.
+    risk_class: operational
+    basis: >
+      The UPDATE in acct_unlock.sql clears the lock, the failed count and the lock time
+      for rows locked longer than 30 minutes. The file header states the business rule.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 1
+        line_end: 3
+        excerpt: |2
+          -- PSL_ACCT_UNLOCK: unlock sign-on accounts locked for more than 30 minutes.
+          -- Business rule: 3 failed sign-ons in a row lock an account (UserDAO).
+          -- A lock is cleared automatically 30 minutes after it was set.
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 15
+        excerpt: |2
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 69
+        line_end: 69
+        excerpt: |2
+          -- SIGNON: Sign-on accounts. Role is CUSTOMER or ADMIN. Locked after 3 failed sign-ons in a row; unlocked by PSL_ACCT_UNLOCK after 30 minutes.
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 16
+        line_end: 16
+        excerpt: |2
+          signon.unlockAfterMinutes=30
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules, rule R5"
+        excerpt: |2
+           <tr><td>R5</td><td>Batch job PSL_ACCT_UNLOCK runs every 15 minutes and unlocks accounts locked more than 30 minutes ago. It sets failed attempts to 0 and records ACCOUNT_UNLOCKED.</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.6 PSL_ACCT_UNLOCK"
+        excerpt: |2
+          <p>Every 15 minutes. Unlocks accounts locked more than 30 minutes ago, resets their failed attempts and writes ACCOUNT_UNLOCKED to the audit.</p>
+    stack_metadata:
+      db.object: SIGNON
+      batch.trigger: PSL_ACCT_UNLOCK (Control-M cyclic)
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL evaluate the automatic unlock every 15 minutes, all day, every day,
+      so that a lock is cleared no earlier than 30 minutes and no later than about
+      45 minutes after it was set.
+      GIVEN an account locked at 10:00 and unlock runs at 10:15, 10:30 and 10:45
+      WHEN the run at 10:30 evaluates it (lock exactly 30 minutes old, not more)
+      THEN it stays locked, and it is unlocked by the 10:45 run.
+    plain_text: >
+      The store looks for expired locks every 15 minutes, so a customer may wait between
+      30 and 45 minutes before a lock is lifted.
+    technical_note: >
+      The cadence is not in the SQL. It comes from the Control-M PSL_PETSTORE_CYCLIC
+      folder (INTERVAL 00015M, 00:00-23:59, all weekdays) driving batch/psl_acct_unlock.sh,
+      which runs db/batch/acct_unlock.sql. The 30-to-45-minute window follows from the
+      strict "<" in the SQL combined with the 15-minute interval.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The interval is declared once in the scheduler and repeated in the script comment,
+      the Runbook and the User Guide 5.3, which states the 45-minute ceiling explicitly.
+      Graded medium, not high, because the actual run times depend on when Control-M
+      starts the cyclic job, which this pass cannot see; the boundary example is derived
+      from the SQL comparison and was not executed.
+    risk_class: operational
+    basis: >
+      Scheduler definition plus the strict comparison in acct_unlock.sql.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 14
+        line_end: 15
+        excerpt: |2
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 78
+        line_end: 83
+        excerpt: |2
+              <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_ACCT_UNLOCK"
+                   DESCRIPTION="Unlock sign-on accounts locked for more than 30 minutes"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_acct_unlock.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA"
+                   TIMEFROM="0000" TIMETO="2359" WEEKDAYS="ALL"
+                   CYCLIC="1" CYCLIC_TYPE="Interval" INTERVAL="00015M" IND_CYCLIC="START"
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.3 Locked account"
+        excerpt: |2
+          <p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set
+          (the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_CYCLIC, INTERVAL 00015M, IND_CYCLIC START"
+
+  - record_key: LOCK-BR-0003
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN an account marked locked that has no recorded lock time
+      WHEN the automatic unlock runs
+      THEN the system SHALL leave the account locked and SHALL write no unlock audit event
+      for it.
+    plain_text: >
+      A locked account with no lock time recorded is never unlocked automatically; it
+      stays locked until someone unlocks it by hand.
+    technical_note: >
+      Both statements in acct_unlock.sql filter on locked_ts < (now - 30 min). With
+      locked_ts NULL the predicate is unknown, so the row is skipped. SIGNON.locked_ts is
+      nullable in the DDL and nothing ties it to locked='Y'. UserDAO always sets locked_ts
+      when it locks, so the case arises only from data written outside the application
+      (manual SQL, migration, the Admin Guide 2.1 statement run partially).
+    interface: false
+    confidence: low
+    confidence_basis: >
+      Inferred from SQL NULL semantics and the absence of a constraint, not read as a
+      stated rule anywhere; no test or document mentions the case.
+    risk_class: operational
+    basis: >
+      The unlock predicate requires a non-null lock time older than 30 minutes; the
+      schema permits locked='Y' with a null locked_ts.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 15
+        excerpt: |2
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'
+              FROM signon
+             WHERE locked = 'Y'
+               AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 75
+        line_end: 76
+        excerpt: |2
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+    stack_metadata:
+      db.object: SIGNON
+
+  # ---------------------------------------------------------------- sign-on-audit
+  - record_key: AUD-BR-0001
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record an ACCOUNT_UNLOCKED audit event for each account it unlocks
+      automatically, carrying the account's user name, the time of the unlock run, and the
+      source marker "batch:PSL_ACCT_UNLOCK" in place of a client address, and SHALL commit
+      the audit events and the unlocks together as one unit of work.
+    plain_text: >
+      Every automatic unlock is written to the sign-in history as "account unlocked",
+      marked as done by the store's scheduled job rather than by a person or a browser.
+    technical_note: >
+      acct_unlock.sql runs with AUTOCOMMIT OFF: an INSERT ... SELECT into signon_audit
+      for the qualifying rows, then the UPDATE on signon, then COMMIT. The marker string
+      is a literal in the INSERT. The Runbook's extract layout documents the same marker
+      for column 5. A manual unlock per Admin Guide 2.1 writes 'admin' instead.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The SQL and two documents (Admin Guide R5, Runbook 3.2 column 5 and 3.6) agree on
+      the event type and the marker; the event type is also in the DDL CHECK enumeration.
+    risk_class: regulated
+    basis: >
+      INSERT ... SELECT in acct_unlock.sql, inside one transaction with the UPDATE.
+      Classified regulated because the sign-on audit trail is a security record handed to
+      the security team; no named regulation appears in the source.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 4
+        line_end: 17
+        excerpt: |2
+          AUTOCOMMIT OFF;
+
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'
+              FROM signon
+             WHERE locked = 'Y'
+               AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+
+          COMMIT;
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 92
+        line_end: 93
+        excerpt: |2
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.2 PSL_AUDIT_EXTRACT, column table row 5 remote_addr"
+        excerpt: |2
+           <tr><td>5 remote_addr</td><td>Client address, or <code>batch:PSL_ACCT_UNLOCK</code></td></tr>
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+      batch.trigger: PSL_ACCT_UNLOCK
+
+  - record_key: AUD-INT-0001
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL produce, once a day, a file of all sign-on audit events whose
+      event time falls on the previous calendar day (from 00:00 inclusive to 00:00 of the
+      run day exclusive), one event per line in ascending event-number order, with the
+      five fields event number, user name, event type, event time and client address,
+      comma-separated, text fields enclosed in double quotes, UTF-8 encoded, with no header
+      row, named signon_audit_YYYYMMDD.csv where YYYYMMDD is the day covered.
+    plain_text: >
+      Every night the store hands the security team a file of the previous day's sign-in
+      history: one line per event, oldest first, with the event number, the user name as
+      typed, what happened, when, and from which address.
+    technical_note: >
+      db/batch/audit_extract.sql calls SYSCS_UTIL.SYSCS_EXPORT_QUERY with delimiter ',',
+      character delimiter '"', codeset UTF-8, writing
+      /var/petstore/extract/signon_audit_extract.csv. batch/psl_audit_extract.sh deletes
+      any stale export first, runs the SQL, then renames the file using the shell's
+      "date -d yesterday" (the SQL window uses the database's CURRENT_DATE). Scheduled
+      daily at 01:30 after the backup succeeds (Control-M PSL_AUDIT_EXTRACT). The sample
+      file data/interface/signon_audit_20261029.csv shows timestamps rendered as
+      "2026-10-29 09:23:47.0" and numbers unquoted.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      The window, columns, order and format are read directly from the export call; the
+      Runbook 3.2 describes the same file, columns and "no header row"; the interface
+      sample file confirms the layout. Code plus document plus sample.
+    risk_class: regulated
+    basis: >
+      SYSCS_EXPORT_QUERY in audit_extract.sql with its SELECT and format arguments; file
+      renaming in the wrapper script. Classified regulated because it is the security
+      team's copy of the sign-on audit trail; no named regulation is cited in the source.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 1
+        line_end: 10
+        excerpt: |2
+          -- PSL_AUDIT_EXTRACT: export yesterday's sign-on audit events for the
+          -- security team. Output: /var/petstore/extract/signon_audit_extract.csv
+          -- (the script renames it to signon_audit_YYYYMMDD.csv).
+          CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY(
+            'SELECT audit_id, username, event_type, event_ts, remote_addr
+               FROM signon_audit
+              WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}
+                AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)
+              ORDER BY audit_id',
+            '/var/petstore/extract/signon_audit_extract.csv', ',', '"', 'UTF-8');
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 6
+        line_end: 11
+        excerpt: |2
+          DAY=$(date -d yesterday '+%Y%m%d' 2>/dev/null || date -v-1d '+%Y%m%d')
+          OUT="$PSL_EXTRACT_DIR/signon_audit_$DAY.csv"
+          psl_log "start day=$DAY"
+          rm -f "$PSL_EXTRACT_DIR/signon_audit_extract.csv"
+          psl_ij "$PSL_SQL/audit_extract.sql" > /dev/null || { psl_log "FAILED: export"; exit 8; }
+          mv "$PSL_EXTRACT_DIR/signon_audit_extract.csv" "$OUT"
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 1
+        line_end: 1
+        excerpt: |2
+          1659,"idanair","SIGNON_OK","2026-10-29 09:23:47.0","10.17.227.177"
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.2 PSL_AUDIT_EXTRACT"
+        excerpt: |2
+          <p>Exports yesterday's rows of SIGNON_AUDIT (00:00 to 24:00) to <code>/var/petstore/extract/signon_audit_YYYYMMDD.csv</code>
+          for the security team (<code>db/batch/audit_extract.sql</code>).</p>
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+      batch.trigger: "PSL_AUDIT_EXTRACT daily 01:30, INCOND PSL_DB_BACKUP-OK"
+      derby.procedure: SYSCS_UTIL.SYSCS_EXPORT_QUERY
+
+  - record_key: AUD-INT-0002
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL end each daily sign-on audit extract file with a trailer line
+      "TRAILER,<YYYYMMDD>,<n>" where YYYYMMDD is the day covered and n is the number of
+      event lines in the file, not counting the trailer itself.
+      GIVEN a day with no audit events WHEN the extract runs THEN the file SHALL contain
+      only the trailer line with a count of 0.
+    plain_text: >
+      The extract file ends with a control line stating the day and how many events it
+      holds, so the receiving side can check the file is complete.
+    technical_note: >
+      Not in the SQL: batch/psl_audit_extract.sh counts lines with wc -l after the export
+      and appends "TRAILER,$DAY,$ROWS". The zero-event case assumes Derby's export writes
+      an empty file for an empty result, which this pass did not execute.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Script logic, Runbook 3.2 ("the count excludes the trailer") and the interface
+      sample (28 data lines, trailer count 28) agree. The zero-event GIVEN/WHEN/THEN is
+      inferred, not observed; it is the only low-certainty part.
+    risk_class: regulated
+    basis: >
+      Trailer appended by the wrapper of audit_extract.sql; documented and sampled.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 12
+        line_end: 13
+        excerpt: |2
+          ROWS=$(wc -l < "$OUT" | tr -d ' ')
+          echo "TRAILER,$DAY,$ROWS" >> "$OUT"
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 29
+        line_end: 29
+        excerpt: |2
+          TRAILER,20261029,28
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.2 PSL_AUDIT_EXTRACT, trailer paragraph"
+        excerpt: |2
+          <p>No header row. The last line is a trailer <code>TRAILER,YYYYMMDD,&lt;row count&gt;</code>; the count excludes the trailer.</p>
+    stack_metadata:
+      batch.trigger: PSL_AUDIT_EXTRACT
+
+  - record_key: AUD-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL delete sign-on audit events whose event time is earlier than 00:00
+      on the day 90 days before the purge run, SHALL run that purge once a week on Sunday
+      only after that day's audit extract has completed successfully, and SHALL commit the
+      deletion as one unit of work.
+    plain_text: >
+      Sign-in history is kept for 90 days. Once a week, on Sunday, after the nightly file
+      for the security team has been produced, anything older than 90 days is deleted, so
+      an event is actually kept for between 90 and about 97 days.
+    technical_note: >
+      db/batch/audit_purge.sql: AUTOCOMMIT OFF; DELETE FROM signon_audit WHERE event_ts <
+      CAST(CURRENT_DATE AS TIMESTAMP) - 90 days; COMMIT. The 90 is a literal in the SQL;
+      PSL_AUDIT_RETENTION_DAYS=90 in env.sh is only logged by the wrapper, and
+      batch.audit.retentionDays=90 in properties is not read. Sunday-only and the
+      wait on PSL_AUDIT_EXTRACT-OK come from Control-M (WEEKDAYS="0", INCOND).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The SQL, its header comment, the DDL table comment, the scheduler description and
+      the Runbook 3.4 all state 90 days and the run-after-extract ordering. The 90-to-97
+      day effective retention is derived from the weekly cadence, not stated anywhere.
+    risk_class: regulated
+    basis: >
+      DELETE in audit_purge.sql with its 90-day cutoff; ordering stated in the file header
+      and enforced by the scheduler. Retention of a security audit trail is classified
+      regulated; no named regulation is cited in the source.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 1
+        line_end: 8
+        excerpt: |2
+          -- PSL_AUDIT_PURGE: delete sign-on audit events older than 90 days.
+          -- Runs only after PSL_AUDIT_EXTRACT so every row has been extracted first.
+          AUTOCOMMIT OFF;
+
+          DELETE FROM signon_audit
+           WHERE event_ts < {fn TIMESTAMPADD(SQL_TSI_DAY, -90, CAST(CURRENT_DATE AS TIMESTAMP))};
+
+          COMMIT;
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 84
+        line_end: 84
+        excerpt: |2
+          -- SIGNON_AUDIT: Transaction log of sign-on events. Extracted daily by PSL_AUDIT_EXTRACT, purged after 90 days by PSL_AUDIT_PURGE.
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 51
+        line_end: 58
+        excerpt: |2
+              <JOB JOBISN="4" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_AUDIT_PURGE"
+                   DESCRIPTION="Delete SIGNON_AUDIT rows older than 90 days (Sundays)"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_audit_purge.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AD"
+                   TIMEFROM="0200" WEEKDAYS="0"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <INCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" SIGN="-" />
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.4 PSL_AUDIT_PURGE"
+        excerpt: |2
+          <p>Sundays only. Deletes SIGNON_AUDIT rows older than 90 days. It waits for that day's extract so no row is deleted before it is extracted.</p>
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+      batch.trigger: "PSL_AUDIT_PURGE Sundays 02:00, INCOND PSL_AUDIT_EXTRACT-OK"
+
+  - record_key: AUD-INT-0003
+    kind: requirement
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL produce, once a day after the audit extract has succeeded, a
+      sign-on statistics report for the previous calendar day containing: for each event
+      type that occurred, the number of events and the number of distinct user names,
+      ordered by event type; the number of accounts locked at the time the report runs;
+      and the number of accounts per role. The report SHALL be written as
+      signon_report_YYYYMMDD.txt where YYYYMMDD is the day covered.
+    plain_text: >
+      Each morning the store writes a short report on yesterday's sign-ins: how many of
+      each kind of event and how many different people, plus how many accounts are locked
+      right now and how many customers and administrators there are.
+    technical_note: >
+      db/batch/signon_report.sql has three SELECTs: GROUP BY event_type over yesterday's
+      window (same window as the extract), COUNT of signon WHERE locked='Y' (a snapshot at
+      run time, not yesterday's), and COUNT GROUP BY role. batch/psl_signon_report.sh
+      writes the raw Derby ij output to $PSL_EXTRACT_DIR/signon_report_$DAY.txt.
+      Control-M runs it at 01:45 after PSL_AUDIT_EXTRACT-OK, with no failure alert.
+      Event types with zero events are absent rather than shown as 0.
+    confidence: medium
+    confidence_basis: >
+      Read directly from one SQL file and its wrapper; the Runbook 3.3 lists the same
+      three contents but nothing states the report's audience or exact layout, which is
+      raw tool output. Interface status could not be determined: no consumer is named.
+    risk_class: operational
+    basis: >
+      The three queries in signon_report.sql and the output file name in the wrapper.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/signon_report.sql
+        line_start: 1
+        line_end: 11
+        excerpt: |2
+          -- PSL_SIGNON_REPORT: daily sign-on statistics for yesterday.
+          SELECT event_type, COUNT(*) AS events, COUNT(DISTINCT username) AS users
+            FROM signon_audit
+           WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}
+             AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)
+           GROUP BY event_type
+           ORDER BY event_type;
+
+          SELECT COUNT(*) AS locked_accounts FROM signon WHERE locked = 'Y';
+
+          SELECT role, COUNT(*) AS accounts FROM signon GROUP BY role;
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_signon_report.sh
+        line_start: 6
+        line_end: 9
+        excerpt: |2
+          DAY=$(date -d yesterday '+%Y%m%d' 2>/dev/null || date -v-1d '+%Y%m%d')
+          OUT="$PSL_EXTRACT_DIR/signon_report_$DAY.txt"
+          psl_log "start day=$DAY"
+          psl_ij "$PSL_SQL/signon_report.sql" > "$OUT" || { psl_log "FAILED"; exit 8; }
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.3 PSL_SIGNON_REPORT"
+        excerpt: |2
+          <p>Writes yesterday's counts per event type, the number of locked accounts and accounts per role to
+          <code>/var/petstore/extract/signon_report_YYYYMMDD.txt</code>.</p>
+    stack_metadata:
+      db.object: "SIGNON_AUDIT, SIGNON"
+      batch.trigger: "PSL_SIGNON_REPORT daily 01:45, INCOND PSL_AUDIT_EXTRACT-OK"
+
+  # ---------------------------------------------------------------- catalog-data-integrity
+  - record_key: CDI-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL report as a catalog integrity breach every category that has no
+      product.
+    plain_text: >
+      Every category in the store must contain at least one product; the daily check
+      flags any empty category.
+    technical_note: >
+      Check C1 in db/batch/catalog_check.sql: categories with NOT EXISTS a product
+      referencing their catid. Detected only; nothing in the schema prevents it.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The check query and the Admin Guide 3.3 rule C1 state the same rule independently.
+      It is detected nightly, not enforced at write time, which the record reflects.
+    risk_class: operational
+    basis: >
+      Query C1 in catalog_check.sql; Admin Guide 3.3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 3
+        line_end: 5
+        excerpt: |2
+          -- C1: categories with no product
+          SELECT 'C1' AS chk, c.catid FROM category c
+           WHERE NOT EXISTS (SELECT 1 FROM product p WHERE p.catid = c.catid);
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules, C1"
+        excerpt: |2
+           <tr><td>C1</td><td>Every category has at least one product.</td></tr>
+    stack_metadata:
+      db.object: "CATEGORY, PRODUCT"
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: CDI-BR-0002
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL report as a catalog integrity breach every product that has no
+      item.
+    plain_text: >
+      Every product must have at least one item for sale; the daily check flags any
+      product without one.
+    technical_note: >
+      Check C2 in db/batch/catalog_check.sql: products with NOT EXISTS an item referencing
+      their productid. Detected only, not enforced.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The check query and the Admin Guide 3.3 rule C2 agree.
+    risk_class: operational
+    basis: >
+      Query C2 in catalog_check.sql; Admin Guide 3.3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 6
+        line_end: 8
+        excerpt: |2
+          -- C2: products with no item
+          SELECT 'C2' AS chk, p.productid FROM product p
+           WHERE NOT EXISTS (SELECT 1 FROM item i WHERE i.productid = p.productid);
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules, C2"
+        excerpt: |2
+           <tr><td>C2</td><td>Every product has at least one item.</td></tr>
+    stack_metadata:
+      db.object: "PRODUCT, ITEM"
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: CDI-BR-0003
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL NOT hold an item price (in any locale) whose list price is below
+      its unit cost, and the daily check SHALL report any such item as a catalog
+      integrity breach.
+    plain_text: >
+      An item's selling (list) price may never be lower than what it costs the store.
+    technical_note: >
+      Enforced by the CHECK constraint ck_item_details_price (listprice >= unitcost) on
+      ITEM_DETAILS, and re-checked as C3 in db/batch/catalog_check.sql, per item_details
+      row, so per item and locale. With the constraint in place C3 can only find rows if
+      the constraint is absent (for example tables created by another path).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in two independent places (DDL CHECK constraint and the batch query) and
+      stated in the Admin Guide 3.3 rule C3.
+    risk_class: financial
+    basis: >
+      DDL CHECK on item_details; query C3; Admin Guide C3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 9
+        line_end: 10
+        excerpt: |2
+          -- C3: items priced below cost
+          SELECT 'C3' AS chk, itemid FROM item_details WHERE listprice < unitcost;
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 66
+        line_end: 66
+        excerpt: |2
+                constraint ck_item_details_price check (listprice >= unitcost)
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules, C3"
+        excerpt: |2
+           <tr><td>C3</td><td>An item's list price is never below its unit cost (database check constraint).</td></tr>
+    stack_metadata:
+      db.object: ITEM_DETAILS
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: CDI-BR-0004
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL report as a catalog integrity breach every item that has no
+      description in the en_US locale.
+    plain_text: >
+      Every item must have a US-English description; the daily check flags any item
+      without one.
+    technical_note: >
+      Check C4 in db/batch/catalog_check.sql with the locale hard-coded as 'en_US'.
+      catalog.locale=en_US in petstore.properties is not read by the SQL. Note that
+      item_details.locale is char(10), so the comparison relies on Derby's blank-padded
+      CHAR comparison.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The query and Admin Guide C4 agree on the rule, but the locale is a bare literal in
+      one query with no configuration actually read; graded medium rather than high
+      because whether en_US is a business requirement or just the only shipped locale is
+      not stated anywhere.
+    risk_class: presentational
+    basis: >
+      Query C4 in catalog_check.sql; Admin Guide C4.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 11
+        line_end: 13
+        excerpt: |2
+          -- C4: items without an en_US description
+          SELECT 'C4' AS chk, i.itemid FROM item i
+           WHERE NOT EXISTS (SELECT 1 FROM item_details d WHERE d.itemid = i.itemid AND d.locale = 'en_US');
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules, C4"
+        excerpt: |2
+           <tr><td>C4</td><td>Every item has an en_US description.</td></tr>
+    stack_metadata:
+      db.object: "ITEM, ITEM_DETAILS"
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: CDI-WF-0001
+    kind: workflow
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL run the catalog integrity checks C1 to C4 every day at 06:00, SHALL
+      log every breaching row together with the total number of categories and items, and
+      WHEN any check returns a row THEN SHALL end the run with the "integrity breach"
+      outcome (exit code 4) so that the catalog team is alerted.
+    plain_text: >
+      Every morning before the store opens, the catalog is checked against its four data
+      rules. If anything breaks a rule, the catalog team gets an urgent mail and the
+      details go to the check log.
+    technical_note: >
+      db/batch/catalog_check.sql holds the four queries plus two COUNT(*) totals
+      "for the log". batch/psl_catalog_check.sh appends ij output to
+      catalog_check.log and greps for lines starting "C1 " to "C4 "; any match exits 4.
+      Control-M PSL_CATALOG_CHECK (06:00, CRITICAL) mails psl-catalog on COMPSTAT=4.
+      Totals are logged only: properties catalog.minCategories=5 and catalog.minItems=28
+      exist but nothing compares the totals with them.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      SQL header comment, wrapper script, scheduler mail rule, Runbook 3.5 and Admin
+      Guide 3.3 agree on the checks, the 06:00 run and the alert.
+    risk_class: operational
+    basis: >
+      catalog_check.sql header ("Each query must return 0 rows ... the script fails the
+      job otherwise") and the totals queries; the wrapper's grep and exit code.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 1
+        line_end: 2
+        excerpt: |2
+          -- PSL_CATALOG_CHECK: catalog integrity checks. Each query must return 0 rows
+          -- or a zero count; the script fails the job otherwise.
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 14
+        line_end: 16
+        excerpt: |2
+          -- Totals for the log
+          SELECT COUNT(*) AS categories FROM category;
+          SELECT COUNT(*) AS items FROM item;
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 15
+        line_end: 21
+        excerpt: |2
+          echo "$OUT" >> "$PSL_LOG_DIR/catalog_check.log"
+          if echo "$OUT" | grep -qE "^C[1-4] "; then
+            psl_log "FAILED: integrity check found rows"
+            exit 4
+          fi
+          psl_log "end OK"
+          exit 0
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 69
+        line_end: 71
+        excerpt: |2
+                <ON STMT="*" CODE="COMPSTAT=4">
+                  <DOMAIL URGENCY="U" DEST="psl-catalog@example.invalid" SUBJECT="Petstore catalog integrity check failed" MESSAGE="See /var/petstore/log/catalog_check.log" />
+                </ON>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules, closing paragraph"
+        excerpt: |2
+          <p>Job PSL_CATALOG_CHECK checks C1 to C4 every morning at 06:00 and alerts the catalog team when one fails.</p>
+    stack_metadata:
+      batch.trigger: "PSL_CATALOG_CHECK daily 06:00, CRITICAL"
+
+  # ---------------------------------------------------------------- sample-data-population
+  - record_key: SDP-WF-0001
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      WHEN the daily catalog check finds that the catalog tables do not exist
+      THEN the system SHALL request a first load of the store's sample data (not a forced
+      reload) and SHALL run the catalog checks again on the loaded data;
+      IF the first-load request fails THEN the run SHALL end with the "error" outcome
+      (exit code 8).
+    plain_text: >
+      If the morning check finds no catalog at all, it asks the store to load its
+      starting sample data and then checks again.
+    technical_note: >
+      batch/psl_catalog_check.sh: if the ij output of catalog_check.sql contains
+      "does not exist" (Derby's missing-table error), it calls
+      $PSL_STORE_URL/Populate?forcefully=false with curl -sf, then reruns the SQL. The
+      first-load path in PopulateServlet drops and recreates every table, sign-on and
+      audit tables included (see the suspected defect). The SQL file is the probe; the
+      rule itself lives in the wrapper.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Wrapper script logic, its header comment, the scheduler job description and the
+      Runbook 3.5 all describe the same first-load-then-recheck behaviour.
+    risk_class: operational
+    basis: >
+      The "does not exist" branch in the wrapper around catalog_check.sql.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 9
+        line_end: 14
+        excerpt: |2
+          OUT=$(psl_ij "$PSL_SQL/catalog_check.sql")
+          if echo "$OUT" | grep -q "does not exist"; then
+            psl_log "catalog tables missing, requesting first load"
+            curl -sf -o /dev/null "$PSL_STORE_URL/Populate?forcefully=false" || { psl_log "FAILED: populate"; exit 8; }
+            OUT=$(psl_ij "$PSL_SQL/catalog_check.sql")
+          fi
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 4
+        line_end: 5
+        excerpt: |2
+          SELECT 'C1' AS chk, c.catid FROM category c
+           WHERE NOT EXISTS (SELECT 1 FROM product p WHERE p.catid = c.catid);
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.5 PSL_CATALOG_CHECK"
+        excerpt: |2
+          <p>Runs catalog checks C1 to C4 (see the Administrator Guide). If the catalog tables do not exist it calls
+          <code>http://localhost:8080/petstore/Populate?forcefully=false</code> to load the sample data, then checks again.
+    stack_metadata:
+      batch.trigger: PSL_CATALOG_CHECK
+
+  # ---------------------------------------------------------------- batch-operations
+  - record_key: BAT-BR-0001
+    kind: business-rule
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL take an online backup of the whole store database every day at
+      01:00 without stopping the store, SHALL keep it in a folder named for the backup
+      date (PetStoreDB_YYYYMMDD), replacing any backup already taken that day, and SHALL
+      delete dated backups whose age exceeds 7 whole days.
+    plain_text: >
+      The store database is backed up every night while the store keeps running. One
+      backup per day is kept, and backups older than about a week are removed.
+    technical_note: >
+      db/batch/db_backup.sql calls SYSCS_UTIL.SYSCS_BACKUP_DATABASE('/var/petstore/backup').
+      batch/psl_db_backup.sh removes any leftover PetStoreDB folder, runs the SQL, removes
+      a same-day PetStoreDB_$STAMP, renames, then runs find -mtime +$PSL_BACKUP_KEEP_DAYS
+      (7) -exec rm -rf, which deletes folders 8 or more whole days old, so about eight
+      dated backups remain. Control-M PSL_DB_BACKUP: 01:00, CRITICAL, up to 2 reruns
+      10 minutes apart, mails psl-ops on failure; its success releases the audit extract.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      SQL, wrapper, scheduler description ("keep 7 days"), properties keepDays=7 and the
+      Runbook 3.1 agree on the backup and a 7-day retention; the exact retention boundary
+      is the find semantics, which differ slightly from the Runbook wording (see suspected
+      defect).
+    risk_class: operational
+    basis: >
+      Backup procedure call in db_backup.sql; dating and retention in the wrapper.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/db_backup.sql
+        line_start: 1
+        line_end: 3
+        excerpt: |2
+          -- PSL_DB_BACKUP: online backup of PetStoreDB.
+          -- Derby writes /var/petstore/backup/PetStoreDB; the script moves it to a dated folder.
+          CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE('/var/petstore/backup');
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 5
+        line_end: 11
+        excerpt: |2
+          STAMP=$(date '+%Y%m%d')
+          psl_log "start"
+          rm -rf "$PSL_BACKUP_DIR/PetStoreDB"
+          psl_ij "$PSL_SQL/db_backup.sql" > /dev/null || { psl_log "FAILED: backup"; exit 8; }
+          rm -rf "$PSL_BACKUP_DIR/PetStoreDB_$STAMP"
+          mv "$PSL_BACKUP_DIR/PetStoreDB" "$PSL_BACKUP_DIR/PetStoreDB_$STAMP"
+          find "$PSL_BACKUP_DIR" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf {} \;
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 15
+        line_end: 19
+        excerpt: |2
+              <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="DATABASE" JOBNAME="PSL_DB_BACKUP"
+                   DESCRIPTION="Online backup of PetStoreDB, keep 7 days"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_db_backup.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA" CRITICAL="1"
+                   TIMEFROM="0100" WEEKDAYS="ALL" DAYSCAL="PSL_CAL" MAXRERUN="2" INTERVAL="00010M"
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.1 PSL_DB_BACKUP"
+        excerpt: |2
+          The backup is moved to <code>/var/petstore/backup/PetStoreDB_YYYYMMDD</code>. Backups older than 7 days are deleted.
+    stack_metadata:
+      db.object: PetStoreDB (whole database)
+      derby.procedure: SYSCS_UTIL.SYSCS_BACKUP_DATABASE
+      batch.trigger: "PSL_DB_BACKUP daily 01:00, MAXRERUN 2, INTERVAL 10M"
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+    record_key: AUD-INT-0001
+    description: >
+      The extract always covers "yesterday" relative to the day it actually runs. If it
+      is held past midnight (for example because PSL_DB_BACKUP failed and was fixed the
+      next day), the held day's events are never extracted automatically; the Runbook 4.2
+      says an older day must be re-extracted by hand with edited dates. A human needs to
+      decide whether the rebuild must guarantee one extract per calendar day (gap-free)
+      or keep the run-date-relative window.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+    record_key: AUD-INT-0001
+    description: >
+      The day covered is computed twice from two clocks: the SQL uses the database's
+      CURRENT_DATE, the file name uses the shell's `date -d yesterday`. They agree only
+      while the database and the batch host share a time zone and the job does not cross
+      midnight between the two calls. Which clock defines "the business day" for the
+      extract is not stated.
+
+suspected_defects:
+  - capability_key: catalog-data-integrity
+    record_keys: [CDI-WF-0001]
+    severity: medium
+    category: error-swallowed
+    title: Catalog check reports success when the database cannot be read
+    description: >
+      The catalog check's own run of the checks is not tested for errors: the wrapper
+      captures the output and only looks for "does not exist" and for rows starting
+      "C1" to "C4". If the database is down, the connection is refused, or any check
+      query fails with another error, no such line appears and the job ends "OK" (exit 0),
+      so no alert is sent and the morning check silently did not happen. The same is true
+      of the recheck after a first load.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 9
+        line_end: 21
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 19
+        line_end: 26
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 1
+        line_end: 2
+
+  - capability_key: sample-data-population
+    record_keys: [SDP-WF-0001]
+    severity: high
+    category: data-corruption
+    title: Automatic first load from the catalog check also wipes accounts and sign-on history
+    description: >
+      When the catalog tables are missing, the morning check asks the store for a "first
+      load". The first-load path treats the store as not populated if either the catalog
+      or the account check fails, and then drops and recreates every table, including
+      customer accounts and the sign-on audit history. A missing catalog table therefore
+      deletes all real accounts and the security audit trail, replacing them with the
+      three sample users, with no human involved. The Runbook describes the call as
+      loading "the sample data" only.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 10
+        line_end: 13
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 162
+        line_end: 172
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.5 PSL_CATALOG_CHECK"
+
+  - capability_key: account-lockout
+    record_keys: [LOCK-BR-0001, LOCK-BR-0002]
+    severity: low
+    category: contradicts-document
+    title: Locked-account page promises unlock at 30 minutes; actual unlock is 30 to 45 minutes
+    description: >
+      The Account Locked page and the unlock SQL's header say the lock is cleared
+      "30 minutes after" it was set. Because the unlock only runs every 15 minutes and
+      requires the lock to be strictly older than 30 minutes, the lock actually lasts
+      between 30 and about 45 minutes. The User Guide states the 45-minute ceiling; the
+      on-screen message does not.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_locked.jsp
+        line_start: 7
+        line_end: 8
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 3
+        line_end: 3
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 83
+        line_end: 83
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.3 Locked account"
+
+  - capability_key: sign-on-audit
+    record_keys: [AUD-BR-0001, LOCK-BR-0001]
+    severity: low
+    category: data-corruption
+    title: Unlock audit and unlock can disagree at the 30-minute boundary
+    description: >
+      The unlock job decides "locked more than 30 minutes" twice, once when writing the
+      audit events and again when unlocking, each against its own reading of the current
+      time. A lock that crosses the 30-minute mark between the two statements is unlocked
+      without an ACCOUNT_UNLOCKED event being recorded (it is caught by the second
+      statement only). Whether the database fixes the time per statement or per
+      transaction was not verified; if per statement, the audit trail can miss unlocks.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 15
+
+  - capability_key: account-lockout
+    record_keys: [LOCK-BR-0003]
+    severity: low
+    category: other
+    title: An account locked without a lock time stays locked forever
+    description: >
+      The automatic unlock only considers accounts with a recorded lock time. An account
+      marked locked with no lock time (possible from manual SQL or migrated data; the
+      schema does not forbid it) is never unlocked and never audited as unlocked.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 15
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 75
+        line_end: 76
+
+  - capability_key: sign-on-audit
+    record_keys: [AUD-BR-0002]
+    severity: low
+    category: contradicts-document
+    title: Purge guarantee "every row has been extracted" only holds if no daily extract was ever missed
+    description: >
+      The purge comment and the Runbook say the purge waits for the extract "so no row is
+      deleted before it is extracted". The purge waits only for that Sunday's extract,
+      which covers one day; it deletes everything older than 90 days whether or not those
+      days' extracts ever succeeded. A missed or held extract day can therefore be purged
+      without ever having been delivered to the security team.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 2
+        line_end: 6
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 7
+        line_end: 8
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.4 PSL_AUDIT_PURGE"
+
+  - capability_key: batch-operations
+    record_keys: [BAT-BR-0001]
+    severity: low
+    category: contradicts-document
+    title: Backup retention keeps about eight days, documentation says seven
+    description: >
+      The Runbook says backups older than 7 days are deleted. The deletion removes only
+      backups at least 8 whole days old, so on a normal day eight dated backups (today
+      plus the previous seven) remain on disk.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.1 PSL_DB_BACKUP"
