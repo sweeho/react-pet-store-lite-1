@@ -4,23 +4,23 @@
 source. Rebuild it after any change with `sh vortex/build-inputs.sh` from the
 repository root.
 
-| Folder                                 | Add as               | Settings                                                             | Why separate                                                                                                                                                            |
-| -------------------------------------- | -------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `01-code/petstore-lite-code.zip`       | Code (zip upload)    | -                                                                    | No wrapping folder, so `src/main/java` profiles as one J2EE folder. Also carries the DDL, Control-M export, config and batch scripts, which Vortex detects inside code. |
-| `02-database/`                         | Database, DDL export | -                                                                    | Standalone schema: `petstore_oracle.sql` is the reference production schema                                                                                             |
-| `03-scheduler/PSL_PETSTORE.xml`        | Scheduler, Control-M | -                                                                    | Uploads only. Its jobs link to scripts in the code zip.                                                                                                                 |
-| `04-configuration/petstore.properties` | Configuration        | Environment `prod`, behaviour of record on                           | `env.sh` stays in the zip: a standalone file starting with `#!` is refused                                                                                              |
-| `05-documents/*.pdf`                   | Documents            | User Guide, Admin Guide: role _User manual_. Runbook: role _Runbook_ | PDFs and images inside the code zip are dropped as media                                                                                                                |
-| `05-documents/screenshots/*.png`       | Documents            | Role _Screenshots_                                                   | 16 screens of the running app                                                                                                                                           |
-| `06-samples/`                          | Samples              | Output columns below                                                 | Anonymised: residual risk 0 by Vortex's own measure                                                                                                                     |
+| Folder | Add as | Settings | Why separate |
+|---|---|---|---|
+| `01-code/petstore-lite-code.zip` | Code (zip upload) | - | No wrapping folder, so `src/main/java` profiles as one J2EE folder. Also carries the DDL, Control-M export, config and batch scripts, which Vortex detects inside code. |
+| `02-database/` | Database, DDL export | - | Standalone schema: `petstore_oracle.sql` is the reference production schema |
+| `03-scheduler/PSL_PETSTORE.xml` | Scheduler, Control-M | - | Uploads only. Its jobs link to scripts in the code zip. |
+| `04-configuration/petstore.properties` | Configuration | Environment `prod`, behaviour of record on | `env.sh` stays in the zip: a standalone file starting with `#!` is refused |
+| `05-documents/*.pdf` | Documents | User Guide, Admin Guide: role *User manual*. Runbook: role *Runbook* | PDFs and images inside the code zip are dropped as media |
+| `05-documents/screenshots/*.png` | Documents | Role *Screenshots* | 16 screens of the running app |
+| `06-samples/` | Samples | Output columns below | Anonymised: residual risk 0 by Vortex's own measure |
 
 Sample output columns:
 
-| File                                 | Output columns                                                                   |
-| ------------------------------------ | -------------------------------------------------------------------------------- |
-| `signon_decision_cases.csv`          | `result_screen`, `failed_attempts_after`, `locked_after`, `audit_events_written` |
-| `catalog_search_cases.json`          | `output`                                                                         |
-| `signon_audit_events_anonymised.csv` | none (event history, classify by `event_type`)                                   |
+| File | Output columns |
+|---|---|
+| `signon_decision_cases.csv` | `result_screen`, `failed_attempts_after`, `locked_after`, `audit_events_written` |
+| `catalog_search_cases.json` | `output` |
+| `signon_audit_events_anonymised.csv` | none (event history, classify by `event_type`) |
 
 ## Demo order
 

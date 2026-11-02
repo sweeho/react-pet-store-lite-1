@@ -5,11 +5,11 @@
 Nothing here was silently skipped. Every exclusion below is counted, and a
 capability that looks thin should be checked against this list first.
 
-| Reason                  | Files | Bytes  |
-| ----------------------- | ----- | ------ |
-| VCS metadata            | 672   | 2.4 MB |
-| Media and fonts         | 118   | 4.3 MB |
-| Binary by content sniff | 200   | 0.1 MB |
+| Reason | Files | Bytes |
+| --- | --- | --- |
+| VCS metadata | 672 | 2.4 MB |
+| Media and fonts | 118 | 4.3 MB |
+| Binary by content sniff | 200 | 0.1 MB |
 
 ## Why these are excluded
 

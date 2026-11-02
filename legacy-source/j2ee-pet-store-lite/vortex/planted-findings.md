@@ -8,19 +8,19 @@ Base URL for the reproduction steps: `http://localhost:8080/petstore`.
 
 ## Summary
 
-| ID  | Type              | Finding                                                                         | Show in demo |
-| --- | ----------------- | ------------------------------------------------------------------------------- | ------------ |
-| F1  | conflict          | Search is case-sensitive, but the User Guide says it is not                     | Yes          |
-| F2  | conflict          | "Your Price" shows supplier cost, but the User Guide calls it a member discount | Yes          |
-| F3  | defect (security) | `;jsessionid=x` in the URL bypasses sign-on                                     | Yes          |
-| F4  | risk (security)   | Passwords stored and compared in plain text                                     |              |
-| F5  | defect            | Sign-on with no user name gives HTTP 500                                        |              |
-| F6  | risk              | Forced reload deletes all accounts and audit history                            |              |
-| F7  | ambiguity         | `catalog.pageSize` config key is never read                                     |              |
-| F8  | ambiguity         | Unknown user names are audited and never lock                                   |              |
-| F9  | data quality      | Product image `fish1.jpg` is not shipped                                        |              |
-| F10 | risk              | Catalog SQL file path is hard-coded in `web.xml`                                |              |
-| F11 | ambiguity         | No screen to create an ADMIN or unlock an account                               |              |
+| ID | Type | Finding | Show in demo |
+|---|---|---|---|
+| F1 | conflict | Search is case-sensitive, but the User Guide says it is not | Yes |
+| F2 | conflict | "Your Price" shows supplier cost, but the User Guide calls it a member discount | Yes |
+| F3 | defect (security) | `;jsessionid=x` in the URL bypasses sign-on | Yes |
+| F4 | risk (security) | Passwords stored and compared in plain text | |
+| F5 | defect | Sign-on with no user name gives HTTP 500 | |
+| F6 | risk | Forced reload deletes all accounts and audit history | |
+| F7 | ambiguity | `catalog.pageSize` config key is never read | |
+| F8 | ambiguity | Unknown user names are audited and never lock | |
+| F9 | data quality | Product image `fish1.jpg` is not shipped | |
+| F10 | risk | Catalog SQL file path is hard-coded in `web.xml` | |
+| F11 | ambiguity | No screen to create an ADMIN or unlock an account | |
 
 ## F1. Search case sensitivity (conflict)
 

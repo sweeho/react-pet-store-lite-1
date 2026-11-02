@@ -10,7 +10,15 @@
       },
       "output": {
         "resultCount": 7,
-        "itemIds": ["EST-1", "EST-2", "EST-3", "EST-4", "EST-5", "EST-20", "EST-21"],
+        "itemIds": [
+          "EST-1",
+          "EST-2",
+          "EST-3",
+          "EST-4",
+          "EST-5",
+          "EST-20",
+          "EST-21"
+        ],
         "message": null,
         "pages": 4
       }
@@ -63,7 +71,12 @@
       },
       "output": {
         "resultCount": 4,
-        "itemIds": ["EST-14", "EST-15", "EST-16", "EST-17"],
+        "itemIds": [
+          "EST-14",
+          "EST-15",
+          "EST-16",
+          "EST-17"
+        ],
         "message": null,
         "pages": 2
       }
@@ -76,7 +89,10 @@
       },
       "output": {
         "resultCount": 2,
-        "itemIds": ["EST-18", "EST-19"],
+        "itemIds": [
+          "EST-18",
+          "EST-19"
+        ],
         "message": null,
         "pages": 1
       }
@@ -89,7 +105,11 @@
       },
       "output": {
         "resultCount": 3,
-        "itemIds": ["EST-11", "EST-12", "EST-13"],
+        "itemIds": [
+          "EST-11",
+          "EST-12",
+          "EST-13"
+        ],
         "message": null,
         "pages": 2
       }
@@ -102,7 +122,10 @@
       },
       "output": {
         "resultCount": 2,
-        "itemIds": ["EST-11", "EST-12"],
+        "itemIds": [
+          "EST-11",
+          "EST-12"
+        ],
         "message": null,
         "pages": 1
       }
@@ -115,7 +138,9 @@
       },
       "output": {
         "resultCount": 1,
-        "itemIds": ["EST-13"],
+        "itemIds": [
+          "EST-13"
+        ],
         "message": null,
         "pages": 1
       }
@@ -154,7 +179,9 @@
       },
       "output": {
         "resultCount": 1,
-        "itemIds": ["EST-8"],
+        "itemIds": [
+          "EST-8"
+        ],
         "message": null,
         "pages": 1
       }
@@ -167,7 +194,10 @@
       },
       "output": {
         "resultCount": 2,
-        "itemIds": ["EST-4", "EST-5"],
+        "itemIds": [
+          "EST-4",
+          "EST-5"
+        ],
         "message": null,
         "pages": 1
       }
@@ -180,7 +210,9 @@
       },
       "output": {
         "resultCount": 1,
-        "itemIds": ["EST-19"],
+        "itemIds": [
+          "EST-19"
+        ],
         "message": null,
         "pages": 1
       }
@@ -193,7 +225,9 @@
       },
       "output": {
         "resultCount": 1,
-        "itemIds": ["EST-18"],
+        "itemIds": [
+          "EST-18"
+        ],
         "message": null,
         "pages": 1
       }
@@ -206,7 +240,9 @@
       },
       "output": {
         "resultCount": 1,
-        "itemIds": ["EST-28"],
+        "itemIds": [
+          "EST-28"
+        ],
         "message": null,
         "pages": 1
       }

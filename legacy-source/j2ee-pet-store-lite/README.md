@@ -7,11 +7,11 @@ Java Pet Store Demo 1.3.2 (`petstore-1_3_2.zip`).
 The original has 12 capabilities across 4 applications (petstore, admin, OPC,
 supplier) and 20 components. Petstore Lite keeps 3:
 
-| #   | Capability                  | Kept from 1.3.2                                                    | Changed                                                                               |
-| --- | --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| 1   | Catalog browsing and search | catalog component, Fast Lane Reader DAO, `CatalogDAOSQL.xml`, JSPs | Catalog EJB removed. English only. No cart links.                                     |
-| 2   | Sample data population      | `PopulateServlet`, XML populators, `PopulateSQL.xml`               | Customer/account populators removed. Users load by JDBC. Forced reload is ADMIN only. |
-| 3   | Sign-on and access control  | `SignOnFilter`, `signon-config.xml`, `CreateUserServlet`           | SignOn/User EJBs replaced by `UserDAO`. Roles enforced. 3-strike lockout. Audit log.  |
+| # | Capability | Kept from 1.3.2 | Changed |
+|---|---|---|---|
+| 1 | Catalog browsing and search | catalog component, Fast Lane Reader DAO, `CatalogDAOSQL.xml`, JSPs | Catalog EJB removed. English only. No cart links. |
+| 2 | Sample data population | `PopulateServlet`, XML populators, `PopulateSQL.xml` | Customer/account populators removed. Users load by JDBC. Forced reload is ADMIN only. |
+| 3 | Sign-on and access control | `SignOnFilter`, `signon-config.xml`, `CreateUserServlet` | SignOn/User EJBs replaced by `UserDAO`. Roles enforced. 3-strike lockout. Audit log. |
 
 Removed: cart, checkout, orders, customer profile, OPC, supplier, admin
 client, mailer, JMS, i18n (ja, zh), WAF event/EJB controller.
@@ -43,20 +43,20 @@ Run a batch job: `docker exec psl /opt/petstore/batch/psl_acct_unlock.sh`
 
 ## Layout
 
-| Path                                   | Content                                                                                                        |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `src/main/java`                        | 42 Java classes: catalog, signon, populate, WAF template, encoding filter                                      |
-| `src/main/webapp`                      | 20 JSPs, `WEB-INF/web.xml`, `signon-config.xml`, screen definitions, populate XML, `CatalogDAOSQL.xml`, images |
-| `db/schema`                            | DDL: `petstore_derby.sql` (runtime), `petstore_oracle.sql` (reference production, sequence and trigger)        |
-| `db/batch`                             | SQL run by the batch jobs                                                                                      |
-| `batch`                                | 6 batch shell scripts                                                                                          |
-| `scheduler/control-m/PSL_PETSTORE.xml` | Control-M DEFTABLE: 2 folders, 6 jobs                                                                          |
-| `conf`                                 | `petstore.properties`, `env.sh`                                                                                |
-| `data/migration`                       | Full table extracts (CSV, with header) for migration testing                                                   |
-| `data/interface`                       | Sample batch output file `signon_audit_YYYYMMDD.csv`                                                           |
-| `data/seed`                            | Sign-on history SQL and its generator                                                                          |
-| `docs`                                 | User Guide, Administrator Guide, Operations Runbook (PDF and HTML source), 16 screenshots                      |
-| `vortex`                               | Vortex inputs, upload steps and the expected extraction                                                        |
+| Path | Content |
+|---|---|
+| `src/main/java` | 42 Java classes: catalog, signon, populate, WAF template, encoding filter |
+| `src/main/webapp` | 20 JSPs, `WEB-INF/web.xml`, `signon-config.xml`, screen definitions, populate XML, `CatalogDAOSQL.xml`, images |
+| `db/schema` | DDL: `petstore_derby.sql` (runtime), `petstore_oracle.sql` (reference production, sequence and trigger) |
+| `db/batch` | SQL run by the batch jobs |
+| `batch` | 6 batch shell scripts |
+| `scheduler/control-m/PSL_PETSTORE.xml` | Control-M DEFTABLE: 2 folders, 6 jobs |
+| `conf` | `petstore.properties`, `env.sh` |
+| `data/migration` | Full table extracts (CSV, with header) for migration testing |
+| `data/interface` | Sample batch output file `signon_audit_YYYYMMDD.csv` |
+| `data/seed` | Sign-on history SQL and its generator |
+| `docs` | User Guide, Administrator Guide, Operations Runbook (PDF and HTML source), 16 screenshots |
+| `vortex` | Vortex inputs, upload steps and the expected extraction |
 
 ## Vortex
 
