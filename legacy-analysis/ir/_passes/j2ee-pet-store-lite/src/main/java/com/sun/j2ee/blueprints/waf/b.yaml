@@ -1,0 +1,768 @@
+# Spec extraction SX-0001 · extract-b · j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf
+# Pass B (independent reading). This module is the page-composition framework
+# (screen definitions, layout template, insert tag, session/request keys). It
+# holds no domain rules of its own; the records below cover the user-visible
+# behaviour it produces: the shared page layout, the screen catalogue and page
+# titles, locale selection, the "previous screen" shortcut and the error output
+# for an undefined screen. None of the capability keys is a perfect fit for
+# framework behaviour; each record says in `basis` why it was filed where it is.
+# No legacy-analysis/sources/**/extracted.md exists in this tree; the HTML guides
+# under legacy-source/j2ee-pet-store-lite/docs/guides were read and are cited as
+# line-ranged traces.
+
+records:
+  - record_key: CATB-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL render every store page on one shared layout made of a page
+      title, a banner at the top, a side bar on the left, a body area holding the
+      requested page content, and a footer at the bottom. GIVEN a page that names no
+      layout of its own WHEN it is shown THEN the system SHALL use the default layout.
+    plain_text: >
+      Every page in the store looks the same around the edges: a title, a banner at the
+      top, a category side bar on the left, the page content in the middle and a footer
+      at the bottom.
+    technical_note: >
+      Requests for *.screen are mapped to TemplateServlet (web.xml). The servlet looks
+      the screen up in WEB-INF/screendefinitions_en_US.xml, stores it as request
+      attribute CURRENT_SCREEN and forwards to the template (default-template
+      /template.jsp; Screens.getTemplate falls back to the default when the screen's
+      template attribute is empty or unknown). template.jsp places five
+      <template:insert> tags (title, banner, sidebar, body, footer); InsertTag prints a
+      parameter whose direct="true" as literal text, otherwise includes the named JSP.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in code (TemplateServlet forward, Screens default-template fallback,
+      InsertTag include/print), declared in configuration (screen definitions give
+      every screen the same five parameters, template.jsp lays them out) and stated in
+      the User Guide section 1.1. Three independent sources agree.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing because the layout frames the catalog pages and the
+      side bar is the category list; the layout itself spans every capability. The
+      User Guide says "Every page has the same four parts" (banner, side bar, body,
+      footer); the code adds the page title as a fifth composed part.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/Screens.java
+        line_start: 90
+        line_end: 98
+        excerpt: |2
+              public String getTemplate(String screenName) {
+                  if (screenMap.containsKey(screenName)) {
+                      String templateName = ((Screen)screenMap.get(screenName)).getTemplate();
+                      if ((templateName != null) && templateMap.containsKey(templateName)) {
+                              return (String)templateMap.get(templateName);
+                      } else {
+                          // return the default if template not defined for screen
+                          return defaultTemplate;
+                      }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 236
+        line_end: 241
+        excerpt: |2
+                      if (screen != null) {
+                          request.setAttribute(WebKeys.CURRENT_SCREEN, screen);
+                          String templateName = localeScreens.getTemplate(screenName);
+                          if (templateName != null) {
+                              insertTemplate(request, response, templateName);
+                          }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java
+        line_start: 96
+        line_end: 100
+        excerpt: |2
+                      if (directInclude && parameterRef != null) {
+                          pageContext.getOut().print(parameterRef.getValue());
+                      } else if (parameterRef != null)  {
+                          if (parameterRef.getValue() != null) pageContext.getRequest().getRequestDispatcher(parameterRef.getValue()).include(pageContext.getRequest(), pageContext.getResponse());
+                      }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/template.jsp
+        line_start: 36
+        line_end: 49
+        excerpt: |2
+            <title><template:insert parameter="title" /></title>
+           </head>
+           <body bgcolor="#FFFFFF">
+            <table width="100%" border="0" cellpadding="5" cellspacing="0">
+             <tr height="100" valign="top">
+              <td colspan="2"><template:insert parameter="banner" /></td>
+             </tr>
+             <tr valign="top">
+               <td width="20%" valign="top"><template:insert parameter="sidebar" /></td>
+               <td width="80%" valign="top"><template:insert parameter="body" /></td>
+             </tr>
+             <tr>
+              <td colspan="2"><template:insert parameter="footer" /></td>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 11
+        line_end: 19
+        excerpt: |2
+          <screen-definitions>
+            <default-template>/template.jsp</default-template>
+            <screen name="main">
+              <parameter key="title" value="Welcome to the BluePrints Petstore" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/main.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 27
+        line_end: 36
+        excerpt: |2
+          <h2>1.1 Page layout</h2>
+          <p>Every page has the same four parts:</p>
+          <ul>
+           <li><b>Banner</b> at the top: the Java Pet Store logo (returns to the home page), the <b>Search</b> box,
+           and the links <b>Account</b> and <b>Sign in</b> (or <b>Sign out</b> when you are signed in). When you are signed in
+           the banner shows <i>Signed in as &lt;user name&gt;</i>.</li>
+           <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>
+           <li><b>Body</b> in the middle: the page you asked for.</li>
+           <li><b>Footer</b> at the bottom.</li>
+          </ul>
+    stack_metadata:
+      framework: J2EE BluePrints WAF template mechanism
+      servlet: TemplateServlet
+      url_pattern: "*.screen"
+      jsp.page: /template.jsp
+      declarative_config: WEB-INF/screendefinitions_en_US.xml
+
+  - record_key: CATB-SCR-0001
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL provide the catalog pages Home, Products (category), Items
+      (product), Item and General Error, each addressable by name, with the page titles
+      "Welcome to the BluePrints Petstore", "Products", "Items", "Item" and
+      "General Error" respectively; the Welcome page shown after sign-in SHALL reuse the
+      Home page body.
+    plain_text: >
+      The store has a home page, a page listing a category's products, a page listing a
+      product's items, an item detail page and a general error page, each with a fixed
+      title shown in the browser.
+    technical_note: >
+      Screens main, category, product, item and general_error in
+      screendefinitions_en_US.xml; the title parameter is direct="true" so it is printed
+      verbatim into <title>. signon_welcome uses body /main.jsp. general_error is also the
+      web.xml error-page for any java.lang.Exception.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Read from one declarative file (screen definitions); the general-error mapping is
+      corroborated by web.xml and the error page's existence by the User Guide's
+      Messages table, but titles themselves appear in one place only.
+    risk_class: presentational
+    basis: >
+      Screen catalogue and titles from the screen definitions. General Error is filed
+      here as its only action is "return to the catalog".
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 20
+        line_end: 40
+        excerpt: |2
+            <screen name="category">
+              <parameter key="title" value="Products" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/category.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+            <screen name="product">
+              <parameter key="title" value="Items" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/product.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+            <screen name="item">
+              <parameter key="title" value="Item" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/item.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 111
+        line_end: 117
+        excerpt: |2
+            <screen name="general_error">
+              <parameter key="title" value="General Error" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/general_error.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 131
+        line_end: 134
+        excerpt: |2
+            <error-page>
+              <exception-type>java.lang.Exception</exception-type>
+              <location>/general_error.screen</location>
+            </error-page>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 163
+        line_end: 163
+        excerpt: |2
+           <tr><td>Error</td><td>Unexpected problem in the store</td><td>Return to the catalog and try again</td></tr>
+    stack_metadata:
+      jsp.page: [main.jsp, category.jsp, product.jsp, item.jsp, general_error.jsp]
+      screens: [main, category, product, item, general_error]
+
+  - record_key: SRCH-SCR-0001
+    kind: screen
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL provide a Search page, titled "Search", on the shared layout.
+    plain_text: >
+      Search results are shown on their own page titled "Search".
+    technical_note: >
+      Screen search in screendefinitions_en_US.xml, body /search.jsp.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One declarative source. The User Guide calls the page "Search Results", which is
+      body content rather than the window title, so it neither confirms nor contradicts.
+    risk_class: presentational
+    basis: Screen definition for search.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 41
+        line_end: 47
+        excerpt: |2
+            <screen name="search">
+              <parameter key="title" value="Search" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/search.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+    stack_metadata:
+      screens: [search]
+      jsp.page: search.jsp
+
+  - record_key: SIGN-SCR-0001
+    kind: screen
+    capability_key: sign-on
+    requirement: >
+      The system SHALL provide the sign-on pages Sign On, Welcome (shown after a
+      successful sign-in, with the home page content), Sign On Error and Sign Off, with
+      those titles, on the shared layout.
+    plain_text: >
+      Signing in and out uses four pages: the sign-in page, a welcome page after signing
+      in (showing the home page), a sign-in error page and a signed-out page.
+    technical_note: >
+      Screens signon, signon_welcome (body /main.jsp), signon_error (body
+      /signon_failed.jsp) and signoff in screendefinitions_en_US.xml.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One declarative source for the titles. The User Guide names the error page
+      "Sign-in Error" and the sign-in page "Sign In", while the definitions title them
+      "Sign On Error" and "Sign On"; this may be body heading versus window title, so it
+      is noted rather than disputed.
+    risk_class: presentational
+    basis: Screen definitions for the sign-on flow.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 48
+        line_end: 68
+        excerpt: |2
+            <screen name="signon">
+              <parameter key="title" value="Sign On" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/signon.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+            <screen name="signon_welcome">
+              <parameter key="title" value="Welcome" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/main.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+            <screen name="signon_error">
+              <parameter key="title" value="Sign On Error" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/signon_failed.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 83
+        line_end: 89
+        excerpt: |2
+            <screen name="signoff">
+              <parameter key="title" value="Sign Off" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/signoff.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+    stack_metadata:
+      screens: [signon, signon_welcome, signon_error, signoff]
+
+  - record_key: LOCK-SCR-0001
+    kind: screen
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL provide an Account Locked page, titled "Account Locked", on the
+      shared layout.
+    plain_text: >
+      A locked account sees a dedicated "Account Locked" page.
+    technical_note: >
+      Screen signon_locked, body /signon_locked.jsp, in screendefinitions_en_US.xml.
+      Which condition routes to it is decided outside this module.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared in the screen definitions and confirmed by the User Guide Messages table
+      ("Account Locked") with the same name.
+    risk_class: presentational
+    basis: Screen definition plus User Guide message table.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 69
+        line_end: 75
+        excerpt: |2
+            <screen name="signon_locked">
+              <parameter key="title" value="Account Locked" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/signon_locked.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 160
+        line_end: 160
+        excerpt: |2
+           <tr><td>Account Locked</td><td>3 failed sign-ins in a row</td><td>Wait 30 to 45 minutes, then sign in</td></tr>
+    stack_metadata:
+      screens: [signon_locked]
+
+  - record_key: REG-SCR-0001
+    kind: screen
+    capability_key: account-registration
+    requirement: >
+      The system SHALL provide a Create Account Error page, titled
+      "Create Account Error", on the shared layout, for a refused account creation.
+    plain_text: >
+      When an account cannot be created, the customer is shown a "Create Account Error"
+      page.
+    technical_note: >
+      Screen user_creation_error, body /user_creation_error.jsp. The User Guide calls the
+      message "Could Not Create Your Account" (body text, presumably).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One declarative source for the title; the guide confirms the page exists but uses
+      different wording, which is likely the body heading.
+    risk_class: presentational
+    basis: Screen definition.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 76
+        line_end: 82
+        excerpt: |2
+            <screen name="user_creation_error">
+              <parameter key="title" value="Create Account Error" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/user_creation_error.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 161
+        line_end: 161
+        excerpt: |2
+           <tr><td>Could Not Create Your Account</td><td>A field rule in section 5.1 is broken</td><td>Correct the field and try again</td></tr>
+    stack_metadata:
+      screens: [user_creation_error]
+
+  - record_key: AUDT-SCR-0001
+    kind: screen
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL provide a My Account page, titled "My Account", on the shared
+      layout.
+    plain_text: >
+      Signed-in customers have a "My Account" page (where their recent sign-in activity
+      is shown).
+    technical_note: >
+      Screen account, body /account.jsp. Its protection is declared in
+      signon-config.xml, outside this module.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Title from one declarative source; the User Guide and Admin Guide refer to
+      "My Account" by the same name, but the content of the page is not in this module.
+    risk_class: presentational
+    basis: >
+      Filed under sign-on-audit because the capability list places the My Account
+      recent-activity view there.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 90
+        line_end: 96
+        excerpt: |2
+            <screen name="account">
+              <parameter key="title" value="My Account" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/account.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+    stack_metadata:
+      screens: [account]
+
+  - record_key: ACC-SCR-0001
+    kind: screen
+    capability_key: access-control
+    requirement: >
+      The system SHALL provide an Access Denied page, titled "Access Denied", on the
+      shared layout.
+    plain_text: >
+      Someone who opens a page their role does not allow sees an "Access Denied" page.
+    technical_note: >
+      Screen access_denied, body /access_denied.jsp. The role check that routes to it is
+      outside this module.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared in the screen definitions and confirmed by name in the User Guide
+      Messages table.
+    risk_class: presentational
+    basis: Screen definition plus User Guide message table.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 97
+        line_end: 103
+        excerpt: |2
+            <screen name="access_denied">
+              <parameter key="title" value="Access Denied" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/access_denied.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 162
+        line_end: 162
+        excerpt: |2
+           <tr><td>Access Denied</td><td>The page is for administrators only</td><td>Return to the catalog</td></tr>
+    stack_metadata:
+      screens: [access_denied]
+
+  - record_key: POP-SCR-0001
+    kind: screen
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL provide a Catalog Administration page, titled
+      "Catalog Administration", on the shared layout.
+    plain_text: >
+      Administrators reload the sample data from a "Catalog Administration" page.
+    technical_note: >
+      Screen populate_admin, body /populate_admin.jsp. Restriction to ADMIN is in
+      signon-config.xml, outside this module.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared in the screen definitions and named identically in the Admin Guide
+      access table.
+    risk_class: presentational
+    basis: Screen definition plus Admin Guide.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 104
+        line_end: 110
+        excerpt: |2
+            <screen name="populate_admin">
+              <parameter key="title" value="Catalog Administration" direct="true"/>
+              <parameter key="banner" value="/banner.jsp" />
+              <parameter key="sidebar" value="/sidebar.jsp" />
+              <parameter key="body" value="/populate_admin.jsp" />
+              <parameter key="footer" value="/footer.jsp" />
+            </screen>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 29
+        line_end: 29
+        excerpt: |2
+           <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>
+    stack_metadata:
+      screens: [populate_admin]
+
+  - record_key: CATB-REQ-0002
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL present the store in a single language, US English (en_US).
+      GIVEN a request that asks for another language (by request parameter or by a
+      language remembered in the session) WHEN no page set exists for that language THEN
+      the system SHALL show the en_US pages. GIVEN a page that is not defined for the
+      requested language THEN the system SHALL show the en_US version of that page.
+    plain_text: >
+      The store is in US English only. Asking for any other language quietly shows the
+      English pages.
+    technical_note: >
+      TemplateServlet.init loads WEB-INF/screendefinitions_<locale>.xml for each entry
+      of init-param "locales" (web.xml: en_US) and sets default_locale (web.xml: en_US;
+      JVM default if absent). process() takes the "locale" request parameter first, then
+      the session LOCALE attribute, and falls back to default_locale when no definitions
+      were loaded for it; a screen missing from the chosen locale is looked up in the
+      default locale. The catalog JSPs also hard-code locale en_US (outside this module).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configured in web.xml, implemented in TemplateServlet and stated in the User Guide
+      ("The store is in English (en_US)"). The override-by-parameter path is read from
+      code; nothing in the application links with a locale parameter.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing (closest fit; the capability list has no
+      localisation capability). Code plus web.xml plus User Guide.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 151
+        line_end: 160
+        excerpt: |2
+                  String languageParam = request.getParameter("locale");
+                  // The language when specified as a parameter overrides the language set in the session
+                  if (languageParam != null) {
+                      localeString = languageParam;
+                  } else if (request.getSession().getAttribute(WebKeys.LOCALE) != null) {
+                      localeString = ((Locale)request.getSession().getAttribute(WebKeys.LOCALE)).toString();
+                  }
+                  if (allScreens.get(localeString) == null) {
+                     localeString = defaultLocale;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 228
+        line_end: 235
+        excerpt: |2
+                      Screens localeScreens = (Screens)allScreens.get(localeString);
+                      if (localeScreens != null) screen = (Screen)localeScreens.getScreen(screenName);
+                      // default to the default locale screen if it was not defined in the locale specific definitions
+                      if (screen == null) {
+                          System.err.println("Screen not Found loading default from " + defaultLocale);
+                          localeScreens = (Screens)allScreens.get(defaultLocale);
+                          screen = (Screen)localeScreens.getScreen(screenName);
+                      }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 56
+        line_end: 63
+        excerpt: |2
+              <init-param>
+                <param-name>locales</param-name>
+                <param-value>en_US</param-value>
+              </init-param>
+              <init-param>
+                <param-name>default_locale</param-name>
+                <param-value>en_US</param-value>
+              </init-param>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 25
+        line_end: 25
+        excerpt: |2
+          <p>The store is in English (en_US) and shows prices in US dollars.</p>
+    stack_metadata:
+      servlet: TemplateServlet
+      init_params: {locales: en_US, default_locale: en_US}
+      session.scope: com.sun.j2ee.blueprints.waf.LOCALE
+
+  - record_key: CATB-REQ-0003
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      GIVEN a request for a page name that is not defined WHEN the page is requested THEN
+      the system SHALL respond with a bare error message "Error: Definition for screen
+      <name> not found", without the shared layout and without an error status.
+    plain_text: >
+      Asking for a page that does not exist shows a plain "page definition not found"
+      message instead of a normal store page.
+    technical_note: >
+      TemplateServlet.process writes the message directly with content type
+      text/html;charset=8859_1 when neither the selected locale nor the default locale
+      defines the screen. The HTTP status is left at its default (200). The web.xml
+      error-page (general_error.screen) is not used on this path.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear code path; no configuration, test or document describes this response.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing as the closest fit for site-wide navigation
+      behaviour.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 242
+        line_end: 246
+        excerpt: |2
+                      } else {
+                          response.setContentType("text/html;charset=8859_1");
+                          PrintWriter out = response.getWriter();
+                          out.println("<font size=+4>Error:</font><br>Definition for screen " + screenName + " not found");
+                      }
+    stack_metadata:
+      servlet: TemplateServlet
+
+  - record_key: CATB-WF-0001
+    kind: workflow
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL remember, per visitor session, the last page shown. WHEN the
+      visitor requests the special page "PREVIOUS" THEN the system SHALL show that last
+      page again, without replacing the remembered page. The re-use of the previous
+      page's form inputs and computed data SHALL be off unless explicitly switched on, so
+      by default the previous page is re-shown without its earlier inputs.
+    plain_text: >
+      The store remembers the last page you looked at and can take you back to it, but
+      by default it does not bring back what you had typed on it.
+    technical_note: >
+      TemplateServlet stores "<screen>.<ext>" in session attribute PREVIOUS_SCREEN on
+      every non-PREVIOUS screen request; a request for PREVIOUS.screen re-dispatches that
+      screen. Init params cache_previous_screen_parameters / cache_previous_screen_attributes
+      (both absent from web.xml, so false) control copying request parameters/attributes
+      to and from the session.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      The mechanism is clear in code, but no page, link, redirect or document in the
+      application refers to PREVIOUS.screen, so whether any user ever reaches it could
+      not be established.
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        Every *.screen request records the previous page, but nothing in the JSPs,
+        servlets, filter configuration or guides requests PREVIOUS.screen. It is
+        reachable only by typing the URL. An SME should confirm whether a "back to
+        previous page" behaviour is wanted in the rebuild or can be dropped.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing (closest fit, site-wide navigation). Code read only.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 168
+        line_end: 174
+        excerpt: |2
+                   // check if request is for the previous screen
+                  if (screenName.equals(PREVIOUS_SCREEN)) {
+                      String longScreenName  =  (String)request.getSession().getAttribute(WebKeys.PREVIOUS_SCREEN);
+                      int lastDot2 = longScreenName.lastIndexOf(".");
+                      if ( lastDot2 != -1 && lastDot2 > 0) {
+                          screenName = longScreenName.substring(0, lastDot2);
+                       }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 197
+        line_end: 199
+        excerpt: |2
+                  } else {
+                            String extension = selectedUrl.substring(lastDot, selectedUrl.length());
+                            request.getSession().setAttribute(WebKeys.PREVIOUS_SCREEN, screenName + extension);
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 79
+        line_end: 94
+        excerpt: |2
+                  // enable the caching of previous screen attributes
+                  String cachePreviousScreenAttributesString = config.getInitParameter("cache_previous_screen_attributes");
+                  if (cachePreviousScreenAttributesString != null) {
+                      if (cachePreviousScreenAttributesString.toLowerCase().equals("true")) {
+                          System.out.println("TemplateServlet: Enabled caching of previous screen attributes.");
+                          cachePreviousScreenAttributes = true;
+                      }
+                  }
+                  // enable the caching of previous screen parameters
+                  String cachePreviousScreenParametersString = config.getInitParameter("cache_previous_screen_parameters");
+                  if (cachePreviousScreenParametersString != null) {
+                      if (cachePreviousScreenParametersString.toLowerCase().equals("true")) {
+                          System.out.println("TemplateServlet: Enabled caching of previous screen parameters.");
+                          cachePreviousScreenParameters = true;
+                      }
+                  }
+    stack_metadata:
+      servlet: TemplateServlet
+      session.scope: com.sun.j2ee.blueprints.waf.PREVIOUS_SCREEN
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+    description: >
+      Lines 147-149 remove session attribute com.sun.j2ee.blueprints.waf.CURRENT_URL on
+      every page request, but nothing in the application sets that attribute (the
+      sign-on filter keeps its own j_signon_original_url key). It produces no
+      observable behaviour today; a human should confirm it is a leftover of the full
+      WAF controller and not a hook some deployed component relies on.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/controller/web/util/WebKeys.java
+    description: >
+      WebKeys declares keys for a component manager, screen flow manager, request
+      processor, URL/event mappings, missing form data, server type and web/EJB
+      controllers (lines 50-65). None of these is read or written anywhere in this
+      application; they look like remnants of the removed WAF controller. No record was
+      emitted for them.
+
+suspected_defects:
+  - capability_key: catalog-browsing
+    record_keys: [CATB-REQ-0001]
+    severity: medium
+    category: error-swallowed
+    title: A failure inside any page part is hidden and a partial page is shown
+    description: >
+      When the content of a page part (banner, side bar, body or footer) fails while
+      being rendered, for example because the catalog cannot be read, the error is only
+      written to the server log and the rest of the page is still sent. The visitor sees
+      a page with a missing or truncated part instead of the General Error page that the
+      User Guide describes for an unexpected problem.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java
+        line_start: 94
+        line_end: 106
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 163
+        line_end: 163
+  - capability_key: catalog-browsing
+    record_keys: [CATB-REQ-0003]
+    severity: low
+    category: other
+    title: Unknown page returns a bare message with a success status
+    description: >
+      A request for an undefined page name gets a raw "Definition for screen ... not
+      found" text, outside the store layout, with a success (200) status and a different
+      character set from the rest of the store, rather than the General Error page or a
+      not-found status. It also echoes the requested name back into the page unescaped.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 242
+        line_end: 246
+  - capability_key: catalog-browsing
+    record_keys: [CATB-WF-0001]
+    severity: low
+    category: other
+    title: Requesting the previous page in a fresh session fails with an error
+    description: >
+      If PREVIOUS.screen is requested before any other page in the session, the
+      remembered page is absent and the request fails with an internal error (the
+      General Error page via the container error page) rather than showing the home page.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 169
+        line_end: 171
+  - capability_key: catalog-browsing
+    record_keys: [CATB-REQ-0003]
+    severity: low
+    category: other
+    title: An undefined page in a missing default language fails with an internal error
+    description: >
+      When the default language's page set failed to load, a request for any page falls
+      through to a lookup on a missing set and fails with an internal error instead of
+      the "definition not found" message. With today's configuration (en_US loaded) this
+      only happens if the screen definitions file is missing or malformed at start-up;
+      start-up load errors are only logged.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 231
+        line_end: 235
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java
+        line_start: 105
+        line_end: 118
