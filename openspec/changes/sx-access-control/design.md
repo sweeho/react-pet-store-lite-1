@@ -2,8 +2,10 @@
 
 These notes record how the legacy Java Pet Store Lite implements access control. They
 describe the old system only; the target design is drafted separately once the Product
-Requirement is approved. The visible behaviour is specified in
-`specs/access-control/spec.md`; nothing here restates it.
+Requirement is approved. The approved behaviour is specified in
+`specs/access-control/spec.md`; nothing here restates it. Records still pending SME approval
+(including the three screens) are Not specified yet and appear only in the recommendations
+file.
 
 ## Sources read
 

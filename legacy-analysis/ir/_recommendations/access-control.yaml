@@ -3,6 +3,8 @@
 # ACL-REQ-0002 from j2ee-pet-store-lite/docs/guides (SWHR5-R-0002).
 # Record keys repeat across modules; each entry's reason names the module it came from.
 # No record carries a dispute block.
+# Quoted requirement names below (e.g. "Protected page set") are proposed names; those
+# requirements are NOT in spec.md until the record is approved and keyed.
 recommendations:
   # ---- role domain (duplicates of the approved SWHR5-R-0001) ----
   - record_key: ACCESS-BR-0001

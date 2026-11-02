@@ -17,16 +17,16 @@ Adds the `access-control` capability, recovered from spec extraction SX-0001:
   (approved, `SWHR5-R-0001`).
 - Page access matrix: open catalog pages, sign-in-only My Account, ADMIN-only Catalog
   Administration (approved, `SWHR5-R-0002`).
-- Draft requirements awaiting SME decision: the exhaustive protected-page set, sign-in
-  interception with return to the requested page, the per-page role check, role held for
-  the session, self-registered accounts as CUSTOMER, the ADMIN-only forced reload, the open
-  first load, and single-application deployment.
-- Three screen requirements: the Access Denied page, the banner Admin link and the banner
-  Account link.
+- Not specified until an SME approves them (recommendations in
+  `legacy-analysis/ir/_recommendations/access-control.yaml`): the exhaustive protected-page
+  set, sign-in interception with return to the requested page, the per-page role check, role
+  held for the session, self-registered accounts as CUSTOMER, the ADMIN-only forced reload,
+  the open first load, single-application deployment, and the three screens (Access Denied
+  page, banner Admin link, banner Account link).
 
 ## Impact
 
-- Spec: `specs/access-control/spec.md` (13 requirements: 2 approved, 8 draft rules, 3 screens).
+- Spec: `specs/access-control/spec.md` (2 approved requirements; the 3 screen records and 8 other rules are pending approval and left out).
 - Related capabilities: sign-on (credential check, lockout, sign-out) and sample-data
   population are specified separately; this change covers only the authorisation decisions
   they depend on.
