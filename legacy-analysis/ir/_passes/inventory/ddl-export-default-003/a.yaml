@@ -1,0 +1,912 @@
+# Pass A — unit ddl-export-default-003 (ddl-export@1.0.0)
+# Items: tables signon, signon_audit; view v_catalog_item (Derby + Oracle);
+# sequence signon_audit_seq and trigger trg_signon_audit_id (Oracle only).
+# Each appears in db/schema/ and in a byte-identical copy under
+# vortex/inputs/02-database/ (verified with diff).
+# No legacy-analysis/sources/**/extracted.md exists in this repository; the
+# operator guides under legacy-source/.../docs/guides/ are cited directly as
+# document traces with a section anchor.
+records:
+  - record_key: ACCREG-ENT-0001
+    kind: entity
+    capability_key: account-registration
+    requirement: >
+      The system SHALL hold one sign-on account per user name, where the user name
+      is mandatory, at most 25 characters and unique, and the password is mandatory
+      and at most 25 characters; the system SHALL refuse a second account with the
+      same user name.
+    plain_text: >
+      Every account has a user name of up to 25 characters and a password of up to
+      25 characters. Both are required, and no two accounts can have the same user
+      name.
+    technical_note: >
+      Table SIGNON: USERNAME VARCHAR(25) NOT NULL with primary key PK_SIGNON,
+      PASSWORD VARCHAR(25) NOT NULL. Identical in the Derby and Oracle DDL and in the
+      runtime CREATE in src/main/webapp/populate/PopulateSQL.xml. UserDAO.createUser
+      also checks for an existing row first and throws DuplicateUserException. The
+      primary key is a plain VARCHAR comparison, so user names are case-sensitive
+      (matches User Guide §5.1). Minimum lengths (3 / 4) and the allowed character
+      set are not in the database; they are application checks outside this unit.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The NOT NULL, length and primary-key rules are declared in both dialects' DDL
+      and again in the runtime create statements, and the duplicate check is repeated
+      in UserDAO.createUser. The 25-character maximum also matches User Guide §5.1.
+    risk_class: operational
+    basis: >
+      CREATE TABLE signon (username varchar(25) not null, password varchar(25) not
+      null, ... constraint pk_signon primary key (username)).
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 70
+        line_end: 79
+        excerpt: |
+          CREATE TABLE signon (
+            username varchar(25) not null,
+            password varchar(25) not null,
+            role varchar(10) default 'CUSTOMER' not null,
+            failed_attempts integer default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+            last_signon timestamp,
+            created_ts timestamp default current_timestamp not null,
+            constraint pk_signon primary key (username),
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 70
+        line_end: 79
+        excerpt: |
+          CREATE TABLE signon (
+            username varchar2(25) not null,
+            password varchar2(25) not null,
+            ...
+            constraint pk_signon primary key (username),
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon
+        line_start: 70
+        line_end: 79
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon
+        line_start: 70
+        line_end: 79
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "PSL-UG-01 §5.1 Create an account"
+        line_start: 108
+        line_end: 114
+        excerpt: |
+          <tr><td>User Name</td><td>3 to 25 characters</td>...
+          <tr><td>Password</td><td>4 to 25 characters</td>...
+          <p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+      db.constraints: [pk_signon]
+
+  - record_key: ACC-BR-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      The system SHALL give every account exactly one role, which SHALL be either
+      CUSTOMER or ADMIN, and SHALL default the role to CUSTOMER when none is given;
+      any other role value SHALL be refused.
+    plain_text: >
+      Each account is either a customer or an administrator, nothing else. If no role
+      is specified when an account is created, it is a customer account.
+    technical_note: >
+      SIGNON.ROLE VARCHAR(10) DEFAULT 'CUSTOMER' NOT NULL with CHECK CK_SIGNON_ROLE
+      (role IN ('CUSTOMER','ADMIN')), in both dialects and in PopulateSQL.xml.
+      UserDAO.createUser always inserts ROLE_CUSTOMER; ADMIN accounts come only from
+      the sample-data load (Admin Guide §1). The role is read at sign-in by
+      UserDAO.getRole and stored in the session.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      CHECK constraint and default are declared in both DDL dialects and the runtime
+      create statements; the application constants ROLE_CUSTOMER / ROLE_ADMIN and the
+      Admin Guide role table say the same.
+    risk_class: regulated
+    basis: >
+      role varchar(10) default 'CUSTOMER' not null; constraint ck_signon_role check
+      (role in ('CUSTOMER', 'ADMIN')). The table comment says "Role is CUSTOMER or
+      ADMIN".
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 73
+        line_end: 80
+        excerpt: |
+            role varchar(10) default 'CUSTOMER' not null,
+            ...
+            constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 73
+        line_end: 80
+        excerpt: |
+            role varchar2(10) default 'CUSTOMER' not null,
+            ...
+            constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon
+        line_start: 73
+        line_end: 80
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon
+        line_start: 73
+        line_end: 80
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §1 Roles and access control"
+        line_start: 15
+        line_end: 22
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+      db.constraints: [ck_signon_role]
+
+  - record_key: LOCK-ENT-0001
+    kind: entity
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL keep, for every account, a count of consecutive failed
+      sign-ins that starts at 0, a locked flag that is either Y or N and starts at N,
+      and the time the account was locked, which is empty while the account is not
+      locked.
+    plain_text: >
+      Each account tracks how many sign-ins in a row have failed, whether it is
+      locked, and when it was locked. A new account starts unlocked with no failures.
+    technical_note: >
+      SIGNON.FAILED_ATTEMPTS (Derby INTEGER, Oracle NUMBER(3)) DEFAULT 0 NOT NULL;
+      SIGNON.LOCKED CHAR(1) DEFAULT 'N' NOT NULL with CHECK CK_SIGNON_LOCKED
+      (locked IN ('Y','N')); SIGNON.LOCKED_TS TIMESTAMP nullable. The Oracle column
+      comments state "Y when the account is locked after 3 failed sign-ons in a row"
+      and "Consecutive failed sign-ons; reset to 0 on success or unlock". No
+      constraint ties LOCKED = 'Y' to a non-null LOCKED_TS; UserDAO sets both together.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Defaults and the Y/N check are declared in both dialects and the runtime create
+      statements; UserDAO.authenticate writes these exact columns and the Oracle
+      COMMENT ON COLUMN text describes their meaning.
+    risk_class: operational
+    basis: >
+      failed_attempts ... default 0 not null; locked char(1) default 'N' not null;
+      locked_ts timestamp; constraint ck_signon_locked check (locked in ('Y', 'N')).
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 74
+        line_end: 81
+        excerpt: |
+            failed_attempts integer default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+            ...
+            constraint ck_signon_locked check (locked in ('Y', 'N'))
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 74
+        line_end: 81
+        excerpt: |
+            failed_attempts number(3) default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+            ...
+            constraint ck_signon_locked check (locked in ('Y', 'N'))
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon
+        line_start: 74
+        line_end: 81
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon
+        line_start: 74
+        line_end: 81
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+      db.constraints: [ck_signon_locked]
+
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL lock an account after 3 consecutive failed sign-ins, recording
+      the time of the lock, and SHALL reset the consecutive-failure count to 0 on a
+      successful sign-in or when the account is unlocked. GIVEN an account with 2
+      consecutive failures WHEN a third sign-in with a wrong password is made THEN the
+      account is marked locked and the lock time is recorded.
+    plain_text: >
+      Three wrong passwords in a row lock the account, and the store notes when it
+      happened. A correct sign-in, or an unlock, starts the count again from zero.
+    technical_note: >
+      The threshold is stated in the SIGNON table comment and in Oracle COMMENT ON
+      COLUMN signon.locked / signon.failed_attempts. It is enforced in application
+      code, not by the database: UserDAO.MAX_FAILED_ATTEMPTS = 3 and UPDATE_FAILURE
+      sets LOCKED='Y' and LOCKED_TS=now when the count reaches 3; UPDATE_SUCCESS sets
+      FAILED_ATTEMPTS = 0. The unlock (batch db/batch/acct_unlock.sql, 30 minutes) also
+      resets FAILED_ATTEMPTS to 0 and clears LOCKED_TS.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The rule is written in the DDL comments of both dialects, implemented in
+      UserDAO.authenticate, and stated again in Admin Guide §2 R2-R3. The database
+      itself does not enforce the threshold, so this is code plus comment plus
+      document rather than a constraint.
+    risk_class: regulated
+    basis: >
+      "-- SIGNON: Sign-on accounts. ... Locked after 3 failed sign-ons in a row;
+      unlocked by PSL_ACCT_UNLOCK after 30 minutes." and the column comments; the
+      table carries the columns the rule writes.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 74
+        line_end: 76
+        excerpt: |
+            failed_attempts number(3) default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 74
+        line_end: 76
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        line_start: 130
+        line_end: 131
+        excerpt: |
+          COMMENT ON COLUMN signon.locked IS 'Y when the account is locked after 3 failed sign-ons in a row, else N';
+          COMMENT ON COLUMN signon.failed_attempts IS 'Consecutive failed sign-ons; reset to 0 on success or unlock';
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 146
+        excerpt: |
+                      failedAttempts++;
+                      boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+                      PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);
+                      update.setInt(1, failedAttempts);
+                      update.setString(2, lockNow ? "Y" : "N");
+                      update.setTimestamp(3, lockNow ? now : null);
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §2 Sign-on rules (R2, R3)"
+        line_start: 51
+        line_end: 52
+        excerpt: |
+          <tr><td>R2</td><td>Each failed sign-in adds 1 to the account's failed attempts. A successful sign-in sets it back to 0.</td></tr>
+          <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+      db.writes: [signon]
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL automatically unlock an account once its lock is more than 30
+      minutes old, clearing the lock time and resetting the consecutive-failure count
+      to 0.
+    plain_text: >
+      A locked account unlocks itself once it has been locked for more than 30
+      minutes.
+    technical_note: >
+      Stated in the SIGNON table comment; the column it relies on is SIGNON.LOCKED_TS.
+      Implemented by batch job PSL_ACCT_UNLOCK (db/batch/acct_unlock.sql, every 15
+      minutes, so the effective unlock is 30 to 45 minutes after the lock). That job
+      selects WHERE locked = 'Y' AND locked_ts < now - 30 minutes, so a locked row
+      with an empty LOCKED_TS is never selected. The batch module owns the schedule
+      detail; this record captures what the schema documents.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Written in the DDL comment, implemented in acct_unlock.sql, and repeated in
+      Admin Guide R5 and User Guide §5.3.
+    risk_class: operational
+    basis: >
+      Table comment "unlocked by PSL_ACCT_UNLOCK after 30 minutes" and the nullable
+      locked_ts column the job compares against.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 75
+        line_end: 76
+        excerpt: |
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 75
+        line_end: 76
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 15
+        excerpt: |
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §2 Sign-on rules (R5)"
+        line_start: 54
+        line_end: 54
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+
+  - record_key: SIGNON-BR-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      The system SHALL record, for every account, the time the account was created
+      (mandatory, defaulting to the current time) and the time of its most recent
+      successful sign-in (empty until the first successful sign-in).
+    plain_text: >
+      The store remembers when each account was created and when the user last
+      signed in successfully.
+    technical_note: >
+      SIGNON.CREATED_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL and
+      SIGNON.LAST_SIGNON TIMESTAMP nullable, both dialects. UserDAO.createUser sets
+      CREATED_TS explicitly from the application clock; UserDAO UPDATE_SUCCESS sets
+      LAST_SIGNON on a successful sign-in only. The PopulateSQL insert supplies only
+      username, password and role, so sample accounts get the database default.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The columns and default are clear in both DDLs, and UserDAO writes them, but no
+      document states a business use for either timestamp, so the purpose is read from
+      column names and the one write site.
+    risk_class: operational
+    basis: >
+      last_signon timestamp; created_ts timestamp default current_timestamp not null.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 77
+        line_end: 78
+        excerpt: |
+            last_signon timestamp,
+            created_ts timestamp default current_timestamp not null,
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 77
+        line_end: 78
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon
+        line_start: 77
+        line_end: 78
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon
+        line_start: 77
+        line_end: 78
+    stack_metadata:
+      db.object: signon
+      db.kind: table
+
+  - record_key: AUDIT-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on event with a unique event number, the user
+      name (mandatory, at most 25 characters), the event type (mandatory), the event
+      time (mandatory) and, optionally, the client address (at most 45 characters).
+    plain_text: >
+      Every sign-on event is logged with a number, the user name, what happened, when
+      it happened and, where known, the address it came from.
+    technical_note: >
+      Table SIGNON_AUDIT: AUDIT_ID primary key PK_SIGNON_AUDIT (Derby BIGINT GENERATED
+      ALWAYS AS IDENTITY; Oracle NUMBER(19) NOT NULL filled by trigger), USERNAME
+      VARCHAR(25) NOT NULL, EVENT_TYPE VARCHAR(20) NOT NULL, EVENT_TS TIMESTAMP NOT
+      NULL, REMOTE_ADDR VARCHAR(45) nullable (wide enough for an IPv6 address). The
+      address column also carries non-address markers: 'batch:PSL_ACCT_UNLOCK' from
+      the unlock job and 'admin' from the manual unlock SQL in Admin Guide §2.1.
+      Indexes IDX_SIGNON_AUDIT_USER_TS and IDX_SIGNON_AUDIT_TS (other unit) support
+      the per-user history and date-range extract.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared in both DDL dialects and the runtime create statements; written by
+      UserDAO.audit and acct_unlock.sql with exactly these columns; the extract file
+      layout in Operations Runbook §3.2 lists the same five columns.
+    risk_class: regulated
+    basis: >
+      CREATE TABLE signon_audit (...) with the not-null and length declarations; the
+      table comment calls it the "Transaction log of sign-on events".
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 85
+        line_end: 91
+        excerpt: |
+          CREATE TABLE signon_audit (
+            audit_id bigint generated always as identity,
+            username varchar(25) not null,
+            event_type varchar(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar(45),
+            constraint pk_signon_audit primary key (audit_id),
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon_audit
+        line_start: 85
+        line_end: 91
+        excerpt: |
+          CREATE TABLE signon_audit (
+            audit_id number(19) not null,
+            username varchar2(25) not null,
+            event_type varchar2(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar2(45),
+            constraint pk_signon_audit primary key (audit_id),
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 85
+        line_end: 91
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon_audit
+        line_start: 85
+        line_end: 91
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "PSL-RB-01 §3.2 PSL_AUDIT_EXTRACT"
+        line_start: 46
+        line_end: 57
+    stack_metadata:
+      db.object: signon_audit
+      db.kind: table
+      db.constraints: [pk_signon_audit]
+
+  - record_key: AUDIT-BR-0001
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL accept only these sign-on event types: SIGNON_OK, SIGNON_FAIL,
+      SIGNON_LOCKED, ACCOUNT_LOCKED, SIGNOFF, USER_CREATED and ACCOUNT_UNLOCKED, and
+      SHALL refuse to record any other event type.
+    plain_text: >
+      The sign-on log knows seven kinds of event: successful sign-in, failed sign-in,
+      sign-in tried while locked, account locked, sign-out, account created and
+      account unlocked. Nothing else can be logged.
+    technical_note: >
+      CHECK CK_SIGNON_AUDIT_EVENT on SIGNON_AUDIT.EVENT_TYPE in both dialects and in
+      PopulateSQL.xml. The same seven values are the EVENT_* constants in UserDAO
+      (ACCOUNT_UNLOCKED is written only by db/batch/acct_unlock.sql and the manual
+      unlock SQL), the Oracle column comment, User Guide §5.4 and the extract layout.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The database refuses other values in both dialects, and the identical list
+      appears in application constants, the column comment and two guides.
+    risk_class: regulated
+    basis: >
+      constraint ck_signon_audit_event check (event_type in ('SIGNON_OK',
+      'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED',
+      'ACCOUNT_UNLOCKED')).
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 92
+        line_end: 93
+        excerpt: |
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon_audit
+        line_start: 92
+        line_end: 93
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 92
+        line_end: 93
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon_audit
+        line_start: 92
+        line_end: 93
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "PSL-UG-01 §5.4 My Account"
+        line_start: 134
+        line_end: 147
+    stack_metadata:
+      db.object: signon_audit
+      db.kind: table
+      db.constraints: [ck_signon_audit_event]
+
+  - record_key: AUDIT-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL assign each sign-on event a system-generated event number that
+      is unique and increases with each event recorded.
+    plain_text: >
+      Each logged sign-on event gets its own number from the store, in the order the
+      events are recorded. That number appears in the daily file sent to the security
+      team.
+    technical_note: >
+      Derby: AUDIT_ID BIGINT GENERATED ALWAYS AS IDENTITY (a caller cannot supply a
+      value). Oracle: sequence SIGNON_AUDIT_SEQ (START WITH 1 INCREMENT BY 1 CACHE 20)
+      and BEFORE INSERT trigger TRG_SIGNON_AUDIT_ID that sets AUDIT_ID from the
+      sequence only WHEN new.audit_id IS NULL, so on Oracle a caller-supplied value
+      is kept. CACHE 20 means numbers can be skipped after an instance restart.
+      db/batch/audit_extract.sql exports AUDIT_ID as column 1 ("Event number") and
+      orders the file by it; UserDAO.SELECT_AUDIT uses it to break ties on equal
+      EVENT_TS.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Enforced in both dialects by different mechanisms (identity column; sequence plus
+      trigger), and consumed by the extract and the recent-activity query. interface
+      is true because the number is a column of the daily extract file the security
+      team receives (Runbook §3.2).
+    risk_class: regulated
+    basis: >
+      Derby identity column; Oracle sequence plus BEFORE INSERT trigger filling
+      audit_id; primary key PK_SIGNON_AUDIT on audit_id in both.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 86
+        line_end: 86
+        excerpt: |
+            audit_id bigint generated always as identity,
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon_audit_seq
+        line_start: 96
+        line_end: 96
+        excerpt: |
+          CREATE SEQUENCE signon_audit_seq START WITH 1 INCREMENT BY 1 CACHE 20;
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: trg_signon_audit_id
+        line_start: 98
+        line_end: 104
+        excerpt: |
+          CREATE OR REPLACE TRIGGER trg_signon_audit_id
+          BEFORE INSERT ON signon_audit
+          FOR EACH ROW
+          WHEN (new.audit_id IS NULL)
+          BEGIN
+            SELECT signon_audit_seq.NEXTVAL INTO :new.audit_id FROM dual;
+          END;
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 86
+        line_end: 86
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: signon_audit_seq
+        line_start: 96
+        line_end: 96
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: trg_signon_audit_id
+        line_start: 98
+        line_end: 104
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "PSL-RB-01 §3.2 PSL_AUDIT_EXTRACT"
+        line_start: 46
+        line_end: 51
+    stack_metadata:
+      db.object: signon_audit
+      db.kind: table
+      db.calls: [signon_audit_seq]
+      oracle.trigger: trg_signon_audit_id
+
+  - record_key: AUDIT-BR-0003
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record sign-on events against the user name as typed, without
+      requiring that an account with that name exists. GIVEN a sign-in with a user
+      name that has no account WHEN it fails THEN a SIGNON_FAIL event is recorded
+      under the name typed.
+    plain_text: >
+      Failed sign-ins with a user name that does not exist are still logged, under
+      the name the person typed.
+    technical_note: >
+      SIGNON_AUDIT.USERNAME has no foreign key to SIGNON, in either dialect.
+      UserDAO.authenticate calls audit(..., EVENT_SIGNON_FAIL, ...) when the SELECT
+      finds no row. Audit rows also survive deletion of the account (sample-data
+      reload drops both tables, so this does not arise there).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The absence of a foreign key is what the DDL shows, and the code path plus
+      Admin Guide R6 confirm the intent; but an absence in DDL is weaker evidence
+      than a declared constraint, hence medium.
+    risk_class: regulated
+    basis: >
+      signon_audit declares only a primary key and a check constraint, no reference
+      to signon.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 87
+        line_end: 94
+        excerpt: |2
+            username varchar(25) not null,
+            ...
+            constraint pk_signon_audit primary key (audit_id),
+            constraint ck_signon_audit_event check (event_type in
+              (...))
+          );
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon_audit
+        line_start: 87
+        line_end: 94
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 115
+        line_end: 120
+        excerpt: |
+                      if (!rs.next()) {
+                          rs.close();
+                          select.close();
+                          audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                          return SIGNON_INVALID;
+                      }
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §2 Sign-on rules (R6)"
+        line_start: 55
+        line_end: 55
+        excerpt: |
+          <tr><td>R6</td><td>A sign-in with an unknown user name is recorded as SIGNON_FAIL against the name typed.</td></tr>
+    stack_metadata:
+      db.object: signon_audit
+      db.kind: table
+
+  - record_key: CATB-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL provide a combined catalog item listing that shows, per item
+      and locale, the category code and name, product code and name, item code, list
+      price, unit cost, first attribute, description and image, and SHALL include an
+      item for a locale only when its product and its category both have text in that
+      same locale.
+    plain_text: >
+      There is a ready-made list of every item with its category, product, prices,
+      description and picture, in each language. An item only appears in a language
+      if its product and category are also described in that language.
+    technical_note: >
+      View V_CATALOG_ITEM, identical in Derby and Oracle: inner joins ITEM ->
+      ITEM_DETAILS -> PRODUCT -> PRODUCT_DETAILS (locale = item_details.locale) ->
+      CATEGORY -> CATEGORY_DETAILS (locale = item_details.locale). Exposes LISTPRICE
+      and UNITCOST (shown to shoppers as "List Price" and "Your Price" per the column
+      comments) and only ATTR1 of the five attributes. No application code, batch SQL
+      or populate script references the view (repository-wide search).
+    confidence: low
+    confidence_basis: >
+      The view definition is unambiguous and appears in both dialects, but nothing in
+      the repository reads it, so whether any live screen, report or outside tool
+      depends on it cannot be seen from this pass.
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        The view is created by both DDL scripts but a search of the Java sources, JSPs,
+        PopulateSQL.xml, batch SQL and shell scripts finds no reader. It may be used by
+        ad-hoc reporting or an outside tool. An SME should confirm whether anything
+        consumes V_CATALOG_ITEM; if not, the listing rule is not live behaviour.
+    risk_class: presentational
+    basis: >
+      CREATE VIEW v_catalog_item AS SELECT ... with inner joins on locale.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: v_catalog_item
+        line_start: 101
+        line_end: 109
+        excerpt: |
+          CREATE VIEW v_catalog_item AS
+          SELECT d.catid, cd.name AS category_name, p.productid, pd.name AS product_name,
+                 i.itemid, idt.listprice, idt.unitcost, idt.attr1, idt.descn, idt.image, idt.locale
+            FROM item i
+            JOIN item_details idt ON idt.itemid = i.itemid
+            JOIN product p ON p.productid = i.productid
+            JOIN product_details pd ON pd.productid = p.productid AND pd.locale = idt.locale
+            JOIN category d ON d.catid = p.catid
+            JOIN category_details cd ON cd.catid = d.catid AND cd.locale = idt.locale;
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: v_catalog_item
+        line_start: 112
+        line_end: 120
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: v_catalog_item
+        line_start: 101
+        line_end: 109
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: v_catalog_item
+        line_start: 112
+        line_end: 120
+    stack_metadata:
+      db.object: v_catalog_item
+      db.kind: view
+      db.reads: [item, item_details, product, product_details, category, category_details]
+
+findings: []
+
+suspected_defects:
+  - capability_key: account-registration
+    record_keys: [ACCREG-ENT-0001]
+    severity: high
+    category: other
+    title: Passwords are stored as plain text
+    description: >
+      The account table holds the password as entered, in a 25-character text column,
+      and sign-in compares it with an exact string match. The Administrator Guide
+      confirms passwords are "stored as entered in table SIGNON". Anyone with read
+      access to the database, its backups or the sample-data files can read every
+      password.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 72
+        line_end: 72
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon
+        line_start: 72
+        line_end: 72
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §1.2 Sample accounts"
+        line_start: 45
+        line_end: 45
+
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-ENT-0001, AUDIT-BR-0003]
+    severity: medium
+    category: contradicts-document
+    title: Sign-in with an unknown user name longer than 25 characters fails with an error and is not audited
+    description: >
+      The sign-in form passes the typed user name straight to authentication with no
+      length check. When no account matches, the system writes a SIGNON_FAIL audit
+      row with that name, but the audit user-name column holds at most 25
+      characters, so for a longer name the insert is refused by the database, the
+      error is raised as a servlet failure, the user gets an error instead of the
+      Sign-in Error page, and no audit row is written. Admin Guide R6 and R7 say every
+      failed sign-in is recorded against the name typed.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 87
+        line_end: 87
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 115
+        line_end: 118
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 197
+        line_end: 202
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §2 Sign-on rules (R6, R7)"
+        line_start: 55
+        line_end: 56
+
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-BR-0002]
+    severity: medium
+    category: other
+    title: On Oracle, a sample-data reload recreates the audit table without its event-number trigger
+    description: >
+      The Oracle schema script creates the audit table with a mandatory event number
+      that a sequence and trigger fill in. The runtime create statement used by the
+      sample-data load and the administrator reload (which drops and recreates
+      SIGNON_AUDIT, Admin Guide §3.2) creates the same table but no sequence or
+      trigger, and dropping an Oracle table also drops its triggers. After a reload on
+      Oracle, every audit insert, which supplies no event number, would be refused,
+      so sign-in, sign-out and account creation would fail. Derby is unaffected
+      because the number is an identity column. Whether any Oracle deployment is live
+      is not visible here; the batch scripts use Derby ij.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: trg_signon_audit_id
+        line_start: 98
+        line_end: 104
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 348
+        line_end: 368
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "PSL-AG-01 §3.2 Reload the sample data"
+        line_start: 79
+        line_end: 88
+
+  - capability_key: account-lockout
+    record_keys: [LOCK-ENT-0001, LOCK-BR-0002]
+    severity: low
+    category: other
+    title: A locked account with no lock time is never unlocked automatically
+    description: >
+      The schema allows an account to be marked locked while its lock time is empty;
+      nothing ties the two together. The automatic unlock only selects accounts whose
+      lock time is more than 30 minutes old, so such an account (for example from a
+      data migration or a hand-edited row) stays locked until someone clears it by
+      hand. The application itself always sets both together.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon
+        line_start: 75
+        line_end: 81
+      - kind: code
+        path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 15
+
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-BR-0002]
+    severity: low
+    category: other
+    title: Event numbering differs between the Derby and Oracle schemas
+    description: >
+      On Derby the event number is always generated by the database and cannot be
+      supplied. On Oracle a caller-supplied number is kept (the trigger fires only
+      when none is given), and the sequence caches 20 numbers, so numbers can be
+      skipped after a restart. The daily extract to the security team is ordered by
+      this number; skipped numbers can look like missing events.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: signon_audit
+        line_start: 86
+        line_end: 86
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: signon_audit_seq
+        line_start: 96
+        line_end: 96
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: trg_signon_audit_id
+        line_start: 98
+        line_end: 104
