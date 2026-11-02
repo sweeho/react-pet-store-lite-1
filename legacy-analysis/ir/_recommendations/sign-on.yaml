@@ -1,0 +1,454 @@
+# Recommendations for sign-on records not in the approved table.
+# Approved (not listed): SIGN-REQ-0004 from src/main/java/.../signon pass a (SWHR5-R-0023),
+# SIGNON-REQ-0003 from .../signon pass b (SWHR5-R-0024), SIGNON-REQ-0005 from .../signon
+# pass b (SWHR5-R-0009). Record keys repeat across modules; each reason names its module.
+# SIGNON-REQ-0003 and SIGNON-REQ-0005 also exist in docs/guides pass a with different
+# content; those occurrences are listed below because they are taken as not approved.
+recommendations:
+  # ---- credential check ----
+  - record_key: SIGN-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). UserDAO.authenticate shows the exact-match lookup, lock check
+      first and String.equals, and the admin guide (R1) and user guide say the same. Spec
+      "Credential check". Oracle collation was not checked; Derby and sample case S08 agree.
+  - record_key: SIGNON-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). Same rule as SIGN-REQ-0001 from the same code lines; merge into
+      "Credential check". (The SIGNON-REQ-0001 in encodingfilter is a different record, below.)
+  - record_key: SIGNON-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Admin-guide rule R1, confirmed by UserDAO.java:115-139.
+      Duplicate of "Credential check". (Other SIGNON-BR-0001 records in ddl-export-003,
+      data/seed and vortex/samples are listed separately below.)
+  - record_key: SIGN-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides (pass b). Bundles three rules (credential check, redirect, error page)
+      that the spec states separately. Accept as the credential check only; the other parts
+      are covered by "Return to the requested page after sign-in" and SWHR5-R-0023.
+    edited_requirement: >
+      A sign-in SHALL succeed only when the user exists, is not locked and the password
+      matches exactly.
+  - record_key: SO-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides (pass c). Credential check plus the error page, which SWHR5-R-0023
+      already covers. Keep the credential half; it matches the code.
+    edited_requirement: >
+      The system SHALL accept a sign-in only when the user name exists, the account is not
+      locked and the password matches exactly.
+  - record_key: SIGN-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module vortex/samples (pass a). Sample cases S07/S08 and UserDAO.java:115-120 agree an
+      unknown or case-different name gives the error page, a SIGNON_FAIL event and no count.
+      Two user-guide traces lack line ranges; the CSV alone is sufficient. Spec "Sign-in
+      outcome audit events" and "Credential check".
+  - record_key: SIGNON-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module vortex/samples (pass b). Same as the samples pass a record, also confirmed by
+      UserDAO.java:115-120 (audit against the typed name, no update). Merge into "Sign-in
+      outcome audit events". (SIGNON-BR-0002 in data/migration is listed separately.)
+  - record_key: SIGNON-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module vortex/samples (pass b). One sample row (S08) shows an upper-case name treated as
+      unknown; the code's exact-match lookup on Derby agrees, so confidence can rise from low.
+      Covered by the "User name differs only in letter case" scenario. (SIGNON-BR-0003 in
+      data/migration is a different, disputed record, below.)
+
+  # ---- successful sign-in effects ----
+  - record_key: SIGNON-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/seed (pass c). UserDAO UPDATE_SUCCESS sets failed_attempts = 0 and
+      last_signon, and the seed history agrees. Spec "Successful sign-in updates the account".
+  - record_key: SIGNON-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/migration (pass a). Data and the admin guide agree with UPDATE_SUCCESS.
+      Duplicate of "Successful sign-in updates the account".
+  - record_key: SIGNON-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module vortex/samples (pass b). Code and samples agree, but "take the user to the main
+      page" holds only when no protected page was requested (SignOnFilter.java:217-218).
+    edited_requirement: >
+      WHEN an unlocked account signs on with the correct password THEN the system SHALL reset
+      its consecutive-failure count to zero, record a successful sign-on, and take the user to
+      the page first requested, or to the home page when none was.
+  - record_key: SIGN-BR-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module vortex/samples (pass a). Correct, and already qualified "when no other page was
+      requested". It restates three spec requirements; accept as a duplicate merged into them.
+    edited_requirement: >
+      GIVEN an unlocked account WHEN the correct user name and password are entered THEN the
+      system SHALL sign the user in and record a successful sign-in event.
+  - record_key: SIGN-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). UserDAO.java:93-94 updates last_signon on success; the schema
+      column backs it. Duplicate of "Successful sign-in updates the account".
+  - record_key: SIGNON-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). Same code lines as SIGN-REQ-0002; merge.
+  - record_key: SIGNON-WF-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). SignOnFilter.java:204-219 sets user name, role and signed-in
+      flag, then redirects. Spec "Signed-in session" plus the redirect requirement.
+
+  # ---- redirect after sign-in ----
+  - record_key: SIGN-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). Code (ORIGINAL_URL, DEFAULT_TARGET_URL) and user guide agree.
+      Spec "Return to the requested page after sign-in".
+  - record_key: SIGNON-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Both guides state it and the filter does it. Duplicate.
+  - record_key: SO-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass c). Same documented rule, confirmed by SignOnFilter.java:216-219;
+      raise confidence from medium. Duplicate.
+  - record_key: SIGN-RUL-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). Code and both guides agree. Duplicate.
+  - record_key: SO-WF-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass b). Redirect rule plus the banner Welcome behaviour; split
+      across "Return to the requested page" and the "Sign-in Welcome page" screen requirement.
+  - record_key: SIGN-RUL-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). banner.jsp, signon-config.xml and the screen definition
+      agree. Spec "Sign-in Welcome page".
+
+  # ---- remember my user name ----
+  - record_key: SIGN-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). SignOnFilter.java:172-192, the properties file and the user guide
+      agree. Spec "Remember my user name".
+  - record_key: SIGN-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). The cookie step runs before authenticate in validateSignOn, so it
+      happens whatever the outcome; the code is unambiguous, so raise from medium. Whether
+      remembering a refused name is intended is a Business Owner question, not a fact question.
+  - record_key: SIGNON-REQ-0004
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module signon (pass b). Correct, but the cookie name bp_signon is an implementation
+      detail; the rebuild need not reuse it. The pre-fill half is the Sign In screen.
+    edited_requirement: >
+      WHEN a user submits the sign-in form with "Remember My User Name" ticked, the system SHALL
+      store the entered user name in the browser for 2 678 400 seconds (31 days); WHEN the box
+      is not ticked, the system SHALL delete any stored user name.
+  - record_key: SIGN-BR-0002
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module conf (pass a). Matches code; drop the cookie name and add the unticked case,
+      which the code also implements.
+    edited_requirement: >
+      WHEN a user signs on with "remember my user name" selected THEN the system SHALL store
+      the user name in the browser for 31 days and pre-fill the sign-on user name from it; WHEN
+      it is not selected THEN the system SHALL delete any stored user name.
+  - record_key: SIGN-ON-BR-0002
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module conf (pass b). Same as conf pass a; same edit.
+    edited_requirement: >
+      WHEN a user signs on with "remember my user name" selected THEN the system SHALL store
+      the user name in the browser for 31 days and pre-fill it on the sign-on screen; WHEN it
+      is not selected THEN the system SHALL delete any stored user name.
+  - record_key: SIGNON-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a), Remember My User Name. Not the approved SIGNON-REQ-0003 if
+      the approval was for the signon-module record (see design.md). Guide and code agree;
+      duplicate of "Remember my user name".
+  - record_key: SIGN-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass b). Guide and properties agree with the code. Duplicate.
+  - record_key: SO-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass c). Guide and SignOnFilter agree. Duplicate.
+  - record_key: SIGN-RUL-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). Includes the "whatever the outcome" clause, which the
+      code confirms. Duplicate.
+  - record_key: SO-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass b). Same as SIGN-RUL-0001. Duplicate.
+
+  # ---- session timeout ----
+  - record_key: SIGN-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module conf (pass a). web.xml session-timeout 15 and petstore.properties agree. Spec
+      "Session inactivity timeout".
+  - record_key: SIGN-ON-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: Module conf (pass b). Same sources as conf pass a. Duplicate.
+  - record_key: SIGNON-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a), the 15-minute timeout (rule R8). Not the approved
+      SIGNON-REQ-0005 if the approval was for the signon-module sign-out record (see
+      design.md). Guides and web.xml agree.
+  - record_key: SIGN-RUL-0002
+    recommendation: accept
+    confidence: high
+    reason: Module src/main/webapp (pass a). web.xml and both guides agree. Duplicate.
+  - record_key: SO-BR-0005
+    recommendation: accept
+    confidence: high
+    reason: Module src/main/webapp (pass b). Same sources. Duplicate.
+  - record_key: SIGN-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass b). Timeout plus sign-out; both halves confirmed by web.xml and
+      SignOffServlet. Split across "Session inactivity timeout" and SWHR5-R-0009.
+
+  # ---- sign-out ----
+  - record_key: SIGN-REQ-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). SignOffServlet.java:58-78 matches, including the doPost
+      delegation. Same behaviour as approved SWHR5-R-0009; the link-or-form clause is a
+      scenario there.
+  - record_key: SIGNON-REQ-0006
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Correct but omits the no-session case the code handles;
+      merge into SWHR5-R-0009. (SIGNON-REQ-0006 in the signon module is listed above.)
+    edited_requirement: >
+      WHEN a signed-in user chooses Sign out THEN the system SHALL end the session, record a
+      SIGNOFF event and show the 'You are signed out' page.
+  - record_key: SO-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass c). Timeout and sign-out, both confirmed by code. Duplicate of
+      the two spec requirements.
+  - record_key: SO-WF-0007
+    recommendation: accept
+    confidence: high
+    reason: Module src/main/webapp (pass b). SignOffServlet and signoff.jsp agree. Duplicate of SWHR5-R-0009.
+  - record_key: SIGNON-BR-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module vortex/samples (pass b). Two sample rows only; the code records a sign-off only
+      when the session holds a user name, which is set only on a successful sign-in. State
+      the code's rule rather than the inferred event ordering.
+    edited_requirement: >
+      The system SHALL record a sign-off event only when the session being ended belongs to a
+      signed-in user.
+
+  # ---- failure paths ----
+  - record_key: SIGN-REQ-0008
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module signon (pass a). The code rethrows as ServletException; no error-page mapping was
+      found, so the container default applies. Confirm the production error page in a run.
+  - record_key: SIGNON-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module encodingfilter (pass b). EncodingFilter and its filter order in web.xml show
+      UTF-8 decoding ahead of the sign-on filter. Spec "UTF-8 request decoding before sign-in".
+
+  # ---- password storage ----
+  - record_key: SIGNON-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/migration (pass a). Data and the admin guide show readable passwords; this
+      is what production does. Whether the rebuild keeps it goes to Intent for the Business
+      Owner. (SIGNON-BR-0004 in vortex/samples is listed above.)
+  - record_key: SIGNON-BR-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Admin guide and UserDAO.java:98 agree. Duplicate; same
+      Intent question.
+  - record_key: SIGN-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass b). Same documented fact; the code confirms it, so raise from
+      medium. Duplicate of "Passwords stored and compared as entered".
+
+  # ---- account record and timestamps ----
+  - record_key: SIGNON-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003 (pass a). CREATED_TS NOT NULL DEFAULT and the
+      nullable LAST_SIGNON appear in both dialects and the code updates LAST_SIGNON. Spec
+      "Account sign-on timestamps".
+  - record_key: SON-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: Module ddl-export-default-003 (pass b). DDL plus UserDAO.java:94. Duplicate.
+  - record_key: SO-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: Module db/schema (pass b). Same column. Duplicate.
+  - record_key: SIGN-ENT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module src/main/webapp/populate (pass b). The populate DDL agrees with the main schema;
+      raise from low. Duplicate.
+  - record_key: SIGN-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/migration (pass b). The last sign-in time equals the latest SIGNON_OK event
+      in the extract; it follows from the code, so it is a consistency check for migration.
+  - record_key: SIGN-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: Module data/seed (pass b). Seed data and UPDATE_SUCCESS agree. Duplicate.
+  - record_key: SIGNON-ENT-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module data/migration (passes a and c). The full account record is specified under
+      account-registration ("Account record"); for sign-on keep only the case-sensitive unique
+      user name, which the credential check relies on.
+    edited_requirement: >
+      The system SHALL keep one sign-on account per unique, case-sensitive user name.
+  - record_key: SIGN-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Modules data/migration (pass b), data/seed (pass a) and signon (pass a). Full account
+      record, backed by DDL and code; it duplicates account-registration's "Account record"
+      and should be merged there. The sign-on spec carries only the timestamps.
+  - record_key: SIGNON-ENT-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). Same full record as above; merge into account-registration.
+
+  # ---- disputed ----
+  - record_key: SIGNON-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/migration (pass a), disputed conflicting-sources. 17 of 44 production
+      accounts carry "." and the code's exact-match lookup lets them sign in today, so accept
+      it as current behaviour. Whether new sign-ups may use "." conflicts with the user guide
+      and goes to Intent for the Business Owner.
+
+  # ---- screens ----
+  - record_key: SIGN-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). signon.jsp shows the form, cookie pre-fill and the
+      literal default "j2ee". Spec "Sign In page returning-customer form". Keeping the "j2ee"
+      default in production is worth a Business Owner glance.
+  - record_key: SO-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass b). Same page, adds the Sign In button; the markup confirms
+      it, so raise from medium. Duplicate.
+  - record_key: SIGN-SCR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module waf (pass b). The four titles match screendefinitions_en_US.xml; each title is
+      placed on its own screen requirement in the spec. Accept as page titles only.
+    edited_requirement: >
+      The Sign On, Welcome, Sign On Error and Sign Off pages SHALL carry those titles on the
+      shared layout, and the Welcome page SHALL show the home page content.
+  - record_key: SIGN-SCR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). signon_failed.jsp text and the error-page mapping agree.
+      Spec "Sign-in Error page".
+  - record_key: SO-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: Module src/main/webapp (pass b). Same page. Duplicate.
+  - record_key: SIGNON-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). The user guide and signon-config.xml agree with the page.
+      Duplicate of "Sign-in Error page".
+  - record_key: SIGN-SCR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). signoff.jsp and SignOffServlet agree. Spec
+      "Signed-out page".
+  - record_key: SIGN-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp (pass a). banner.jsp:19-30 and the user guide agree. Spec "Banner
+      sign-in status".
+  - record_key: SO-SCR-0006
+    recommendation: accept
+    confidence: high
+    reason: Module src/main/webapp (pass b). Same banner. Duplicate.
