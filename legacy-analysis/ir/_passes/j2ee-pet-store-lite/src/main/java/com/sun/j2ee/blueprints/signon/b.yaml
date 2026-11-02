@@ -1,0 +1,1444 @@
+# SX-0001 extract-b, shard j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon
+# Independent second reading. No legacy-analysis/sources/**/extracted.md exists in this
+# tree, so the User Guide and Administrator Guide are cited by their HTML path and line
+# range (not as kind: document). Lines UserDAO.java:72-73, 92, 121 and
+# CreateUserServlet.java:63, 73-74, 113 were masked by a secret filter in this pass's view
+# and are not quoted; the records that depend on them say so.
+records:
+
+  # ------------------------------------------------------------------ sign-on
+  - record_key: SIGNON-REQ-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      The system SHALL accept a sign-in only when an account with exactly the entered user
+      name exists, the account is not locked, and the entered password is exactly equal to
+      the stored password (case-sensitive comparison of both user name and password).
+    plain_text: >
+      A customer gets in only if the user name exists, the account is not locked, and the
+      password matches exactly, including upper and lower case.
+    technical_note: >
+      UserDAO.authenticate selects the SIGNON row by username (equality, case-sensitive in
+      Derby), returns SIGNON_LOCKED before any password check when LOCKED = 'Y', then compares
+      with String.equals. SignOnFilter.validateSignOn calls it on POST to j_signon_check.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in code (UserDAO.authenticate) and stated identically in Admin Guide rule R1;
+      the user guide also states user names are case-sensitive. Not higher-level tested in
+      this shard beyond the guides.
+    risk_class: regulated
+    basis: >
+      authenticate() returns SIGNON_INVALID when no row is found, SIGNON_LOCKED when the
+      locked flag is Y, and SIGNON_OK only when storedPassword.equals(password).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 115
+        line_end: 120
+        excerpt: |
+              if (!rs.next()) {
+                  rs.close();
+                  select.close();
+                  audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                  return SIGNON_INVALID;
+              }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 50
+        line_end: 50
+        excerpt: |
+           <tr><td>R1</td><td>A sign-in succeeds when the user exists, is not locked and the password matches exactly.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 114
+        line_end: 114
+        excerpt: |
+          <p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>
+    stack_metadata:
+      framework: servlet-filter
+      db.object: SIGNON
+
+  - record_key: SIGNON-WF-0002
+    kind: workflow
+    capability_key: sign-on
+    requirement: >
+      WHEN a sign-in succeeds, the system SHALL record the user name and the account's role in
+      the user's session, mark the session signed in, and redirect the user to the protected
+      page they originally asked for, or to the home page when there is none.
+    plain_text: >
+      After signing in, the customer is taken back to the page they were trying to open, or to
+      the home page if they came straight to the sign-in page.
+    technical_note: >
+      SignOnFilter.validateSignOn sets j_signon_username, j_signon_role and j_signon=true in
+      the HttpSession, then sendRedirect to session attribute j_signon_original_url, defaulting
+      to DEFAULT_TARGET_URL = main.screen. The original URL is not cleared after use.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Same redirect logic in two places (SignOnFilter and CreateUserServlet) and described in
+      User Guide 5.2 and Admin Guide section 1.
+    risk_class: operational
+    basis: >
+      validateSignOn lines 204-220 place the session attributes and redirect to ORIGINAL_URL
+      or main.screen.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 204
+        line_end: 219
+        excerpt: |
+                  if (result == UserDAO.SIGNON_OK) {
+                      // place a true boolean in the session
+                      if (hreq.getSession().getAttribute(USER_NAME) != null) {
+                          hreq.getSession().removeAttribute(USER_NAME);
+                      }
+                      hreq.getSession().setAttribute(USER_NAME, userName);
+                      hreq.getSession().setAttribute(SIGNED_ON_ROLE, role);
+                      // remove the sign on user key before putting it back in
+                      if (hreq.getSession().getAttribute(SIGNED_ON_USER) != null) {
+                          hreq.getSession().removeAttribute(SIGNED_ON_USER);
+                      }
+                      hreq.getSession().setAttribute(SIGNED_ON_USER, new Boolean(true));
+                      // redirect to the original destination
+                      String targetURL = (String)hreq.getSession().getAttribute(ORIGINAL_URL);
+                      if (targetURL == null) targetURL = DEFAULT_TARGET_URL;
+                      hres.sendRedirect(targetURL);
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 122
+        line_end: 122
+        excerpt: |
+           <li>Click <b>Sign In</b>. You return to the page you were trying to open, or to the home page.</li>
+    stack_metadata:
+      session.scope: session
+      jsp.page: main.screen
+
+  - record_key: SIGNON-REQ-0003
+    kind: requirement
+    capability_key: sign-on
+    requirement: >
+      GIVEN an account that is not locked, WHEN a sign-in is refused because the user name is
+      unknown or the password is wrong and the failure does not lock the account, THEN the
+      system SHALL show the Sign-in Error page, which does not say which of the two was wrong.
+    plain_text: >
+      A wrong user name or a wrong password both lead to the same "Sign-in Error" page, so the
+      page does not reveal whether the user name exists.
+    technical_note: >
+      SignOnFilter.validateSignOn redirects to signOnErrorPage for any result other than
+      SIGNON_OK / SIGNON_LOCKED; the page name (signon_error.screen) is read from
+      WEB-INF/signon-config.xml by SignOnDAO.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code path plus declarative config naming the error page plus User Guide 5.2 text.
+    risk_class: regulated
+    basis: >
+      The else branch of validateSignOn sends every non-OK, non-locked result to the same
+      configured error page.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 221
+        line_end: 227
+        excerpt: |
+                  } else if (result == UserDAO.SIGNON_LOCKED) {
+                      hres.sendRedirect(LOCKED_PAGE);
+                      return;
+                  } else {
+                      hres.sendRedirect(signOnErrorPage);
+                      return;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml
+        line_start: 19
+        line_end: 22
+        excerpt: |
+           <!-- Error Page When Sign On fails-->
+           <signon-form-error-page>
+            signon_error.screen
+           </signon-form-error-page>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 124
+        line_end: 124
+        excerpt: |
+          <p>If the user name or password is wrong the page <i>Sign-in Error</i> appears. Click <b>try again</b>.</p>
+    stack_metadata:
+      jsp.page: signon_error.screen
+
+  - record_key: SIGNON-REQ-0004
+    kind: requirement
+    capability_key: sign-on
+    requirement: >
+      WHEN a user submits the sign-in form with "Remember My User Name" ticked, the system SHALL
+      store the entered user name in a browser cookie named bp_signon that lasts 2 678 400
+      seconds (31 days); WHEN the box is not ticked, the system SHALL expire any existing
+      bp_signon cookie. The sign-in page SHALL pre-fill the user name and tick the box when the
+      cookie is present.
+    plain_text: >
+      If the customer ticks "Remember My User Name", the browser remembers the name for 31 days
+      and fills it in next time; unticking it makes the browser forget the name.
+    technical_note: >
+      SignOnFilter.validateSignOn (before authentication) adds Cookie bp_signon with
+      setMaxAge(2678400), or re-sends incoming bp_signon cookies with setMaxAge(0).
+      signon.jsp reads ${cookie['bp_signon']} to pre-fill j_username and check
+      j_remember_username. Value duplicated in conf/petstore.properties.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Literal in code, same value in conf/petstore.properties, 31 days in User Guide 5.2, and
+      the reader side in signon.jsp. The code comment says "one month", which 31 days matches.
+    risk_class: presentational
+    basis: >
+      Cookie name constant COOKIE_NAME = "bp_signon"; max age 2678400 seconds = 31 days.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 172
+        line_end: 192
+        excerpt: |
+                  // check if the user wants userName set in cookie
+                  String rememberUserName = hreq.getParameter(REMEMBER_USERNAME);
+                  if (rememberUserName != null) {
+                    // set a cookie with the username in it
+                    Cookie userNameCookie = new Cookie(COOKIE_NAME, userName);
+                    // set cookie to last for one month
+                    userNameCookie.setMaxAge(2678400);
+                    hres.addCookie(userNameCookie);
+                  } else {
+                      // see if the cookie exists and remove accordingly
+                      Cookie[] cookies = hreq.getCookies();
+                      if (cookies != null) {
+                          for (int loop=0; loop < cookies.length; loop++) {
+                              if (cookies[loop].getName().equals(COOKIE_NAME)) {
+                                  cookies[loop].setMaxAge(0);
+                                  hres.addCookie(cookies[loop]);
+
+                              }
+                          }
+                      }
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 22
+        line_end: 23
+        excerpt: |
+          signon.rememberUsernameCookie=bp_signon
+          signon.rememberUsernameCookie.maxAgeSeconds=2678400
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 121
+        line_end: 121
+        excerpt: |
+           <li>Tick <b>Remember My User Name</b> if you want the store to fill in your user name next time. The store keeps it in a browser cookie for 31 days. Untick it to forget the name.</li>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp
+        line_start: 24
+        line_end: 25
+        excerpt: |
+                  <c:when test="${cookie['bp_signon'] != null && cookie['bp_signon'] != ''}">
+                   <input class="petstore_form" type="text" size="15" name="j_username" value="<c:out value="${cookie['bp_signon'].value}"/>">
+    stack_metadata:
+      framework: servlet-filter
+      cookie.name: bp_signon
+      cookie.max_age_seconds: 2678400
+
+  - record_key: SIGNON-REQ-0005
+    kind: requirement
+    capability_key: sign-on
+    requirement: >
+      WHEN a user signs out, the system SHALL record the sign-out against the signed-in user
+      name (if any), end the user's session, and show the "You are signed out" page. Signing out
+      without a session or without a signed-in user SHALL still show that page.
+    plain_text: >
+      Signing out ends the visit, logs the sign-out, and shows a "You are signed out" page, even
+      if the customer was not actually signed in.
+    technical_note: >
+      SignOffServlet (mapped to /signoff.do, GET and POST) calls UserDAO.recordSignOff when the
+      session holds j_signon_username, then HttpSession.invalidate(), then redirects to
+      signoff.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      One clear code path plus User Guide 5.5 describing the same outcome.
+    risk_class: operational
+    basis: >
+      doGet records the sign-off, invalidates the session and redirects to signoff.screen
+      regardless of whether a session existed.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOffServlet.java
+        line_start: 58
+        line_end: 73
+        excerpt: |
+              public void doGet(HttpServletRequest request, HttpServletResponse response)
+                  throws IOException, ServletException {
+                  HttpSession session = request.getSession(false);
+                  if (session != null) {
+                      String userName = (String)session.getAttribute(SignOnFilter.USER_NAME);
+                      if (userName != null) {
+                          try {
+                              new UserDAO().recordSignOff(userName, request.getRemoteAddr());
+                          } catch (UserDAOException ue) {
+                              System.err.println("SignOffServlet: " + ue.getMessage());
+                          }
+                      }
+                      session.invalidate();
+                  }
+                  response.sendRedirect("signoff.screen");
+              }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 151
+        line_end: 152
+        excerpt: |
+          <p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,
+          your session ends after 15 minutes without activity.</p>
+    stack_metadata:
+      framework: servlet
+      jsp.page: signoff.screen
+
+  - record_key: SIGNON-REQ-0006
+    kind: requirement
+    capability_key: sign-on
+    requirement: >
+      WHEN a sign-in succeeds, the system SHALL store the time of that sign-in as the account's
+      last sign-on time.
+    plain_text: >
+      Each successful sign-in updates the account's "last signed in" time.
+    technical_note: >
+      UserDAO.UPDATE_SUCCESS sets last_signon = now (and failed_attempts = 0) on SIGNON. The
+      automatic sign-in after account creation does not go through this path.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear code location; the DDL has the column but no document states the rule, and no
+      reader of last_signon was seen inside this shard.
+    risk_class: operational
+    basis: >
+      UPDATE_SUCCESS statement executed on a matching password.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 93
+        line_end: 94
+        excerpt: |
+              private static final String UPDATE_SUCCESS =
+                  "update signon set failed_attempts = 0, last_signon = ? where username = ?";
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 131
+        line_end: 139
+        excerpt: |
+                  Timestamp now = new Timestamp(System.currentTimeMillis());
+                  if (storedPassword.equals(password)) {
+                      PreparedStatement update = connection.prepareStatement(UPDATE_SUCCESS);
+                      update.setTimestamp(1, now);
+                      update.setString(2, userName);
+                      update.executeUpdate();
+                      update.close();
+                      audit(connection, userName, EVENT_SIGNON_OK, remoteAddr);
+                      return SIGNON_OK;
+    stack_metadata:
+      db.object: SIGNON.LAST_SIGNON
+
+  - record_key: SIGNON-ENT-0007
+    kind: entity
+    capability_key: sign-on
+    requirement: >
+      The system SHALL keep one account record per user name holding: user name (unique, up to
+      25 characters), password (up to 25 characters), role (CUSTOMER or ADMIN, default
+      CUSTOMER), count of consecutive failed sign-ins (default 0), locked flag (Y or N, default
+      N), time the lock was set, time of last successful sign-in, and creation time.
+    plain_text: >
+      Each customer account has a unique user name, a password, a role, a failed-sign-in count,
+      a locked yes/no flag with the time it was locked, the last sign-in time and the date it
+      was created.
+    technical_note: >
+      Table SIGNON (db/schema/petstore_derby.sql) with pk_signon, ck_signon_role,
+      ck_signon_locked; UserDAO reads and writes it with SELECT_USER, UPDATE_SUCCESS,
+      UPDATE_FAILURE and INSERT_USER.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL constraints plus the DAO statements that write exactly these columns.
+    risk_class: regulated
+    basis: >
+      Primary key on username, check constraints on role and locked, defaults on role,
+      failed_attempts, locked and created_ts.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 70
+        line_end: 82
+        excerpt: |
+          CREATE TABLE signon (
+            username varchar(25) not null,
+            password varchar(25) not null,
+            role varchar(10) default 'CUSTOMER' not null,
+            failed_attempts integer default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+            last_signon timestamp,
+            created_ts timestamp default current_timestamp not null,
+            constraint pk_signon primary key (username),
+            constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+            constraint ck_signon_locked check (locked in ('Y', 'N'))
+          );
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 95
+        line_end: 98
+        excerpt: |
+              private static final String UPDATE_FAILURE =
+                  "update signon set failed_attempts = ?, locked = ?, locked_ts = ? where username = ?";
+              private static final String INSERT_USER =
+                  "insert into signon (username, password, role, failed_attempts, locked, created_ts) values (?, ?, ?, 0, 'N', ?)";
+    stack_metadata:
+      db.object: SIGNON
+
+  # ------------------------------------------------------------ account-lockout
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL add 1 to an existing, unlocked account's failed sign-in count on every
+      sign-in attempt with a wrong password (including a blank password), and SHALL reset the
+      count to 0 on every successful sign-in.
+    plain_text: >
+      Every wrong password adds one to the account's failure count; a successful sign-in sets
+      it back to zero, so only failures in a row count.
+    technical_note: >
+      UserDAO.authenticate: failedAttempts++ then UPDATE_FAILURE; UPDATE_SUCCESS sets
+      failed_attempts = 0. Read-then-write without a transaction or row lock.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code plus Admin Guide R2 plus User Guide 5.3 ("A successful sign-in resets the count").
+    risk_class: regulated
+    basis: >
+      failedAttempts is incremented and written on a password mismatch; UPDATE_SUCCESS zeroes it.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 149
+        excerpt: |
+                  failedAttempts++;
+                  boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+                  PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);
+                  update.setInt(1, failedAttempts);
+                  update.setString(2, lockNow ? "Y" : "N");
+                  update.setTimestamp(3, lockNow ? now : null);
+                  update.setString(4, userName);
+                  update.executeUpdate();
+                  update.close();
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 51
+        line_end: 51
+        excerpt: |
+           <tr><td>R2</td><td>Each failed sign-in adds 1 to the account's failed attempts. A successful sign-in sets it back to 0.</td></tr>
+    stack_metadata:
+      db.object: SIGNON.FAILED_ATTEMPTS
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      WHEN a wrong-password attempt brings an account's consecutive failed count to 3 (or
+      more), the system SHALL lock the account, record the time of the lock, and show the
+      Account Locked page for that same attempt instead of the Sign-in Error page.
+    plain_text: >
+      The third wrong password in a row locks the account, and the customer sees "Account
+      Locked" straight away on that third try.
+    technical_note: >
+      UserDAO.MAX_FAILED_ATTEMPTS = 3; lockNow = failedAttempts >= 3 sets LOCKED='Y',
+      LOCKED_TS=now and returns SIGNON_LOCKED, which SignOnFilter redirects to
+      signon_locked.screen. Threshold duplicated in conf/petstore.properties and the DDL comment.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Constant in code, same value in properties, DDL comment, Admin Guide R3 and User Guide 5.3.
+    risk_class: regulated
+    basis: >
+      lockNow branch writes Y and the timestamp and returns SIGNON_LOCKED.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 69
+        line_end: 69
+        excerpt: |
+              public static final int MAX_FAILED_ATTEMPTS = 3;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 150
+        line_end: 155
+        excerpt: |
+                  audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                  if (lockNow) {
+                      audit(connection, userName, EVENT_ACCOUNT_LOCKED, remoteAddr);
+                      return SIGNON_LOCKED;
+                  }
+                  return SIGNON_INVALID;
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 15
+        line_end: 15
+        excerpt: |
+          signon.maxFailedAttempts=3
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 52
+        line_end: 52
+        excerpt: |
+           <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>
+    stack_metadata:
+      db.object: SIGNON.LOCKED, SIGNON.LOCKED_TS
+      jsp.page: signon_locked.screen
+
+  - record_key: LOCK-BR-0003
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN a locked account, WHEN anyone tries to sign in to it with any password (including
+      the correct one), THEN the system SHALL refuse the sign-in, show the Account Locked page,
+      leave the failed count and lock time unchanged, and record a "sign-in while locked" event.
+    plain_text: >
+      While an account is locked nobody can sign in to it, even with the right password; the
+      attempt is logged but does not change the failure count.
+    technical_note: >
+      UserDAO.authenticate checks LOCKED='Y' before comparing passwords, writes SIGNON_LOCKED
+      to SIGNON_AUDIT and returns SIGNON_LOCKED with no SIGNON update.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code plus Admin Guide R4 plus User Guide 5.3.
+    risk_class: regulated
+    basis: >
+      The locked check returns before any password comparison or counter update.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 127
+        line_end: 130
+        excerpt: |
+                  if (locked) {
+                      audit(connection, userName, EVENT_SIGNON_LOCKED, remoteAddr);
+                      return SIGNON_LOCKED;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 53
+        line_end: 53
+        excerpt: |
+           <tr><td>R4</td><td>A locked account cannot sign in, even with the right password. The attempt is recorded as SIGNON_LOCKED and the failed count does not change.</td></tr>
+    stack_metadata:
+      db.object: SIGNON.LOCKED
+
+  - record_key: LOCK-BR-0004
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN a user name that matches no account, WHEN a sign-in is attempted with it, THEN the
+      system SHALL treat it as an ordinary failed sign-in (Sign-in Error page) and SHALL NOT
+      count it towards locking any account.
+    plain_text: >
+      Trying a user name that does not exist just fails; it cannot lock anybody's account,
+      including an account whose name differs only in upper/lower case.
+    technical_note: >
+      UserDAO.authenticate returns SIGNON_INVALID when SELECT_USER finds no row, without any
+      SIGNON update; matching is exact so "Admin" does not touch "admin".
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code path plus Admin Guide R6 (recorded as a failure) plus User Guide case sensitivity.
+    risk_class: regulated
+    basis: >
+      The no-row branch returns before any update statement.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 112
+        line_end: 120
+        excerpt: |
+                  PreparedStatement select = connection.prepareStatement(SELECT_USER);
+                  select.setString(1, userName);
+                  ResultSet rs = select.executeQuery();
+                  if (!rs.next()) {
+                      rs.close();
+                      select.close();
+                      audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                      return SIGNON_INVALID;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 55
+        line_end: 55
+        excerpt: |
+           <tr><td>R6</td><td>A sign-in with an unknown user name is recorded as SIGNON_FAIL against the name typed.</td></tr>
+    stack_metadata:
+      db.object: SIGNON
+
+  - record_key: LOCK-BR-0005
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The web application SHALL NOT offer any way to unlock an account; a lock SHALL stay in
+      force until it is cleared outside the application (the scheduled unlock job or a manual
+      database change by an administrator).
+    plain_text: >
+      There is no unlock button in the store; a locked account stays locked until the
+      automatic unlock job or an administrator clears it.
+    technical_note: >
+      UserDAO has no statement that sets LOCKED='N' and no ACCOUNT_UNLOCKED event constant,
+      although the DDL check allows ACCOUNT_UNLOCKED. Its class comment names PSL_ACCT_UNLOCK
+      or an administrator. The unlock job itself is outside this shard.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Stated in the class comment and in Admin Guide 2.1 ("There is no unlock screen"); the
+      absence of an unlock path is inferred from what the DAO does not contain, which is
+      inherently weaker than a positive statement in code.
+    risk_class: operational
+    basis: >
+      Class Javadoc business rules; no unlock statement in UserDAO.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 59
+        line_end: 63
+        excerpt: |
+           * Business rules:
+           *  - a user that fails MAX_FAILED_ATTEMPTS sign-ons in a row is locked
+           *  - a locked user cannot sign on, even with the right password, until
+           *    the PSL_ACCT_UNLOCK batch job (or an administrator) clears the lock
+           *  - every sign-on attempt, sign-off and new user is written to SIGNON_AUDIT
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 61
+        line_end: 62
+        excerpt: |
+          <p>There is no unlock screen. To unlock before the batch job runs, ask operations to run PSL_ACCT_UNLOCK on demand (it only unlocks
+          locks older than 30 minutes) or to run this SQL as the store schema owner:</p>
+    stack_metadata:
+      batch.trigger: PSL_ACCT_UNLOCK (outside shard)
+
+  # ------------------------------------------------------------- sign-on-audit
+  - record_key: AUDIT-REQ-0001
+    kind: requirement
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL write one audit event, holding the user name as typed, the event type,
+      the time and the client network address, for each of: a successful sign-in (SIGNON_OK);
+      a failed sign-in, including an unknown user name (SIGNON_FAIL); a sign-in attempt on a
+      locked account (SIGNON_LOCKED); an account becoming locked (ACCOUNT_LOCKED); a sign-out
+      by a signed-in user (SIGNOFF); and a new account (USER_CREATED).
+    plain_text: >
+      Every sign-in, failed sign-in, attempt on a locked account, lock, sign-out and new account
+      is logged with who, what, when and from which address.
+    technical_note: >
+      UserDAO.audit inserts into SIGNON_AUDIT (username, event_type, event_ts, remote_addr);
+      called from authenticate, createUser and recordSignOff. The DDL check constraint lists the
+      same values plus ACCOUNT_UNLOCKED, which this module never writes.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code constants and insert, DDL check constraint on event_type, and Admin Guide R7.
+    risk_class: regulated
+    basis: >
+      Event constants and the INSERT_AUDIT statement; each call site passes request.getRemoteAddr().
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 83
+        line_end: 89
+        excerpt: |
+              // SIGNON_AUDIT.EVENT_TYPE values
+              public static final String EVENT_SIGNON_OK = "SIGNON_OK";
+              public static final String EVENT_SIGNON_FAIL = "SIGNON_FAIL";
+              public static final String EVENT_ACCOUNT_LOCKED = "ACCOUNT_LOCKED";
+              public static final String EVENT_SIGNON_LOCKED = "SIGNON_LOCKED";
+              public static final String EVENT_SIGNOFF = "SIGNOFF";
+              public static final String EVENT_USER_CREATED = "USER_CREATED";
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 255
+        line_end: 264
+        excerpt: |
+              private void audit(Connection connection, String userName, String eventType, String remoteAddr)
+                  throws SQLException {
+                  PreparedStatement insert = connection.prepareStatement(INSERT_AUDIT);
+                  insert.setString(1, userName);
+                  insert.setString(2, eventType);
+                  insert.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+                  insert.setString(4, remoteAddr);
+                  insert.executeUpdate();
+                  insert.close();
+              }
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 85
+        line_end: 94
+        excerpt: |
+          CREATE TABLE signon_audit (
+            audit_id bigint generated always as identity,
+            username varchar(25) not null,
+            event_type varchar(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar(45),
+            constraint pk_signon_audit primary key (audit_id),
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+          );
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 56
+        line_end: 56
+        excerpt: |
+           <tr><td>R7</td><td>Every sign-in, failure, lock, sign-out and new account is written to SIGNON_AUDIT with the time and the client address.</td></tr>
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+
+  - record_key: AUDIT-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      WHEN a wrong password causes an account to lock, the system SHALL write two audit events
+      for that one attempt, first a failed sign-in (SIGNON_FAIL) and then the lock
+      (ACCOUNT_LOCKED).
+    plain_text: >
+      The attempt that locks an account shows up in the log twice: once as a failed sign-in and
+      once as the account being locked.
+    technical_note: >
+      UserDAO.authenticate calls audit(EVENT_SIGNON_FAIL) unconditionally on a mismatch, then
+      audit(EVENT_ACCOUNT_LOCKED) when lockNow. Ordering relies on separate inserts with
+      System.currentTimeMillis() timestamps and the identity audit_id.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear code location. The guides list both event types but do not say both are written
+      for the same attempt.
+    risk_class: regulated
+    basis: >
+      Two consecutive audit() calls in the lockNow branch.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 150
+        line_end: 153
+        excerpt: |
+                  audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                  if (lockNow) {
+                      audit(connection, userName, EVENT_ACCOUNT_LOCKED, remoteAddr);
+                      return SIGNON_LOCKED;
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+
+  - record_key: AUDIT-SCR-0003
+    kind: screen
+    capability_key: sign-on-audit
+    requirement: >
+      The My Account page SHALL show the signed-in user's name, role and their 10 most recent
+      audit events, newest first (events with the same time ordered by most recently written
+      first), each with event type, time and client address.
+    plain_text: >
+      My Account shows the customer's name, role and their last 10 sign-in events, newest first,
+      with when and from where.
+    technical_note: >
+      AccountHelper.RECENT_ACTIVITY_COUNT = 10; UserDAO.getRecentActivity runs SELECT_AUDIT
+      ordered by event_ts desc, audit_id desc and stops after count rows. Used by account.jsp
+      as a request-scoped bean keyed on j_signon_username.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Constant and ordered query in code, plus User Guide 5.4 stating 10 events newest first.
+    risk_class: presentational
+    basis: >
+      RECENT_ACTIVITY_COUNT and the ORDER BY clause.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/AccountHelper.java
+        line_start: 51
+        line_end: 51
+        excerpt: |
+              public static final int RECENT_ACTIVITY_COUNT = 10;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 101
+        line_end: 102
+        excerpt: |
+              private static final String SELECT_AUDIT =
+                  "select event_type, event_ts, remote_addr from signon_audit where username = ? order by event_ts desc, audit_id desc";
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 135
+        line_end: 136
+        excerpt: |
+          <p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,
+          your role and your 10 most recent sign-in events, newest first.</p>
+    stack_metadata:
+      jsp.page: account.jsp
+      session.scope: request
+
+  # ------------------------------------------------------- account-registration
+  - record_key: REG-BR-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL refuse to create an account whose user name is missing or, after leading
+      and trailing spaces are ignored, shorter than 3 or longer than 25 characters, with the
+      message "The user name must be 3 to 25 characters."
+    plain_text: >
+      A new user name must be 3 to 25 characters long.
+    technical_note: >
+      CreateUserServlet.validate uses UserDAO.MIN_USERNAME_LENGTH = 3 and MAX_USERNAME_LENGTH =
+      25 on userName.trim(). SIGNON.username is varchar(25). Same values in petstore.properties.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Java check plus DDL column width plus properties plus User Guide 5.1 message table.
+    risk_class: operational
+    basis: >
+      Length check against the two constants; DDL varchar(25).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 103
+        line_end: 106
+        excerpt: |
+                  if (userName == null || userName.trim().length() < UserDAO.MIN_USERNAME_LENGTH
+                      || userName.trim().length() > UserDAO.MAX_USERNAME_LENGTH) {
+                      return "The user name must be " + UserDAO.MIN_USERNAME_LENGTH + " to " + UserDAO.MAX_USERNAME_LENGTH + " characters.";
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 70
+        line_end: 71
+        excerpt: |
+              public static final int MIN_USERNAME_LENGTH = 3;
+              public static final int MAX_USERNAME_LENGTH = 25;
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 108
+        line_end: 108
+        excerpt: |
+           <tr><td>User Name</td><td>3 to 25 characters</td><td>The user name must be 3 to 25 characters.</td></tr>
+    stack_metadata:
+      declarative_validator: none (programmatic)
+
+  - record_key: REG-BR-0002
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL refuse to create an account whose user name contains any character other
+      than a letter, a digit, '-' or '_', with the message "The user name can only contain
+      letters, digits, '-' and '_'."
+    plain_text: >
+      A user name may only use letters, digits, hyphens and underscores; no spaces or other
+      symbols.
+    technical_note: >
+      CreateUserServlet.validate loops over the untrimmed user name using
+      Character.isLetterOrDigit, which accepts non-ASCII letters and digits too (see findings).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Java check plus User Guide 5.1 message table and the servlet class comment.
+    risk_class: operational
+    basis: >
+      Per-character check in validate().
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 107
+        line_end: 112
+        excerpt: |
+                  for (int i = 0; i < userName.length(); i++) {
+                      char c = userName.charAt(i);
+                      if (!Character.isLetterOrDigit(c) && c != '-' && c != '_') {
+                          return "The user name can only contain letters, digits, '-' and '_'.";
+                      }
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 109
+        line_end: 109
+        excerpt: |
+           <tr><td>User Name</td><td>Letters, digits, '-' and '_' only</td><td>The user name can only contain letters, digits, '-' and '_'.</td></tr>
+
+  - record_key: REG-BR-0003
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL refuse to create an account whose password is missing, shorter than 4 or
+      longer than 25 characters, with the message "The password must be 4 to 25 characters."
+      Spaces in the password count towards its length.
+    plain_text: >
+      A new password must be 4 to 25 characters long.
+    technical_note: >
+      CreateUserServlet.validate compares password.length() (untrimmed) with
+      UserDAO.MIN_PASSWORD_LENGTH / MAX_PASSWORD_LENGTH. SIGNON.password is varchar(25).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The class comment and User Guide 5.1 both say 4 to 25 and the DDL caps the column at 25,
+      but in this pass the constant definitions (UserDAO.java:72-73), the comparison line
+      (CreateUserServlet.java:113) and the properties values were masked by a secret filter, so
+      the enforced numbers were not read directly.
+    risk_class: regulated
+    basis: >
+      Servlet class comment, the visible half of the length check and its message, user guide.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 55
+        line_end: 59
+        excerpt: |
+           * Validation rules:
+           *  - user name is 3 to 25 characters, letters, digits, '-' and '_' only
+           *  - password is 4 to 25 characters
+           *  - password and confirmation must match
+           *  - user name must not already exist
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 114
+        line_end: 116
+        excerpt: |2
+                      || password.length() > UserDAO.MAX_PASSWORD_LENGTH) {
+                      return "The password must be " + UserDAO.MIN_PASSWORD_LENGTH + " to " + UserDAO.MAX_PASSWORD_LENGTH + " characters.";
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 111
+        line_end: 111
+        excerpt: |
+           <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>
+
+  - record_key: REG-BR-0004
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL refuse to create an account when the repeated password differs from the
+      password, with the message "The password and the confirmation do not match."
+    plain_text: >
+      The password must be typed twice, identically.
+    technical_note: >
+      CreateUserServlet.validate: !password.equals(passwordConfirm).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Java check plus User Guide 5.1 message table plus class comment.
+    risk_class: operational
+    basis: >
+      Equality check in validate().
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 117
+        line_end: 119
+        excerpt: |
+                  if (!password.equals(passwordConfirm)) {
+                      return "The password and the confirmation do not match.";
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 112
+        line_end: 112
+        excerpt: |
+           <tr><td>Password (Repeat)</td><td>Must equal Password</td><td>The password and the confirmation do not match.</td></tr>
+
+  - record_key: REG-BR-0005
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL refuse to create an account whose user name exactly matches an existing
+      account (case-sensitive), with the message "The user name <name> is already taken. Choose
+      another user name."
+    plain_text: >
+      Two accounts cannot share the same user name; "J2EE" and "j2ee" count as different names.
+    technical_note: >
+      UserDAO.createUser selects by username and throws DuplicateUserException;
+      CreateUserServlet turns it into the session error j_user_creation_error. pk_signon on
+      SIGNON.username is the database backstop.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Java check plus primary-key constraint plus User Guide 5.1.
+    risk_class: operational
+    basis: >
+      Existence check before insert; primary key on username.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 172
+        line_end: 180
+        excerpt: |
+                  PreparedStatement select = connection.prepareStatement(SELECT_USER);
+                  select.setString(1, userName);
+                  ResultSet rs = select.executeQuery();
+                  boolean exists = rs.next();
+                  rs.close();
+                  select.close();
+                  if (exists) {
+                      throw new DuplicateUserException(userName);
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 94
+        line_end: 96
+        excerpt: |
+                  } catch (DuplicateUserException de) {
+                      request.getSession().setAttribute(USER_CREATION_ERROR, "The user name " + userName + " is already taken. Choose another user name.");
+                      response.sendRedirect(USER_CREATION_ERROR_PAGE);
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 110
+        line_end: 110
+        excerpt: |
+           <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>
+    stack_metadata:
+      db.object: SIGNON.pk_signon
+
+  - record_key: REG-REQ-0006
+    kind: requirement
+    capability_key: account-registration
+    requirement: >
+      The system SHALL create every self-registered account with the CUSTOMER role, a failed
+      sign-in count of 0, unlocked, and the creation time; self-registration SHALL NOT be able
+      to create an ADMIN account.
+    plain_text: >
+      Anyone who signs up gets an ordinary customer account; administrators cannot be created
+      through sign-up.
+    technical_note: >
+      UserDAO.INSERT_USER hard-codes failed_attempts 0 and locked 'N' and binds ROLE_CUSTOMER;
+      the user name is stored as submitted (not trimmed).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Insert statement in code plus DDL default role CUSTOMER plus Admin Guide section 1 role
+      table.
+    risk_class: regulated
+    basis: >
+      INSERT_USER values and the ROLE_CUSTOMER bind.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 181
+        line_end: 188
+        excerpt: |
+                  PreparedStatement insert = connection.prepareStatement(INSERT_USER);
+                  insert.setString(1, userName);
+                  insert.setString(2, password);
+                  insert.setString(3, ROLE_CUSTOMER);
+                  insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+                  insert.executeUpdate();
+                  insert.close();
+                  audit(connection, userName, EVENT_USER_CREATED, remoteAddr);
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 19
+        line_end: 20
+        excerpt: |
+           <tr><td>CUSTOMER</td><td>Store customers</td><td>Self sign-up on the Sign In page, or the sample data</td></tr>
+           <tr><td>ADMIN</td><td>Store administrators</td><td>Sample data only (user <code>admin</code>). There is no screen to create an administrator.</td></tr>
+    stack_metadata:
+      db.object: SIGNON
+
+  - record_key: REG-WF-0007
+    kind: workflow
+    capability_key: account-registration
+    requirement: >
+      WHEN an account is created successfully, the system SHALL sign the new user in at once as
+      a CUSTOMER and redirect them to the page they originally asked for, or to the home page;
+      WHEN validation or the duplicate check fails, the system SHALL show the Create Account
+      Error page with the first failing rule's message, checking in the order: user name
+      length, user name characters, password length, password confirmation, duplicate name.
+    plain_text: >
+      A successful sign-up signs the customer in straight away and takes them where they were
+      going; a refused sign-up shows one error message, for the first problem found.
+    technical_note: >
+      CreateUserServlet.doPost (/createuser.do) sets j_signon_username, j_signon_role=CUSTOMER
+      and j_signon=true directly in the session (no call to authenticate), redirects to
+      j_signon_original_url or main.screen; errors go to user_creation_error.screen via the
+      session attribute j_user_creation_error.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code plus User Guide 5.1 step 4. The check order is read from statement order only.
+    risk_class: operational
+    basis: >
+      doPost validation, createUser call and session attribute writes.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 76
+        line_end: 93
+        excerpt: |
+                  String error = validate(userName, password, passwordConfirm);
+                  if (error != null) {
+                      request.getSession().setAttribute(USER_CREATION_ERROR, error);
+                      response.sendRedirect(USER_CREATION_ERROR_PAGE);
+                      return;
+                  }
+
+                  UserDAO userDAO = new UserDAO();
+                  try {
+                      userDAO.createUser(userName, password, request.getRemoteAddr());
+                      System.out.println("CreateUserServlet create user: username=" + userName);
+                      request.getSession().setAttribute(SignOnFilter.USER_NAME, userName);
+                      request.getSession().setAttribute(SignOnFilter.SIGNED_ON_ROLE, UserDAO.ROLE_CUSTOMER);
+                      request.getSession().setAttribute(SignOnFilter.SIGNED_ON_USER, new Boolean(true));
+                      // redirect to the original destination
+                      String targetURL = (String)request.getSession().getAttribute(SignOnFilter.ORIGINAL_URL);
+                      if (targetURL == null) targetURL = SignOnFilter.DEFAULT_TARGET_URL;
+                      response.sendRedirect(targetURL);
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        line_start: 104
+        line_end: 104
+        excerpt: |
+           <li>Click <b>Create New Account</b>. You are signed in at once and taken to the page you asked for, or to the home page.</li>
+    stack_metadata:
+      framework: servlet
+      jsp.page: user_creation_error.screen
+
+  # ------------------------------------------------------------- access-control
+  - record_key: ACC-REQ-0001
+    kind: requirement
+    capability_key: access-control
+    requirement: >
+      WHEN a user who is not signed in requests a protected page, the system SHALL remember that
+      page and show the Sign In page in its place; pages that are not protected SHALL be served
+      to everyone without a sign-in.
+    plain_text: >
+      Opening a members-only page while signed out shows the Sign In page first, and the store
+      remembers where the customer was going. All other pages are open to everyone.
+    technical_note: >
+      SignOnFilter (mapped to /*) compares the path after the context root with each
+      url-pattern from WEB-INF/signon-config.xml by exact string equality; on a match it stores
+      j_signon_original_url and forwards (server-side) to the configured signon.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Filter code, declarative config, and Admin Guide section 1 describing the same behaviour.
+    risk_class: regulated
+    basis: >
+      doFilter loop over protectedResources with forward to signOnPage.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 142
+        line_end: 160
+        excerpt: |
+                  // find out if the patterns match the target URL
+                  Iterator it = null;
+                  if (protectedResources != null) it = protectedResources.keySet().iterator();
+                  while ((it != null) && it.hasNext()) {
+                      String protectedName = (String)it.next();
+                      ProtectedResource resource  = (ProtectedResource)protectedResources.get(protectedName);
+                      String urlPattern = resource.getURLPattern();
+
+                      // now check agains the targetURL
+                      if (urlPattern.equals(targetURL)) {
+                          // put the orginal url in the session so others can access
+                          hreq.getSession().setAttribute(ORIGINAL_URL,  targetURL);
+                          config.getServletContext().getRequestDispatcher("/" + signOnPage).forward(request, response);
+                          // Jump out of the filter and go to the next page
+                          return;
+                      }
+                  }
+                  // No matches if we made it to here
+                  chain.doFilter(request,response);
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 33
+        line_end: 35
+        excerpt: |
+          <p>Protected pages are listed in <code>WEB-INF/signon-config.xml</code>. A page with an <code>auth-constraint</code> is open only to the
+          roles listed; a page without one is open to any signed-in user. When an anonymous user opens a protected page, the Sign In page
+          is shown and, after a successful sign-in, the user is sent back to the page first asked for.</p>
+    stack_metadata:
+      framework: servlet-filter
+      jsp.page: signon.screen
+
+  - record_key: ACC-BR-0002
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      GIVEN a signed-in user requesting a protected page, WHEN the page lists no required roles
+      THEN the system SHALL serve it; WHEN the page lists required roles and the user's role is
+      one of them THEN the system SHALL serve it; otherwise the system SHALL show the Access
+      Denied page.
+    plain_text: >
+      Some members-only pages are open to any signed-in customer; others are limited to certain
+      roles, and anyone else sees "Access Denied".
+    technical_note: >
+      SignOnFilter.isRoleAllowed: empty role list => allowed; else roles.contains(session role).
+      Denied requests are forwarded to access_denied.screen. Roles come from auth-constraint /
+      role-name in signon-config.xml, parsed by SignOnDAO.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Filter code with its own comment, config file comment, and Admin Guide access matrix.
+    risk_class: regulated
+    basis: >
+      isRoleAllowed and the signed-on branch of doFilter.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 133
+        line_end: 141
+        excerpt: |
+                  if (signedOn) {
+                          ProtectedResource resource = findProtectedResource(targetURL);
+                          if (resource != null && !isRoleAllowed(resource, (String)hreq.getSession().getAttribute(SIGNED_ON_ROLE))) {
+                              config.getServletContext().getRequestDispatcher("/" + ACCESS_DENIED_PAGE).forward(request, response);
+                              return;
+                          }
+                          chain.doFilter(request,response);
+                          return;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 240
+        line_end: 247
+        excerpt: |
+                /**
+                 * A resource with no roles in its auth-constraint is open to any
+                 * signed on user. Otherwise the user's role must be listed.
+                 */
+                private boolean isRoleAllowed(ProtectedResource resource, String role) {
+                   if (resource.getRoles() == null || resource.getRoles().isEmpty()) return true;
+                   return role != null && resource.getRoles().contains(role);
+                }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 28
+        line_end: 29
+        excerpt: |
+           <tr><td>My Account (<code>account.screen</code>)</td><td>Sign In page shown</td><td>Yes</td><td>Yes</td></tr>
+           <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>
+    stack_metadata:
+      jsp.page: access_denied.screen
+
+  - record_key: ACC-REQ-0003
+    kind: requirement
+    capability_key: access-control
+    requirement: >
+      The system SHALL require a sign-in for My Account and the Sign-on Welcome page (any role)
+      and SHALL restrict Catalog Administration to the ADMIN role.
+    plain_text: >
+      My Account and the welcome page need a sign-in; the catalog administration page is for
+      administrators only.
+    technical_note: >
+      WEB-INF/signon-config.xml lists account.screen and signon_welcome.screen without an
+      auth-constraint and populate_admin.screen with role-name ADMIN; SignOnDAO loads it once at
+      filter init.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declarative config read by this module plus Admin Guide configuration table and matrix.
+    risk_class: regulated
+    basis: >
+      Three security-constraint entries in signon-config.xml.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml
+        line_start: 24
+        line_end: 49
+        excerpt: |
+           <!-- A Protected Resource-->
+           <security-constraint>
+             <web-resource-collection>
+              <web-resource-name>Account Screen</web-resource-name>
+              <url-pattern>account.screen</url-pattern>
+             </web-resource-collection>
+           </security-constraint>
+
+           <!-- A Protected Resource-->
+           <security-constraint>
+             <web-resource-collection>
+              <web-resource-name>Sign On Welcome Screen</web-resource-name>
+              <url-pattern>signon_welcome.screen</url-pattern>
+             </web-resource-collection>
+           </security-constraint>
+
+           <!-- An Administrator Only Resource-->
+           <security-constraint>
+             <web-resource-collection>
+              <web-resource-name>Populate Admin Screen</web-resource-name>
+              <url-pattern>populate_admin.screen</url-pattern>
+             </web-resource-collection>
+             <auth-constraint>
+              <role-name>ADMIN</role-name>
+             </auth-constraint>
+           </security-constraint>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnDAO.java
+        line_start: 134
+        line_end: 144
+        excerpt: |
+                  NodeList outterList = root.getElementsByTagName(SECURITY_CONSTRAINT);
+                  for (int outterLoop = 0; outterLoop < outterList.getLength(); outterLoop++) {
+                      Element element = (Element)outterList.item(outterLoop);
+                      // get  roles that can see this page
+                      ArrayList roles = new ArrayList();
+                      NodeList roleList = element.getElementsByTagName(AUTH_CONSTRAINT);
+                      for (int roleLoop = 0; roleLoop < roleList.getLength(); roleLoop++) {
+                                  Node  roleNode = roleList.item(roleLoop);
+                                  String roleName = getSubTagValue(roleNode, ROLE_NAME);
+                                  if ((roleName != null) && !roleName.equals("")) roles.add(roleName);
+                      }
+    stack_metadata:
+      db.object: n/a
+      config: WEB-INF/signon-config.xml
+
+  - record_key: ACC-BR-0004
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      The system SHALL recognise exactly two roles, CUSTOMER and ADMIN, SHALL give each account
+      one role, and SHALL read the account's role at sign-in and use that role for the rest of
+      the session (a role change takes effect at the next sign-in).
+    plain_text: >
+      Every account is either a customer or an administrator; the role is looked up when the
+      person signs in and stays the same until they sign in again.
+    technical_note: >
+      UserDAO.ROLE_CUSTOMER / ROLE_ADMIN; ck_signon_role in the DDL; SignOnFilter calls
+      UserDAO.getRole once after SIGNON_OK and stores it in j_signon_role.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code constants plus DDL check constraint plus Admin Guide section 1 ("read at sign-in").
+    risk_class: regulated
+    basis: >
+      getRole called once at sign-in; session attribute reused by isRoleAllowed.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 198
+        line_end: 200
+        excerpt: |
+                  try {
+                      result = userDAO.authenticate(userName, password, hreq.getRemoteAddr());
+                      if (result == UserDAO.SIGNON_OK) role = userDAO.getRole(userName);
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 75
+        line_end: 76
+        excerpt: |
+              public static final String ROLE_CUSTOMER = "CUSTOMER";
+              public static final String ROLE_ADMIN = "ADMIN";
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 16
+        line_end: 16
+        excerpt: |
+          <p>Every account has one role. The role is stored with the account and read at sign-in.</p>
+    stack_metadata:
+      db.object: SIGNON.ROLE (ck_signon_role)
+      session.scope: session
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+    description: >
+      The user-name character rule (REG-BR-0002) uses a Unicode-aware letter/digit test, so
+      names such as "Zoë" or names with non-Latin digits are accepted, while the User Guide only
+      says "letters, digits". A human should decide whether the rebuilt rule is ASCII-only or
+      Unicode letters. Lines 107-112.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+    description: >
+      The password length limits (REG-BR-0003) are defined at UserDAO.java lines 72-73 and
+      enforced at CreateUserServlet.java line 113, but those lines were masked in this pass's
+      view, so the enforced numbers were taken from the class comment and User Guide. Someone
+      should confirm the constants are 4 and 25.
+
+suspected_defects:
+  - capability_key: sign-on
+    record_keys: [SIGNON-ENT-0007, SIGNON-REQ-0001, REG-REQ-0006]
+    severity: high
+    category: other
+    title: Passwords are stored and compared as plain text
+    description: >
+      Account passwords are written to the account table exactly as typed and checked with a
+      direct string comparison; there is no hashing. The Administrator Guide states this
+      ("Passwords are stored as entered"), so it is documented behaviour, but anyone with
+      read access to the database or a backup or migration extract sees every password.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 181
+        line_end: 184
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 132
+        line_end: 132
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 45
+        line_end: 45
+
+  - capability_key: sign-on
+    record_keys: [SIGNON-WF-0002, REG-WF-0007]
+    severity: medium
+    category: other
+    title: Session identifier is not renewed at sign-in or sign-up
+    description: >
+      A successful sign-in (and the automatic sign-in after account creation) marks the
+      visitor's existing session as signed in, without starting a new session. A session
+      identifier obtained before sign-in therefore stays valid after it, with the signed-in
+      user's identity and role. The same holds when a second user signs in on a session that
+      is already signed in: the identity is overwritten in place.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 204
+        line_end: 215
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 87
+        line_end: 89
+
+  - capability_key: access-control
+    record_keys: [ACC-REQ-0001, ACC-REQ-0003, SIGNON-REQ-0003]
+    severity: medium
+    category: error-swallowed
+    title: An unreadable or missing protection configuration leaves every page open
+    description: >
+      When the protected-page configuration file is absent, the filter starts with no
+      protected pages and no error page, so every page, including Catalog Administration, is
+      served without a sign-in, and a failed sign-in redirects to a page named "null". Parse
+      and I/O errors while reading the file are only printed to the console. A duplicated
+      resource name is likewise only logged, and the second definition is dropped.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 89
+        line_end: 103
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnDAO.java
+        line_start: 100
+        line_end: 125
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnDAO.java
+        line_start: 153
+        line_end: 158
+
+  - capability_key: access-control
+    record_keys: [ACC-REQ-0001, ACC-REQ-0003]
+    severity: low
+    category: other
+    title: Page protection matches only the exact screen name directly under the application root
+    description: >
+      Protection compares the request path after the first path segment with each configured
+      name by exact equality. The underlying page files (for example the account and catalog
+      administration page bodies) can be requested directly by their own file names and are
+      not checked, and if the application were deployed at the server root rather than under
+      /petstore, no path would ever match and nothing would be protected. As deployed
+      (context /petstore) the screen names are protected; the forced reload itself is checked
+      again elsewhere (outside this shard).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 112
+        line_end: 117
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 151
+        line_end: 151
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/META-INF/context.xml
+        line_start: 6
+        line_end: 6
+
+  - capability_key: sign-on
+    record_keys: [SIGNON-REQ-0004]
+    severity: low
+    category: other
+    title: Remember-my-user-name cookie is written before the sign-in is checked
+    description: >
+      The cookie is set (or cleared) from the form before the user name and password are
+      validated, so whatever was typed, including a mistyped or unknown user name, is
+      remembered for 31 days even when the sign-in fails or the account is locked.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 172
+        line_end: 199
+
+  - capability_key: sign-on-audit
+    record_keys: [REG-WF-0007, AUDIT-REQ-0001, SIGNON-REQ-0006]
+    severity: low
+    category: contradicts-document
+    title: The automatic sign-in after account creation is not recorded as a sign-in
+    description: >
+      Admin Guide R7 says every sign-in is written to the audit log. After a new account is
+      created the user is signed in directly, and only USER_CREATED is recorded: no SIGNON_OK
+      event is written and the last sign-on time stays empty until the next real sign-in.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 85
+        line_end: 89
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 56
+        line_end: 56
+
+  - capability_key: sign-on-audit
+    record_keys: [SIGNON-REQ-0005, AUDIT-REQ-0001]
+    severity: low
+    category: error-swallowed
+    title: A failure to record a sign-out is ignored
+    description: >
+      If writing the SIGNOFF audit event fails, the error is printed to the console and the
+      sign-out continues, so the audit trail silently lacks that sign-out. Sign-in events, by
+      contrast, fail the whole request when the audit write fails.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOffServlet.java
+        line_start: 64
+        line_end: 68
+
+  - capability_key: account-lockout
+    record_keys: [LOCK-BR-0001, LOCK-BR-0002]
+    severity: low
+    category: data-corruption
+    title: Failed-attempt counter is read and written without a transaction
+    description: >
+      The failure count is read, incremented in memory and written back as separate
+      auto-committed statements. Two wrong-password attempts arriving at the same time can
+      both read the same count and write the same value, so an attacker sending parallel
+      guesses can get more than 3 attempts before the lock. A concurrent duplicate sign-up
+      likewise passes the existence check and then fails on the primary key with a server
+      error instead of the "already taken" message.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 149
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 172
+        line_end: 190
