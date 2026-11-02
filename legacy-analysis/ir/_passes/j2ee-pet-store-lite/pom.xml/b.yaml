@@ -1,0 +1,105 @@
+records:
+  - record_key: BATCH-INT-0001
+    kind: integration
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL ship, alongside the store application, the database
+      engine together with its network server, network client and command-line
+      tools, installed at the application-server level rather than inside the
+      store application, so that the store's database can be reached both by
+      the store itself and by separately running batch jobs over the network.
+    plain_text: >
+      The installed system includes everything needed for the nightly jobs to
+      connect to the same database the store is using while the store is running.
+    technical_note: >
+      pom.xml declares derby (version property derby.version=10.14.2.0) with
+      scope "provided" so it is NOT packaged in petstore.war (lines 50-55), and a
+      maven-dependency-plugin "copy-derby" execution at the package phase copies
+      derby, derbynet, derbyclient and derbytools 10.14.2.0 into
+      target/container-lib (lines 69-105). The Dockerfile copies
+      target/container-lib/*.jar into Tomcat's shared lib (Dockerfile line 16)
+      and starts the Derby network server on port 1527 (Dockerfile line 23).
+      derbynet is what provides that network server; derbyclient is the driver
+      a network client uses.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The packaging is declared explicitly in the build file and its use is
+      confirmed by the Dockerfile, which copies exactly that output directory
+      into the container's shared library folder and enables the network server.
+      Two independent files agree. interface is false because the network
+      consumers are this application's own batch jobs; whether any outside
+      system also connects on 1527 is not visible from this module.
+    risk_class: operational
+    basis: >
+      The pom comment "Database driver, installed in the container lib folder
+      (see Dockerfile)" and the copy-derby execution listing the network server
+      and client artifacts; corroborated by Dockerfile lines 16 and 23.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/pom.xml
+        line_start: 49
+        line_end: 55
+        excerpt: |
+              <!-- Database driver, installed in the container lib folder (see Dockerfile) -->
+              <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derby</artifactId>
+                <version>${derby.version}</version>
+                <scope>provided</scope>
+              </dependency>
+      - path: legacy-source/j2ee-pet-store-lite/pom.xml
+        line_start: 85
+        line_end: 101
+        excerpt: |
+                          <artifactItem>
+                            <groupId>org.apache.derby</groupId>
+                            <artifactId>derbynet</artifactId>
+                            <version>${derby.version}</version>
+                          </artifactItem>
+                          <artifactItem>
+                            <groupId>org.apache.derby</groupId>
+                            <artifactId>derbyclient</artifactId>
+                            <version>${derby.version}</version>
+                          </artifactItem>
+                          <artifactItem>
+                            <groupId>org.apache.derby</groupId>
+                            <artifactId>derbytools</artifactId>
+                            <version>${derby.version}</version>
+                          </artifactItem>
+                        </artifactItems>
+                        <outputDirectory>${project.build.directory}/container-lib</outputDirectory>
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 16
+        line_end: 16
+        excerpt: |
+          COPY --from=war /src/target/container-lib/*.jar /usr/local/tomcat/lib/
+    stack_metadata:
+      framework: maven / tomcat-9 / derby-10.14.2.0
+      build.plugin: maven-dependency-plugin 3.6.1 (copy-derby)
+      db.object: PetStoreDB
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/pom.xml
+    description: >
+      The build compiles all Java source as ISO-8859-1 (pom.xml line 18,
+      project.build.sourceEncoding) while the web tier forces UTF-8 on every
+      request (WEB-INF/web.xml lines 19-28, EncodingFilter encoding=UTF-8). Any
+      non-ASCII string literal in the Java source (messages, sample data) would
+      be decoded as ISO-8859-1 at compile time and could display incorrectly. In
+      this checkout the only non-ASCII bytes found in src/main/java are
+      redaction markers around password literals, so no affected business text
+      could be confirmed. A human should confirm the original files' encoding
+      and whether any user-visible literal contains non-ASCII characters.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/pom.xml
+    description: >
+      The build names the deployable "petstore" (pom.xml line 59, finalName),
+      which the Dockerfile deploys as petstore.war, giving the store its public
+      address prefix /petstore/ (Dockerfile lines 3 and 17). This is a
+      user-visible address other systems or bookmarks may depend on, but no
+      capability in capabilities.csv covers deployment or addressing, so no
+      record was emitted. A human should decide whether the /petstore/ path must
+      be preserved in the rebuild. No other business rule (validation, roles,
+      calculations) lives in this build file; no legacy-analysis/sources
+      documents exist to cite.
