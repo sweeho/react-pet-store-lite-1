@@ -1,0 +1,377 @@
+# Pass A — j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf
+# Module is the web-application-framework page-composition layer (TemplateServlet,
+# screen definitions, insert tag, session keys). It carries no catalog, sign-on or
+# batch business rule of its own; every record below is filed under the closest
+# listed capability and says so in basis. No legacy-analysis/sources/**/extracted.md
+# exists in the tree, so no document trace pointers are possible.
+records:
+  - record_key: CATALOG-BROWSING-SCREEN-0001
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL render every named page from one shared page layout made of
+      a title, banner, sidebar, body and footer, where each page's title text and the
+      content of each region are taken from that page's definition, and SHALL use the
+      default layout when a page names no layout of its own.
+    plain_text: >
+      Every page of the store looks the same around the edges: a title, a banner
+      across the top, a sidebar, the page's own content, and a footer. Only the title
+      and the main content change from page to page.
+    technical_note: >
+      web.xml maps *.screen to TemplateServlet, which strips the screen name from the
+      URI, looks it up in WEB-INF/screendefinitions_en_US.xml (loaded by
+      ScreenDefinitionDAO at startup), stores the Screen in request scope and forwards
+      to the template (default /template.jsp). The template's InsertTag either prints a
+      parameter value verbatim (direct="true", used for titles) or includes the named
+      JSP fragment.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in code (TemplateServlet.process, Screens.getTemplate, InsertTag) and
+      stated in declarative configuration (web.xml servlet mapping and the screen
+      definitions file), which agree with each other.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing as the closest capability: the catalog pages
+      (main, category, product, item, search) are the bulk of the screens composed,
+      but the same layout serves sign-on and account pages too. No listed capability
+      covers page composition itself.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 162
+        line_end: 167
+        excerpt: |2
+          // get the screen name
+          int lastPathSeparator = selectedUrl.lastIndexOf("/") + 1;
+          int lastDot = selectedUrl.lastIndexOf(".");
+          if (lastPathSeparator != -1 && lastDot != -1 && lastDot > lastPathSeparator) {
+              screenName = selectedUrl.substring(lastPathSeparator, lastDot);
+          }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/Screens.java
+        line_start: 90
+        line_end: 98
+        excerpt: |2
+          public String getTemplate(String screenName) {
+              if (screenMap.containsKey(screenName)) {
+                  String templateName = ((Screen)screenMap.get(screenName)).getTemplate();
+                  if ((templateName != null) && templateMap.containsKey(templateName)) {
+                          return (String)templateMap.get(templateName);
+                  } else {
+                      // return the default if template not defined for screen
+                      return defaultTemplate;
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java
+        line_start: 96
+        line_end: 99
+        excerpt: |2
+          if (directInclude && parameterRef != null) {
+              pageContext.getOut().print(parameterRef.getValue());
+          } else if (parameterRef != null)  {
+              if (parameterRef.getValue() != null) pageContext.getRequest().getRequestDispatcher(parameterRef.getValue()).include(pageContext.getRequest(), pageContext.getResponse());
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 103
+        line_end: 106
+        excerpt: |2
+          <servlet-mapping>
+            <servlet-name>TemplateServlet</servlet-name>
+            <url-pattern>*.screen</url-pattern>
+          </servlet-mapping>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml
+        line_start: 12
+        line_end: 19
+        excerpt: |2
+          <default-template>/template.jsp</default-template>
+          <screen name="main">
+            <parameter key="title" value="Welcome to the BluePrints Petstore" direct="true"/>
+            <parameter key="banner" value="/banner.jsp" />
+            <parameter key="sidebar" value="/sidebar.jsp" />
+            <parameter key="body" value="/main.jsp" />
+            <parameter key="footer" value="/footer.jsp" />
+          </screen>
+    stack_metadata:
+      framework: J2EE BluePrints WAF
+      servlet: com.sun.j2ee.blueprints.waf.view.template.TemplateServlet
+      url_pattern: "*.screen"
+      jsp.page: /template.jsp
+      jsp.tag: com.sun.j2ee.blueprints.waf.view.template.tags.InsertTag
+
+  - record_key: CATALOG-BROWSING-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      GIVEN a page request whose page name has no definition in the requested
+      language or in the default language
+      WHEN the page is requested
+      THEN the system SHALL respond with a plain error page reading
+      "Error: Definition for screen <name> not found" instead of a store page.
+    plain_text: >
+      If someone asks for a page the store does not have, they get a bare error
+      message naming the missing page rather than a normal store page.
+    technical_note: >
+      TemplateServlet.process falls back to the default-locale Screens; if the screen
+      is still null it writes an HTML fragment with content type "text/html;charset=8859_1"
+      directly to the response. No HTTP error status is set, so the response is a 200.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code; no test, configuration or document states this
+      behaviour. The 200 status is inferred from the absence of any setStatus/sendError
+      call, not observed.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing as the closest capability (page navigation); no
+      listed capability covers unknown-page handling. The literal message is in
+      TemplateServlet.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 230
+        line_end: 246
+        excerpt: |2
+          // default to the default locale screen if it was not defined in the locale specific definitions
+          if (screen == null) {
+              System.err.println("Screen not Found loading default from " + defaultLocale);
+              localeScreens = (Screens)allScreens.get(defaultLocale);
+              screen = (Screen)localeScreens.getScreen(screenName);
+          }
+          if (screen != null) {
+              request.setAttribute(WebKeys.CURRENT_SCREEN, screen);
+              String templateName = localeScreens.getTemplate(screenName);
+              if (templateName != null) {
+                  insertTemplate(request, response, templateName);
+              }
+          } else {
+              response.setContentType("text/html;charset=8859_1");
+              PrintWriter out = response.getWriter();
+              out.println("<font size=+4>Error:</font><br>Definition for screen " + screenName + " not found");
+          }
+    stack_metadata:
+      framework: J2EE BluePrints WAF
+      servlet: com.sun.j2ee.blueprints.waf.view.template.TemplateServlet
+
+  - record_key: CATALOG-BROWSING-BR-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL choose the display language of a page from, in order, a
+      "locale" request parameter, then the language stored in the user's session, and
+      SHALL use the default language (en_US) when neither is given or the chosen
+      language has no page definitions; a page missing from the chosen language SHALL
+      be taken from the default language. Only en_US is configured.
+    plain_text: >
+      The store is shown in US English. The code can pick another language if one is
+      asked for, but none other is set up, so every visitor sees US English.
+    technical_note: >
+      TemplateServlet.init reads init-params "locales" (comma list, each loading
+      /WEB-INF/screendefinitions_<locale>.xml) and "default_locale" (JVM default if
+      absent). web.xml sets both to en_US. process() checks request param "locale",
+      then session attribute WebKeys.LOCALE, then falls back to default_locale.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code (TemplateServlet init and process) and declarative configuration (web.xml
+      init-params) agree that en_US is the only and default locale. Nothing in the
+      application outside this module was found setting the session locale or sending
+      a locale parameter, so the override paths are present but appear unused.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing as the closest capability. The catalog-data-integrity
+      capability summary separately requires en_US text, which is consistent with en_US
+      being the only display language.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 151
+        line_end: 160
+        excerpt: |2
+          String languageParam = request.getParameter("locale");
+          // The language when specified as a parameter overrides the language set in the session
+          if (languageParam != null) {
+              localeString = languageParam;
+          } else if (request.getSession().getAttribute(WebKeys.LOCALE) != null) {
+              localeString = ((Locale)request.getSession().getAttribute(WebKeys.LOCALE)).toString();
+          }
+          if (allScreens.get(localeString) == null) {
+             localeString = defaultLocale;
+          }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 96
+        line_end: 106
+        excerpt: |2
+          defaultLocale = config.getInitParameter("default_locale");
+          if (defaultLocale == null) {
+              defaultLocale = (Locale.getDefault()).toString();
+          }
+          String locales = config.getInitParameter("locales");
+          if (locales != null) {
+              StringTokenizer strTok = new StringTokenizer(locales,",");
+              while (strTok.hasMoreTokens()) {
+                  initScreens(config.getServletContext(), strTok.nextToken());
+              }
+          }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 56
+        line_end: 63
+        excerpt: |2
+          <init-param>
+            <param-name>locales</param-name>
+            <param-value>en_US</param-value>
+          </init-param>
+          <init-param>
+            <param-name>default_locale</param-name>
+            <param-value>en_US</param-value>
+          </init-param>
+    stack_metadata:
+      framework: J2EE BluePrints WAF
+      session.scope: com.sun.j2ee.blueprints.waf.LOCALE
+      servlet.init_param: locales, default_locale
+
+  - record_key: CATALOG-BROWSING-WF-0001
+    kind: workflow
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL remember, per user session, the last page displayed, and
+      WHEN the special page name "PREVIOUS" is requested THEN the system SHALL
+      re-display that remembered page; re-supplying the previous request's inputs and
+      data SHALL happen only when explicitly enabled, which it is not.
+    plain_text: >
+      The store keeps track of the last page each visitor saw and has a hidden
+      "go back to the previous page" address that shows it again.
+    technical_note: >
+      Every non-PREVIOUS *.screen request stores "<name>.screen" in session attribute
+      WebKeys.PREVIOUS_SCREEN. PREVIOUS.screen reads it back. Copying previous request
+      parameters/attributes is gated by init-params cache_previous_screen_parameters /
+      cache_previous_screen_attributes, which web.xml does not set (both default false).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The behaviour is clear in one place in code. Whether any user can reach it is
+      not established: no JSP or document found links to PREVIOUS.screen.
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        Code supports PREVIOUS.screen, but a search of the webapp JSPs and the user and
+        admin guides found no link or form targeting it. A human should confirm whether
+        any page, bookmark or external link uses PREVIOUS.screen; if none does, this
+        workflow need not be carried forward.
+    risk_class: presentational
+    basis: >
+      Filed under catalog-browsing as the closest capability (page navigation).
+      Session bookkeeping happens on every page request regardless of reachability.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 168
+        line_end: 174
+        excerpt: |2
+           // check if request is for the previous screen
+          if (screenName.equals(PREVIOUS_SCREEN)) {
+              String longScreenName  =  (String)request.getSession().getAttribute(WebKeys.PREVIOUS_SCREEN);
+              int lastDot2 = longScreenName.lastIndexOf(".");
+              if ( lastDot2 != -1 && lastDot2 > 0) {
+                  screenName = longScreenName.substring(0, lastDot2);
+               }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 197
+        line_end: 199
+        excerpt: |2
+          } else {
+                    String extension = selectedUrl.substring(lastDot, selectedUrl.length());
+                    request.getSession().setAttribute(WebKeys.PREVIOUS_SCREEN, screenName + extension);
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 79
+        line_end: 94
+        excerpt: |2
+          // enable the caching of previous screen attributes
+          String cachePreviousScreenAttributesString = config.getInitParameter("cache_previous_screen_attributes");
+          if (cachePreviousScreenAttributesString != null) {
+              if (cachePreviousScreenAttributesString.toLowerCase().equals("true")) {
+                  System.out.println("TemplateServlet: Enabled caching of previous screen attributes.");
+                  cachePreviousScreenAttributes = true;
+              }
+          }
+          // enable the caching of previous screen parameters
+          String cachePreviousScreenParametersString = config.getInitParameter("cache_previous_screen_parameters");
+          if (cachePreviousScreenParametersString != null) {
+              if (cachePreviousScreenParametersString.toLowerCase().equals("true")) {
+                  System.out.println("TemplateServlet: Enabled caching of previous screen parameters.");
+                  cachePreviousScreenParameters = true;
+              }
+          }
+    stack_metadata:
+      framework: J2EE BluePrints WAF
+      session.scope: com.sun.j2ee.blueprints.waf.PREVIOUS_SCREEN
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+    description: >
+      Lines 147-149 remove session attribute WebKeys.CURRENT_URL on every page
+      request, but nothing in the application outside this module sets or reads
+      CURRENT_URL (grep of Java, JSP and XML). It may be a vestige of the original
+      Pet Store sign-on redirect. A human should confirm no sign-on return-to-page
+      behaviour depends on it.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/ScreenDefinitionDAO.java
+    description: >
+      Page definitions declared more than once (screen, template, parameter, language)
+      keep the first occurrence and log a "Non Fatal errror". The "Default Template not
+      Defined" check at line 156 can never fire, because getTagValue returns "" rather
+      than null when the tag is absent, so a file with no default template loads with an
+      empty default template. This is configuration-loading behaviour with no business rule; noted
+      so a rebuild does not have to rediscover it.
+
+suspected_defects:
+  - capability_key: catalog-browsing
+    record_keys: [CATALOG-BROWSING-REQ-0001, CATALOG-BROWSING-SCREEN-0001]
+    severity: low
+    category: other
+    title: A page address without a file extension crashes the page request
+    description: >
+      When a *.screen request URI yields no screen name (for example the last dot
+      precedes the last slash), screenName stays null and screenName.equals(...) at
+      line 169 throws a NullPointerException, so the user gets a server error instead
+      of the "Definition for screen not found" page. With the *.screen mapping this
+      path is hard but not impossible to reach (e.g. a path like /a.screen/b).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 163
+        line_end: 169
+  - capability_key: catalog-browsing
+    record_keys: [CATALOG-BROWSING-WF-0001]
+    severity: low
+    category: other
+    title: Requesting the previous page before any page was seen crashes
+    description: >
+      PREVIOUS.screen reads the remembered page from the session without checking it
+      exists; in a new session it is null and longScreenName.lastIndexOf throws a
+      NullPointerException (server error). If parameter caching were ever enabled,
+      putting into the request's parameter map (normally immutable) would also fail.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 170
+        line_end: 184
+  - capability_key: catalog-browsing
+    record_keys: [CATALOG-BROWSING-REQ-0001]
+    severity: low
+    category: other
+    title: Unknown page answered as success, not "not found"
+    description: >
+      An undefined page name returns a bare error fragment without setting an HTTP
+      error status, so the response is reported as successful (200) to browsers,
+      crawlers and monitoring.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 242
+        line_end: 246
+  - capability_key: catalog-browsing
+    record_keys: [CATALOG-BROWSING-SCREEN-0001]
+    severity: medium
+    category: error-swallowed
+    title: A failing page section is silently dropped
+    description: >
+      If including a page region (banner, sidebar, body, footer) fails, the error is
+      printed to the server log and the page continues rendering without that region,
+      so the user sees a partial page with no error message. A failed body include
+      means a page that looks blank.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/view/template/tags/InsertTag.java
+        line_start: 101
+        line_end: 104
