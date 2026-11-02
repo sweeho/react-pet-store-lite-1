@@ -39,7 +39,11 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./src/test/setup.ts"],
           css: false,
-          exclude: ["node_modules", "dist", ".output", "e2e", "routes/**"],
+          // tests/acceptance/** is the locked acceptance suite: written before
+          // the product code, so it is red until the Build phase. It runs only
+          // through `test:acceptance` (vitest.acceptance.config.ts) and
+          // `test:acceptance:e2e` (playwright.acceptance.config.ts).
+          exclude: ["node_modules", "dist", ".output", "e2e", "routes/**", "tests/acceptance/**"],
         },
       },
       {
