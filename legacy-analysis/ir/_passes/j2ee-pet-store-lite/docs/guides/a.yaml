@@ -1,0 +1,1724 @@
+# SX-0001 extract-a: j2ee-pet-store-lite/docs/guides (User Guide PSL-UG-01, Admin Guide PSL-AG-01, Operations Runbook PSL-RB-01)
+records:
+  - record_key: "BROWSE-REQ-0001"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL organise the catalog in three levels (category, product, item) and SHALL offer five categories: Birds, Cats, Dogs, Fish and Reptiles."
+    plain_text: "The catalog is arranged as categories, which contain products, which contain individual items for sale. There are five categories: Birds, Cats, Dogs, Fish and Reptiles."
+    technical_note: "Documented in the User Guide §3. The category list comes from the sample data file (Populate-UTF8.xml); conf/petstore.properties carries catalog.minCategories=5."
+    confidence: "medium"
+    confidence_basis: "The three-level structure and the five category names are stated in one document; the category count is corroborated only by a properties value, and the sample data file was not read in this pass."
+    risk_class: "presentational"
+    basis: "User Guide §3 table of levels and the sentence listing the five categories."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §3 Browsing the catalog"
+        line_start: 49
+        line_end: 56
+        excerpt: "<p>The catalog has three levels:</p>\n<table class=\"grid\">\n <tr><th>Level</th><th>Example</th><th>Page</th></tr>\n <tr><td>Category</td><td>Dogs</td><td>Lists the products in the category</td></tr>\n <tr><td>Product</td><td>Bulldog (K9-BD-01)</td><td>Lists the items of the product with their list price</td></tr>\n <tr><td>Item</td><td>Male Adult Bulldog (EST-6)</td><td>Shows the picture, List Price, Your Price, description and Item ID</td></tr>\n</table>\n<p>The store has five categories: Birds, Cats, Dogs, Fish and Reptiles.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 28
+        line_end: 28
+        excerpt: "catalog.minCategories=5\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "BROWSE-REQ-0002"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL list the products of a category two at a time, each with its name and description, and SHALL show a Next link only when a following page exists and a Previous link only when a preceding page exists."
+    plain_text: "A category page shows its products two at a time with Next and Previous links; each link only appears when there is a page in that direction."
+    technical_note: "Documented in User Guide §3.1; page size 2 is catalog.pageSize=2 in conf/petstore.properties."
+    confidence: "high"
+    confidence_basis: "Stated in the user guide and corroborated by the configured page size of 2."
+    risk_class: "presentational"
+    basis: "User Guide §3.1 steps 2-3."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §3.1 Browse a category"
+        line_start: 58
+        line_end: 63
+        excerpt: "<h2>3.1 Browse a category</h2>\n<ol>\n <li>Click a category in the <b>Pets</b> side bar, for example <b>Dogs</b>.</li>\n <li>The page <i>Products for this Category</i> lists two products at a time, each with its name and description.</li>\n <li>Click <b>Next</b> to see the next two products, or <b>Previous</b> to go back. A link only appears when there is a page in that direction.</li>\n</ol>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 27
+        line_end: 27
+        excerpt: "catalog.pageSize=2\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "category.jsp"
+  - record_key: "BROWSE-REQ-0003"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL list the items of a product two at a time, each with its item attribute, name, description and list price."
+    plain_text: "A product page lists its items two at a time, showing each item's attribute (for example 'Male Adult'), name, description and list price."
+    technical_note: "Documented in User Guide §3.2 (Items for this Product page)."
+    confidence: "medium"
+    confidence_basis: "One clear documentary statement; the page itself was not read in this pass."
+    risk_class: "presentational"
+    basis: "User Guide §3.2 step 2."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §3.2 View the items of a product"
+        line_start: 66
+        line_end: 69
+        excerpt: "<h2>3.2 View the items of a product</h2>\n<ol>\n <li>Click a product name, for example <b>Bulldog</b>.</li>\n <li>The page <i>Items for this Product</i> lists the items, two at a time, with the item attribute, name, description and list price.</li>\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "product.jsp"
+  - record_key: "BROWSE-REQ-0004"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL show, on an item page, the item picture, its List Price (catalog price), its Your Price (discounted member price), its description and its Item ID."
+    plain_text: "Each item page shows the picture, the catalog list price, a discounted 'Your Price' for members, the description and the item's ID, which customers quote when they contact the store."
+    technical_note: "Documented in User Guide §3 table and §3.3. The guide does not say how Your Price is derived; the schema carries listprice and unitcost on item_details."
+    confidence: "medium"
+    confidence_basis: "Stated in one document (twice, in the level table and §3.3). How 'Your Price' is computed is not stated anywhere in the guides."
+    risk_class: "financial"
+    basis: "User Guide §3 level table and §3.3 bullet list."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §3 Browsing the catalog"
+        line_start: 54
+        line_end: 54
+        excerpt: " <tr><td>Item</td><td>Male Adult Bulldog (EST-6)</td><td>Shows the picture, List Price, Your Price, description and Item ID</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §3.3 View an item"
+        line_start: 73
+        line_end: 79
+        excerpt: "<h2>3.3 View an item</h2>\n<p>Click an item. The item page shows:</p>\n<ul>\n <li><b>List Price</b>: the catalog price.</li>\n <li><b>Your Price</b>: the discounted price for members.</li>\n <li>The description and the <b>Item ID</b> (for example EST-6). Quote the Item ID when you contact the store.</li>\n</ul>\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "item.jsp"
+  - record_key: "BROWSE-REQ-0005"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL show on every page a side bar listing one link per category in alphabetical order."
+    plain_text: "Every page has a 'Pets' side bar with one link per category, sorted alphabetically."
+    technical_note: "Documented in User Guide §1.1; the side bar is sidebar.jsp included by the shared template."
+    confidence: "medium"
+    confidence_basis: "One documentary statement; the ordering was not verified against the query in this pass."
+    risk_class: "presentational"
+    basis: "User Guide §1.1 Page layout, Pets side bar bullet."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §1.1 Page layout"
+        line_start: 33
+        line_end: 33
+        excerpt: " <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "sidebar.jsp"
+  - record_key: "BROWSE-REQ-0006"
+    kind: "requirement"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL present the store in English (en_US) and SHALL show prices in US dollars."
+    plain_text: "The store is in US English and all prices are in US dollars."
+    technical_note: "Documented in User Guide §1; catalog.locale=en_US in conf/petstore.properties; catalog queries filter on locale."
+    confidence: "high"
+    confidence_basis: "The guide and the configured catalog locale agree."
+    risk_class: "financial"
+    basis: "User Guide §1 closing sentence."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §1 About the store"
+        line_start: 25
+        line_end: 25
+        excerpt: "<p>The store is in English (en_US) and shows prices in US dollars.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 26
+        line_end: 26
+        excerpt: "catalog.locale=en_US\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "BROWSE-SCR-0007"
+    kind: "screen"
+    capability_key: "catalog-browsing"
+    requirement: "The system SHALL render every page with a banner (logo returning to the home page, Search box, Account link and Sign in or Sign out link, plus 'Signed in as <user name>' when signed in), a category side bar, the requested body and a footer; and SHALL show an extra Admin link in the banner to a user signed in with the ADMIN role."
+    plain_text: "Every page has the same layout: a top banner with the logo, search box, account and sign-in/out links (and the signed-in user's name), a category side bar, the page content and a footer. Administrators also see an Admin link."
+    technical_note: "Documented in User Guide §1.1 and Admin Guide §1.1; banner.jsp shows the Admin link under a test on j_signon_role == 'ADMIN'. Filed under catalog-browsing as the closest capability for the shared page frame."
+    confidence: "high"
+    confidence_basis: "Two documents describe the frame, and the Admin-link condition is visible in banner.jsp."
+    risk_class: "presentational"
+    basis: "User Guide §1.1 Page layout; Admin Guide §1.1 last paragraph."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §1.1 Page layout"
+        line_start: 28
+        line_end: 36
+        excerpt: "<p>Every page has the same four parts:</p>\n<ul>\n <li><b>Banner</b> at the top: the Java Pet Store logo (returns to the home page), the <b>Search</b> box,\n and the links <b>Account</b> and <b>Sign in</b> (or <b>Sign out</b> when you are signed in). When you are signed in\n the banner shows <i>Signed in as &lt;user name&gt;</i>.</li>\n <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>\n <li><b>Body</b> in the middle: the page you asked for.</li>\n <li><b>Footer</b> at the bottom.</li>\n</ul>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.1 Access matrix"
+        line_start: 36
+        line_end: 36
+        excerpt: "<p>When signed in as ADMIN the banner shows an extra <b>Admin</b> link.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 23
+        line_end: 23
+        excerpt: "    <c:if test=\"${j_signon_role == 'ADMIN'}\">\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "template.jsp, banner.jsp"
+  - record_key: "SEARCH-REQ-0001"
+    kind: "requirement"
+    capability_key: "catalog-search"
+    requirement: "The system SHALL match a search word when it appears anywhere (as a substring) in the product name, the category code or the item description, for items in the current locale."
+    plain_text: "A search word matches an item if it appears anywhere in the product name, the category code (such as DOGS) or the item description; part of a word is enough, so 'dog' finds Bulldog and every dog."
+    technical_note: "User Guide §4. CatalogDAOSQL.xml SEARCH_ITEMS compares lower(name), lower(catid) and lower(b.descn) with LIKE; GenericCatalogDAO wraps each keyword in '%...%'."
+    confidence: "high"
+    confidence_basis: "The guide and the SQL statement plus the DAO wildcarding agree on the fields and the substring match."
+    risk_class: "presentational"
+    basis: "User Guide §4 'How search matches' first bullet; SEARCH_ITEMS statement."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 90
+        line_end: 91
+        excerpt: " <li>A word matches when it appears anywhere in the product name, the category code (for example DOGS) or the item description.\n Part of a word is enough: <i>dog</i> finds Bulldog and every item in the DOGS category.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 119
+        line_end: 119
+        excerpt: "                    where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 362
+        line_end: 365
+        excerpt: "        for (int i = 0; i < keywords.length; i++) {\n          parameterValues[(i * 3) + 1] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 2] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 3] = \"%\" + keywords[i] + \"%\";\n"
+    stack_metadata:
+      source: "docs/guides"
+      db.object: "CatalogDAOSQL.xml SEARCH_ITEMS"
+  - record_key: "SEARCH-BR-0002"
+    kind: "business-rule"
+    capability_key: "catalog-search"
+    requirement: "WHEN a search contains several words separated by spaces THEN the system SHALL list items that match ANY of the words."
+    plain_text: "When several words are typed, items matching any one of them are listed."
+    technical_note: "User Guide §4. The query is split on whitespace (StringTokenizer into a set, so duplicates collapse) and SEARCH_ITEMS repeats an OR-ed fragment per keyword."
+    confidence: "high"
+    confidence_basis: "Doc plus the OR-ed variable SQL fragment and tokenisation code."
+    risk_class: "presentational"
+    basis: "User Guide §4 second bullet."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 92
+        line_end: 92
+        excerpt: " <li>When you type several words separated by spaces, items that match <b>any</b> of the words are listed.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 121
+        line_end: 123
+        excerpt: "            <SQLFragment parameterNb=\"3\" occurrence=\"VARIABLE\">\n                or (lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)  \n            </SQLFragment>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 346
+        line_end: 350
+        excerpt: "      Collection keywordSet = new HashSet();\n      StringTokenizer tokenizer = new StringTokenizer(searchQuery);\n      while (tokenizer.hasMoreTokens()) {\n        keywordSet.add(tokenizer.nextToken());\n      }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SEARCH-BR-0003"
+    kind: "business-rule"
+    capability_key: "catalog-search"
+    requirement: "The system SHALL compare search words with the lower-cased product name, category code and item description without lower-casing the typed words; GIVEN a typed word containing an upper-case letter WHEN searching THEN it does not match text that contains that word only in a different case."
+    plain_text: "Search compares the typed words against lower-case catalog text, so a word typed in lower case finds matches regardless of case, but a word typed with capitals (for example 'Dog') finds nothing. The User Guide says search is not case-sensitive."
+    technical_note: "SEARCH_ITEMS applies lower() to the columns only; GenericCatalogDAO passes each keyword as typed ('%' + keyword + '%') with no toLowerCase anywhere in the search path. User Guide §4 states search is not case-sensitive."
+    confidence: "medium"
+    confidence_basis: "The code path is clear in one place (SQL plus DAO), but it directly contradicts the user guide; the live behaviour depends on the database collation for LIKE, which was not verified."
+    dispute:
+      reason: "contradicts-docs"
+      detail: "The User Guide says search is not case-sensitive. The SQL lower-cases only the columns, and the Java passes keywords unchanged, so 'Dog' should match nothing on a case-sensitive LIKE (Derby default). A search for 'Dog' against the running store, or the sample search cases, would settle which behaviour is live and which one the business wants."
+    risk_class: "presentational"
+    basis: "SQL lower() on columns only versus User Guide §4 'Search is not case-sensitive.'"
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 93
+        line_end: 93
+        excerpt: " <li>Search is not case-sensitive.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 119
+        line_end: 119
+        excerpt: "                    where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 362
+        line_end: 365
+        excerpt: "        for (int i = 0; i < keywords.length; i++) {\n          parameterValues[(i * 3) + 1] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 2] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 3] = \"%\" + keywords[i] + \"%\";\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SEARCH-REQ-0004"
+    kind: "requirement"
+    capability_key: "catalog-search"
+    requirement: "WHEN no item matches any of the words, or the search box is empty, THEN the system SHALL show the message 'No results were found for your search.'"
+    plain_text: "If nothing matches, or the search box is left empty, the page says 'No results were found for your search.'"
+    technical_note: "User Guide §4 and §6. GenericCatalogDAO.searchItems returns Page.EMPTY_PAGE when the tokenised keyword set is empty."
+    confidence: "high"
+    confidence_basis: "Two places in the guide plus the empty-keyword short-circuit in code."
+    risk_class: "presentational"
+    basis: "User Guide §4 last bullet; §6 messages table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 94
+        line_end: 94
+        excerpt: " <li>If nothing matches, or the box is empty, the page shows <i>No results were found for your search.</i></li>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §6 Messages"
+        line_start: 158
+        line_end: 158
+        excerpt: " <tr><td>No results were found for your search.</td><td>No item matches any of the words</td><td>Try a shorter word or a category name</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 351
+        line_end: 353
+        excerpt: "      if (keywordSet.isEmpty()) {\n        return Page.EMPTY_PAGE;\n      }\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "search.jsp"
+  - record_key: "SEARCH-REQ-0005"
+    kind: "requirement"
+    capability_key: "catalog-search"
+    requirement: "The system SHALL list search results two at a time with Next and Previous links, and SHALL open the item page when a result is clicked."
+    plain_text: "Search results are listed two at a time with Next and Previous links; clicking a result opens that item."
+    technical_note: "User Guide §4 steps 2-3; page size from catalog.pageSize=2."
+    confidence: "high"
+    confidence_basis: "Guide plus the configured page size."
+    risk_class: "presentational"
+    basis: "User Guide §4 steps."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 84
+        line_end: 86
+        excerpt: " <li>Type one or more words in the <b>Search</b> box in the banner and click <b>Search</b>.</li>\n <li>The page <i>Search Results</i> lists the matching items, two at a time, with <b>Next</b> and <b>Previous</b> links.</li>\n <li>Click an item to open its item page.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 27
+        line_end: 27
+        excerpt: "catalog.pageSize=2\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "CATINT-BR-0001"
+    kind: "business-rule"
+    capability_key: "catalog-data-integrity"
+    requirement: "The system SHALL ensure every category has at least one product (rule C1)."
+    plain_text: "Every category must contain at least one product."
+    technical_note: "Admin Guide §3.3 C1; checked by the daily catalog check (db/batch/catalog_check.sql via psl_catalog_check.sh), not by a database constraint."
+    confidence: "medium"
+    confidence_basis: "Stated in the admin guide and the runbook names the check; the check SQL itself belongs to another shard and was not read here."
+    risk_class: "operational"
+    basis: "Admin Guide §3.3 rule C1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.3 Catalog data rules"
+        line_start: 94
+        line_end: 94
+        excerpt: " <tr><td>C1</td><td>Every category has at least one product.</td></tr>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "CATINT-BR-0002"
+    kind: "business-rule"
+    capability_key: "catalog-data-integrity"
+    requirement: "The system SHALL ensure every product has at least one item (rule C2)."
+    plain_text: "Every product must have at least one item for sale."
+    technical_note: "Admin Guide §3.3 C2; checked by the daily catalog check, not by a database constraint."
+    confidence: "medium"
+    confidence_basis: "Stated in the admin guide only (check SQL not read in this pass)."
+    risk_class: "operational"
+    basis: "Admin Guide §3.3 rule C2."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.3 Catalog data rules"
+        line_start: 95
+        line_end: 95
+        excerpt: " <tr><td>C2</td><td>Every product has at least one item.</td></tr>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "CATINT-BR-0003"
+    kind: "business-rule"
+    capability_key: "catalog-data-integrity"
+    requirement: "The system SHALL refuse any item whose list price is below its unit cost (rule C3)."
+    plain_text: "An item may never be priced below what it costs."
+    technical_note: "Admin Guide §3.3 C3; enforced by check constraint ck_item_details_price (listprice >= unitcost) on ITEM_DETAILS in db/schema/petstore_derby.sql, and re-checked daily."
+    confidence: "high"
+    confidence_basis: "Documented and enforced by a database check constraint."
+    risk_class: "financial"
+    basis: "Admin Guide §3.3 rule C3 and the DDL check constraint."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.3 Catalog data rules"
+        line_start: 96
+        line_end: 96
+        excerpt: " <tr><td>C3</td><td>An item's list price is never below its unit cost (database check constraint).</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql"
+        line_start: 66
+        line_end: 66
+        excerpt: "      constraint ck_item_details_price check (listprice >= unitcost)\n"
+    stack_metadata:
+      source: "docs/guides"
+      db.object: "ITEM_DETAILS.ck_item_details_price"
+  - record_key: "CATINT-BR-0004"
+    kind: "business-rule"
+    capability_key: "catalog-data-integrity"
+    requirement: "The system SHALL ensure every item has an en_US description (rule C4)."
+    plain_text: "Every item must have an English (US) description."
+    technical_note: "Admin Guide §3.3 C4; checked by the daily catalog check."
+    confidence: "medium"
+    confidence_basis: "Stated in the admin guide only."
+    risk_class: "operational"
+    basis: "Admin Guide §3.3 rule C4."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.3 Catalog data rules"
+        line_start: 97
+        line_end: 97
+        excerpt: " <tr><td>C4</td><td>Every item has an en_US description.</td></tr>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "CATINT-WF-0005"
+    kind: "workflow"
+    capability_key: "catalog-data-integrity"
+    requirement: "The system SHALL run the catalog checks C1 to C4 every day at 06:00 and, WHEN any check finds offending rows, SHALL end with exit code 4, write the details to the catalog check log and alert the catalog team by mail."
+    plain_text: "Every morning at 6:00 the catalog is checked against rules C1 to C4; if any rule is broken the catalog team is emailed and the details are logged. The fix is to correct the data or reload the sample data, then rerun the check."
+    technical_note: "PSL_CATALOG_CHECK in scheduler/control-m/PSL_PETSTORE.xml (TIMEFROM 0600, DOMAIL to psl-catalog on COMPSTAT=4); batch/psl_catalog_check.sh exits 4 when a line starting C1..C4 is returned; log /var/petstore/log/catalog_check.log."
+    confidence: "high"
+    confidence_basis: "Two documents, the scheduler definition and the script agree on time, exit code and alert."
+    risk_class: "operational"
+    basis: "Admin Guide §3.3 closing paragraph; Runbook §2, §3.5 and §4."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.3 Catalog data rules"
+        line_start: 99
+        line_end: 99
+        excerpt: "<p>Job PSL_CATALOG_CHECK checks C1 to C4 every morning at 06:00 and alerts the catalog team when one fails.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.5 PSL_CATALOG_CHECK"
+        line_start: 178
+        line_end: 181
+        excerpt: "\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §4 Exit codes and recovery"
+        line_start: 190
+        line_end: 190
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml"
+        line_start: 62
+        line_end: 71
+        excerpt: "    <JOB JOBISN=\"5\" APPLICATION=\"PETSTORE\" SUB_APPLICATION=\"CATALOG\" JOBNAME=\"PSL_CATALOG_CHECK\"\n         DESCRIPTION=\"Catalog integrity check before the store opens; first load when empty\"\n         TASKTYPE=\"Command\" CMDLINE=\"/opt/petstore/batch/psl_catalog_check.sh\"\n         RUN_AS=\"tomcat\" NODEID=\"psl-app01\" PRIORITY=\"AA\" CRITICAL=\"1\"\n         TIMEFROM=\"0600\" WEEKDAYS=\"ALL\"\n         CREATED_BY=\"psl_ops\" CREATION_DATE=\"20031014\" CHANGE_DATE=\"20260915\">\n      <OUTCOND NAME=\"PSL_CATALOG_CHECK-OK\" ODATE=\"ODAT\" SIGN=\"+\" />\n      <ON STMT=\"*\" CODE=\"COMPSTAT=4\">\n        <DOMAIL URGENCY=\"U\" DEST=\"psl-catalog@example.invalid\" SUBJECT=\"Petstore catalog integrity check failed\" MESSAGE=\"See /var/petstore/log/catalog_check.log\" />\n      </ON>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 15
+        line_end: 21
+        excerpt: "echo \"$OUT\" >> \"$PSL_LOG_DIR/catalog_check.log\"\nif echo \"$OUT\" | grep -qE \"^C[1-4] \"; then\n  psl_log \"FAILED: integrity check found rows\"\n  exit 4\nfi\npsl_log \"end OK\"\nexit 0\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_CATALOG_CHECK daily 06:00"
+  - record_key: "CATINT-BR-0006"
+    kind: "business-rule"
+    capability_key: "catalog-data-integrity"
+    requirement: "WHEN the daily catalog check finds that the catalog tables do not exist THEN the system SHALL request the first load of sample data and SHALL run the checks again."
+    plain_text: "If the morning check finds the catalog is missing entirely, it loads the sample catalog and then checks again."
+    technical_note: "batch/psl_catalog_check.sh greps the ij output for 'does not exist' and calls $PSL_STORE_URL/Populate?forcefully=false, exiting 8 if that call fails. Note that the first load drops and recreates the account and audit tables too (see POP-REQ-0001)."
+    confidence: "high"
+    confidence_basis: "Runbook statement plus the script."
+    risk_class: "operational"
+    basis: "Runbook §3.5 second sentence."
+    interface: false
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.5 PSL_CATALOG_CHECK"
+        line_start: 179
+        line_end: 180
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 10
+        line_end: 14
+        excerpt: "if echo \"$OUT\" | grep -q \"does not exist\"; then\n  psl_log \"catalog tables missing, requesting first load\"\n  curl -sf -o /dev/null \"$PSL_STORE_URL/Populate?forcefully=false\" || { psl_log \"FAILED: populate\"; exit 8; }\n  OUT=$(psl_ij \"$PSL_SQL/catalog_check.sql\")\nfi\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "POP-REQ-0001"
+    kind: "requirement"
+    capability_key: "sample-data-population"
+    requirement: "WHEN a visitor enters the store THEN the system SHALL check whether the catalog and sign-on tables already hold data and, if they do not, SHALL drop, create and load every table from the sample data, without requiring a sign-in, showing a 'please wait' message while it loads."
+    plain_text: "The first time anyone enters the store after installation, the store loads its sample catalog and accounts automatically. Nobody has to sign in for this. If data is already there, the load is skipped."
+    technical_note: "index.jsp links to populating.jsp, which refreshes to Populate?success_page=main.screen&forcefully=false. PopulateServlet.populate(false) calls CatalogPopulator.check and UserPopulator.check and drops/creates/loads all tables when either check fails. The servlet invalidates the HTTP session on every call before populating, including when nothing is loaded."
+    confidence: "high"
+    confidence_basis: "Two guides describe it and the JSP and servlet implement it; the session side-effect is visible in the servlet but contradicts the 'nothing happens' wording, hence the dispute."
+    dispute:
+      reason: "contradicts-docs"
+      detail: "The Admin Guide says that when data already exists 'nothing happens'. PopulateServlet invalidates the session on every request before populating, so a signed-in user who clicks 'enter the store' is signed out even when no load runs. A walk-through of sign in then 'enter the store' on the live system would settle it, and the business owner decides whether the sign-out is wanted."
+    risk_class: "operational"
+    basis: "Admin Guide §3.1; User Guide §2 step 2; PopulateServlet."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.1 First load"
+        line_start: 75
+        line_end: 77
+        excerpt: "<h2>3.1 First load</h2>\n<p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables\nalready hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §2 Entering the store"
+        line_start: 41
+        line_end: 42
+        excerpt: " <li>Click <b>enter the store</b>. If this is the first visit after installation, the store loads its catalog first.\n A red message <i>Please wait while the Java Pet Store Application is being populated...</i> shows while it loads.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/populating.jsp"
+        line_start: 8
+        line_end: 8
+        excerpt: "<META HTTP-EQUIV=REFRESH CONTENT=\"0; URL=Populate?success_page=main.screen&forcefully=false\">\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 126
+        line_end: 127
+        excerpt: "    // kill the Servlet Session because the cached catalog and sign-on state are no longer valid\n    request.getSession().invalidate();\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 162
+        line_end: 170
+        excerpt: "      if (!forcefully) {\n        try {\n          alreadyPopulated = catalogPopulator.check(connection) && userPopulator.check(connection);\n        } catch (PopulateException exception) {}\n        //System.err.println(\"Already populated: \" + alreadyPopulated);\n      }\n      if (forcefully || !alreadyPopulated) {\n        catalogPopulator.dropTables(connection);\n        userPopulator.dropTables(connection);\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "index.jsp, populating.jsp"
+  - record_key: "POP-ENT-0002"
+    kind: "entity"
+    capability_key: "sample-data-population"
+    requirement: "The system SHALL load, as sample data, user accounts (user name, password, role) and a catalog of 5 categories, 16 products and 28 items, together with the SQL to create, insert, check and drop each table for the derby and oracle dialects."
+    plain_text: "The sample data holds the starter accounts and a catalog of 5 categories, 16 products and 28 items."
+    technical_note: "Admin Guide §3: populate/Populate-UTF8.xml and populate/PopulateSQL.xml. conf/petstore.properties catalog.minCategories=5 and catalog.minItems=28 corroborate the counts."
+    confidence: "high"
+    confidence_basis: "Document counts corroborated by configured minimums."
+    risk_class: "operational"
+    basis: "Admin Guide §3 file table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3 Catalog administration"
+        line_start: 68
+        line_end: 73
+        excerpt: "<p>The catalog and the sample accounts come from two files in the web application:</p>\n<table class=\"grid\">\n <tr><th>File</th><th>Content</th></tr>\n <tr><td><code>populate/Populate-UTF8.xml</code></td><td>Users (id, password, role) and the catalog: 5 categories, 16 products, 28 items</td></tr>\n <tr><td><code>populate/PopulateSQL.xml</code></td><td>Create, insert, check and drop statements per table, for <code>derby</code> and <code>oracle</code></td></tr>\n</table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 28
+        line_end: 29
+        excerpt: "catalog.minCategories=5\ncatalog.minItems=28\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "POP-REQ-0003"
+    kind: "requirement"
+    capability_key: "sample-data-population"
+    requirement: "The system SHALL allow a forced reload of the sample data only to a user signed in with the ADMIN role, and SHALL show Access Denied to anyone else, anonymous or CUSTOMER, who asks for it."
+    plain_text: "Only an administrator can force the store to reload its sample data; anyone else who tries sees Access Denied."
+    technical_note: "PopulateServlet redirects to /access_denied.screen when forcefully=true and the session attribute j_signon_role is not ADMIN; the Catalog Administration page is also ADMIN-only in signon-config.xml."
+    confidence: "high"
+    confidence_basis: "Two guide statements plus the servlet check and the declarative constraint on the admin page."
+    risk_class: "operational"
+    basis: "Admin Guide §1.1 access matrix row 'Forced reload'; §3.2."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.1 Access matrix"
+        line_start: 31
+        line_end: 31
+        excerpt: " <tr><td>Forced reload of sample data</td><td>Access Denied</td><td>Access Denied</td><td>Yes</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 121
+        line_end: 125
+        excerpt: "    boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();\n    if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {\n      redirect(request, response, ACCESS_DENIED_PAGE);\n      return;\n    }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "POP-REQ-0004"
+    kind: "requirement"
+    capability_key: "sample-data-population"
+    requirement: "WHEN an ADMIN chooses Reload Sample Data on the Catalog Administration page THEN the system SHALL drop and recreate the CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT data, load the sample data, end the administrator's session and show the home page."
+    plain_text: "An administrator's reload wipes and reloads the whole store: the catalog, every customer account and all sign-in history. The administrator is signed out and sent to the home page. A backup should be taken first."
+    technical_note: "Admin Guide §3.2 steps and warning. PopulateServlet.populate(true) drops catalog and user tables, recreates and parses the data file; session is invalidated before populating."
+    confidence: "high"
+    confidence_basis: "Admin guide procedure plus the servlet's forced branch."
+    risk_class: "operational"
+    basis: "Admin Guide §3.2 and its warning box."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.2 Reload the sample data"
+        line_start: 79
+        line_end: 87
+        excerpt: "<h2>3.2 Reload the sample data</h2>\n<ol>\n <li>Sign in as an ADMIN user.</li>\n <li>Click <b>Admin</b> in the banner. The page <i>Catalog Administration</i> opens.</li>\n <li>Click <b>Reload Sample Data</b>.</li>\n <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,\n loads the file, ends your session and shows the home page.</li>\n</ol>\n<div class=\"warn\">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 168
+        line_end: 172
+        excerpt: "      if (forcefully || !alreadyPopulated) {\n        catalogPopulator.dropTables(connection);\n        userPopulator.dropTables(connection);\n        catalogPopulator.createTables(connection);\n        userPopulator.createTables(connection);\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "populate_admin.jsp"
+  - record_key: "POP-ENT-0005"
+    kind: "entity"
+    capability_key: "sample-data-population"
+    requirement: "The system SHALL provide, from the sample data, the accounts j2ee (CUSTOMER, password j2ee), shopper (CUSTOMER, password j2ee) and admin (ADMIN, password admin)."
+    plain_text: "The store ships with three accounts: two customers (j2ee and shopper) and one administrator (admin), with known passwords that must be changed before real use."
+    technical_note: "Admin Guide §1.2; the accounts come from populate/Populate-UTF8.xml."
+    confidence: "medium"
+    confidence_basis: "One documentary source; the data file belongs to another shard."
+    risk_class: "regulated"
+    basis: "Admin Guide §1.2 table and warning."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.2 Sample accounts"
+        line_start: 38
+        line_end: 45
+        excerpt: "<h2>1.2 Sample accounts</h2>\n<table class=\"grid\">\n <tr><th>User name</th><th>Role</th><th>Password</th></tr>\n <tr><td>j2ee</td><td>CUSTOMER</td><td>j2ee</td></tr>\n <tr><td>shopper</td><td>CUSTOMER</td><td>j2ee</td></tr>\n <tr><td>admin</td><td>ADMIN</td><td>admin</td></tr>\n</table>\n<div class=\"warn\">Change these passwords before the store is used outside a test environment. Passwords are stored as entered in table SIGNON.</div>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0001"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL refuse a new account whose user name is shorter than 3 or longer than 25 characters, with the message 'The user name must be 3 to 25 characters.'"
+    plain_text: "A user name must be 3 to 25 characters long."
+    technical_note: "CreateUserServlet.validate checks userName.trim().length() against UserDAO.MIN_USERNAME_LENGTH=3 and MAX_USERNAME_LENGTH=25; also signon.username.minLength/maxLength in conf/petstore.properties."
+    confidence: "high"
+    confidence_basis: "Guide, Java validation and configuration agree on 3 and 25."
+    risk_class: "operational"
+    basis: "User Guide §5.1 rule table row 1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 108
+        line_end: 108
+        excerpt: " <tr><td>User Name</td><td>3 to 25 characters</td><td>The user name must be 3 to 25 characters.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 103
+        line_end: 106
+        excerpt: "        if (userName == null || userName.trim().length() < UserDAO.MIN_USERNAME_LENGTH\n            || userName.trim().length() > UserDAO.MAX_USERNAME_LENGTH) {\n            return \"The user name must be \" + UserDAO.MIN_USERNAME_LENGTH + \" to \" + UserDAO.MAX_USERNAME_LENGTH + \" characters.\";\n        }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 70
+        line_end: 71
+        excerpt: "    public static final int MIN_USERNAME_LENGTH = 3;\n    public static final int MAX_USERNAME_LENGTH = 25;\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0002"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL refuse a new user name containing any character other than letters, digits, '-' and '_', with the message \"The user name can only contain letters, digits, '-' and '_'.\""
+    plain_text: "A user name may only contain letters, digits, hyphens and underscores."
+    technical_note: "CreateUserServlet.validate loops over the characters with Character.isLetterOrDigit (which also accepts non-ASCII letters and digits)."
+    confidence: "high"
+    confidence_basis: "Guide plus the Java character check."
+    risk_class: "operational"
+    basis: "User Guide §5.1 rule table row 2."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 109
+        line_end: 109
+        excerpt: " <tr><td>User Name</td><td>Letters, digits, '-' and '_' only</td><td>The user name can only contain letters, digits, '-' and '_'.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 107
+        line_end: 112
+        excerpt: "        for (int i = 0; i < userName.length(); i++) {\n            char c = userName.charAt(i);\n            if (!Character.isLetterOrDigit(c) && c != '-' && c != '_') {\n                return \"The user name can only contain letters, digits, '-' and '_'.\";\n            }\n        }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0003"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL refuse a new account whose user name already exists, with the message 'The user name <name> is already taken. Choose another user name.'"
+    plain_text: "Two accounts cannot share a user name; a taken name is refused with a message naming it."
+    technical_note: "CreateUserServlet catches DuplicateUserException from UserDAO.createUser; SIGNON.username is the primary key (pk_signon)."
+    confidence: "high"
+    confidence_basis: "Guide, the servlet message and the primary key constraint."
+    risk_class: "operational"
+    basis: "User Guide §5.1 rule table row 3."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 110
+        line_end: 110
+        excerpt: " <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 95
+        line_end: 96
+        excerpt: "            request.getSession().setAttribute(USER_CREATION_ERROR, \"The user name \" + userName + \" is already taken. Choose another user name.\");\n            response.sendRedirect(USER_CREATION_ERROR_PAGE);\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql"
+        line_start: 79
+        line_end: 79
+        excerpt: "  constraint pk_signon primary key (username),\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0004"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL refuse a new account whose password is shorter than 4 or longer than 25 characters, with the message 'The password must be 4 to 25 characters.'"
+    plain_text: "A password must be 4 to 25 characters long."
+    technical_note: "CreateUserServlet.validate checks password length against UserDAO.MIN_PASSWORD_LENGTH / MAX_PASSWORD_LENGTH; the literal values are redacted in the checked-out source and properties, so 4 and 25 come from the guide only."
+    confidence: "medium"
+    confidence_basis: "The check exists in code, but its bounds are redacted in this copy of the source; the values rest on the guide alone."
+    risk_class: "regulated"
+    basis: "User Guide §5.1 rule table row 4."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 111
+        line_end: 111
+        excerpt: " <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 113
+        line_end: 116
+        excerpt: "        if (password =«REDACTED:secret-finding-14»\n            || password.length() > UserDAO.MAX_PASSWORD_LENGTH) {\n            return \"The password must be \" + UserDAO.MIN_PASSWORD_LENGTH + \" to \" + UserDAO.MAX_PASSWORD_LENGTH + \" characters.\";\n        }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0005"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL refuse a new account when the repeated password differs from the password, with the message 'The password and the confirmation do not match.'"
+    plain_text: "The password must be typed twice, identically."
+    technical_note: "CreateUserServlet.validate compares password and passwordConfirm with equals."
+    confidence: "high"
+    confidence_basis: "Guide plus Java check."
+    risk_class: "operational"
+    basis: "User Guide §5.1 rule table row 5."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 112
+        line_end: 112
+        excerpt: " <tr><td>Password (Repeat)</td><td>Must equal Password</td><td>The password and the confirmation do not match.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 117
+        line_end: 119
+        excerpt: "        if (!password.equals(passwordConfirm)) {\n            return \"The password and the confirmation do not match.\";\n        }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-BR-0006"
+    kind: "business-rule"
+    capability_key: "account-registration"
+    requirement: "The system SHALL treat user names as case-sensitive, so that names differing only in letter case are different accounts."
+    plain_text: "User names are case-sensitive: 'J2EE' and 'j2ee' are two different users."
+    technical_note: "User Guide §5.1. UserDAO looks users up with 'where username = ?' (exact match)."
+    confidence: "medium"
+    confidence_basis: "Stated once in the guide; consistent with an exact-match lookup but the database collation was not verified."
+    risk_class: "operational"
+    basis: "User Guide §5.1 paragraph after the table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 114
+        line_end: 114
+        excerpt: "<p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-REQ-0007"
+    kind: "requirement"
+    capability_key: "account-registration"
+    requirement: "WHEN a new account passes every rule THEN the system SHALL create it with the CUSTOMER role, record USER_CREATED, sign the user in at once and take them to the page they asked for or to the home page; the system SHALL offer no screen for creating an ADMIN account."
+    plain_text: "A new account is always a customer account. The new customer is signed in immediately and taken to where they were going. Administrators cannot be created from any screen."
+    technical_note: "User Guide §5.1 steps; Admin Guide §1 role table. UserDAO.createUser inserts with role parameter, failed_attempts 0, locked 'N'."
+    confidence: "high"
+    confidence_basis: "Both guides agree; the insert statement corroborates the initial state."
+    risk_class: "regulated"
+    basis: "User Guide §5.1 step 3 and note; Admin Guide §1 role table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 104
+        line_end: 104
+        excerpt: " <li>Click <b>Create New Account</b>. You are signed in at once and taken to the page you asked for, or to the home page.</li>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.1 Create an account"
+        line_start: 114
+        line_end: 114
+        excerpt: "<p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1 Roles and access control"
+        line_start: 17
+        line_end: 21
+        excerpt: "<table class=\"grid\">\n <tr><th>Role</th><th>Who</th><th>How the account is created</th></tr>\n <tr><td>CUSTOMER</td><td>Store customers</td><td>Self sign-up on the Sign In page, or the sample data</td></tr>\n <tr><td>ADMIN</td><td>Store administrators</td><td>Sample data only (user <code>admin</code>). There is no screen to create an administrator.</td></tr>\n</table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 98
+        line_end: 98
+        excerpt: "        \"insert into signon (username, password, role, failed_attempts, locked, created_ts) values (?, ?, ?, 0, 'N', ?)\";\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "REG-SCR-0008"
+    kind: "screen"
+    capability_key: "account-registration"
+    requirement: "WHEN account creation is refused THEN the system SHALL show the 'Could Not Create Your Account' page with the message of the rule that was broken."
+    plain_text: "If an account cannot be created, the customer sees a 'Could Not Create Your Account' page explaining which rule was broken."
+    technical_note: "User Guide §6; CreateUserServlet stores the message in the session and redirects to the user creation error page."
+    confidence: "high"
+    confidence_basis: "Guide plus servlet redirect."
+    risk_class: "presentational"
+    basis: "User Guide §6 messages table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §6 Messages"
+        line_start: 161
+        line_end: 161
+        excerpt: " <tr><td>Could Not Create Your Account</td><td>A field rule in section 5.1 is broken</td><td>Correct the field and try again</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 95
+        line_end: 96
+        excerpt: "            request.getSession().setAttribute(USER_CREATION_ERROR, \"The user name \" + userName + \" is already taken. Choose another user name.\");\n            response.sendRedirect(USER_CREATION_ERROR_PAGE);\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "user_creation_error.jsp"
+  - record_key: "SIGNON-BR-0001"
+    kind: "business-rule"
+    capability_key: "sign-on"
+    requirement: "The system SHALL accept a sign-in only when the user exists, is not locked and the password matches the stored password exactly (rule R1)."
+    plain_text: "Signing in works only for an existing, unlocked account with exactly the right password."
+    technical_note: "UserDAO.authenticate: unknown user returns SIGNON_INVALID; locked returns SIGNON_LOCKED; storedPassword.equals(password) returns SIGNON_OK."
+    confidence: "high"
+    confidence_basis: "Admin guide rule and the authentication code agree."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 50
+        line_end: 50
+        excerpt: " <tr><td>R1</td><td>A sign-in succeeds when the user exists, is not locked and the password matches exactly.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 115
+        line_end: 119
+        excerpt: "            if (!rs.next()) {\n                rs.close();\n                select.close();\n                audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);\n                return SIGNON_INVALID;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 127
+        line_end: 139
+        excerpt: "            if (locked) {\n                audit(connection, userName, EVENT_SIGNON_LOCKED, remoteAddr);\n                return SIGNON_LOCKED;\n            }\n            Timestamp now = new Timestamp(System.currentTimeMillis());\n            if (storedPassword.equals(password)) {\n                PreparedStatement update = connection.prepareStatement(UPDATE_SUCCESS);\n                update.setTimestamp(1, now);\n                update.setString(2, userName);\n                update.executeUpdate();\n                update.close();\n                audit(connection, userName, EVENT_SIGNON_OK, remoteAddr);\n                return SIGNON_OK;\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SIGNON-REQ-0002"
+    kind: "requirement"
+    capability_key: "sign-on"
+    requirement: "WHEN a sign-in succeeds THEN the system SHALL return the user to the page they were trying to open, or to the home page if there was none."
+    plain_text: "After signing in, the customer goes back to the page they wanted, or to the home page."
+    technical_note: "User Guide §5.2 step 3; Admin Guide §1.1 paragraph on protected pages. Implemented by SignOnFilter."
+    confidence: "high"
+    confidence_basis: "Stated in both guides."
+    risk_class: "presentational"
+    basis: "User Guide §5.2; Admin Guide §1.1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.2 Sign in"
+        line_start: 122
+        line_end: 122
+        excerpt: " <li>Click <b>Sign In</b>. You return to the page you were trying to open, or to the home page.</li>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.1 Access matrix"
+        line_start: 34
+        line_end: 35
+        excerpt: "roles listed; a page without one is open to any signed-in user. When an anonymous user opens a protected page, the Sign In page\nis shown and, after a successful sign-in, the user is sent back to the page first asked for.</p>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SIGNON-REQ-0003"
+    kind: "requirement"
+    capability_key: "sign-on"
+    requirement: "WHEN the user ticks Remember My User Name at sign-in THEN the system SHALL keep the user name in a browser cookie for 31 days (2 678 400 seconds) and pre-fill it next time; WHEN the box is not ticked THEN the system SHALL delete that cookie."
+    plain_text: "If the customer ticks 'Remember My User Name', the store remembers the name in the browser for 31 days; unticking it makes the store forget the name."
+    technical_note: "SignOnFilter sets cookie bp_signon with setMaxAge(2678400) when the remember parameter is present, otherwise sets matching cookies' max age to 0; signon.rememberUsernameCookie.maxAgeSeconds=2678400 in conf/petstore.properties."
+    confidence: "high"
+    confidence_basis: "Guide, code and configuration agree on 31 days."
+    risk_class: "operational"
+    basis: "User Guide §5.2 step 2."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.2 Sign in"
+        line_start: 121
+        line_end: 121
+        excerpt: " <li>Tick <b>Remember My User Name</b> if you want the store to fill in your user name next time. The store keeps it in a browser cookie for 31 days. Untick it to forget the name.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 173
+        line_end: 186
+        excerpt: "        String rememberUserName = hreq.getParameter(REMEMBER_USERNAME);\n        if (rememberUserName != null) {\n          // set a cookie with the username in it\n          Cookie userNameCookie = new Cookie(COOKIE_NAME, userName);\n          // set cookie to last for one month\n          userNameCookie.setMaxAge(2678400);\n          hres.addCookie(userNameCookie);\n        } else {\n            // see if the cookie exists and remove accordingly\n            Cookie[] cookies = hreq.getCookies();\n            if (cookies != null) {\n                for (int loop=0; loop < cookies.length; loop++) {\n                    if (cookies[loop].getName().equals(COOKIE_NAME)) {\n                        cookies[loop].setMaxAge(0);\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 23
+        line_end: 23
+        excerpt: "signon.rememberUsernameCookie.maxAgeSeconds=2678400\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SIGNON-SCR-0004"
+    kind: "screen"
+    capability_key: "sign-on"
+    requirement: "WHEN the user name or password is wrong THEN the system SHALL show the Sign-in Error page with a 'try again' link."
+    plain_text: "A wrong user name or password shows a 'Sign-in Error' page with a link to try again."
+    technical_note: "User Guide §5.2 and §6; signon-config.xml signon-form-error-page signon_error.screen."
+    confidence: "high"
+    confidence_basis: "Guide plus declared error page."
+    risk_class: "presentational"
+    basis: "User Guide §5.2 last paragraph; §6."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.2 Sign in"
+        line_start: 124
+        line_end: 124
+        excerpt: "<p>If the user name or password is wrong the page <i>Sign-in Error</i> appears. Click <b>try again</b>.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §6 Messages"
+        line_start: 159
+        line_end: 159
+        excerpt: " <tr><td>Sign-in Error</td><td>Wrong user name or password</td><td>Try again. After 3 failures in a row the account locks.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 19
+        line_end: 22
+        excerpt: " <!-- Error Page When Sign On fails-->\n <signon-form-error-page>\n  signon_error.screen\n </signon-form-error-page>\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "signon_failed.jsp"
+  - record_key: "SIGNON-REQ-0005"
+    kind: "requirement"
+    capability_key: "sign-on"
+    requirement: "The system SHALL end a session after 15 minutes without activity (rule R8)."
+    plain_text: "If a customer stops using the store without signing out, they are signed out after 15 minutes of inactivity."
+    technical_note: "web.xml session-timeout 15; signon.session.timeoutMinutes=15 in conf/petstore.properties."
+    confidence: "high"
+    confidence_basis: "Two guides plus the declarative session timeout."
+    risk_class: "regulated"
+    basis: "User Guide §5.5; Admin Guide §2 R8 and §4 configuration."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.5 Sign out"
+        line_start: 151
+        line_end: 152
+        excerpt: "<p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,\nyour session ends after 15 minutes without activity.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 57
+        line_end: 57
+        excerpt: " <tr><td>R8</td><td>Sessions time out after 15 minutes without activity.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §4 Configuration"
+        line_start: 109
+        line_end: 109
+        excerpt: " <tr><td>Session timeout</td><td><code>web.xml</code></td><td>15 minutes</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 123
+        line_end: 125
+        excerpt: "  <session-config>\n    <session-timeout>15</session-timeout>\n  </session-config>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 21
+        line_end: 21
+        excerpt: "signon.session.timeoutMinutes=15\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "SIGNON-REQ-0006"
+    kind: "requirement"
+    capability_key: "sign-on"
+    requirement: "WHEN a signed-in user chooses Sign out THEN the system SHALL end the session, record a SIGNOFF event and show the 'You are signed out' page."
+    plain_text: "Choosing Sign out ends the session, is recorded in the sign-in history, and shows a 'You are signed out' page."
+    technical_note: "User Guide §5.5 and §5.4 event table (SIGNOFF); Admin Guide R7. Implemented by SignOffServlet / signoff.jsp."
+    confidence: "medium"
+    confidence_basis: "Stated in the guides; the sign-off code was not read in this pass."
+    risk_class: "operational"
+    basis: "User Guide §5.5 and SIGNOFF row of §5.4."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.5 Sign out"
+        line_start: 151
+        line_end: 151
+        excerpt: "<p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.4 My Account"
+        line_start: 145
+        line_end: 145
+        excerpt: " <tr><td>SIGNOFF</td><td>You signed out</td></tr>\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "signoff.jsp"
+  - record_key: "SIGNON-BR-0007"
+    kind: "business-rule"
+    capability_key: "sign-on"
+    requirement: "The system SHALL store account passwords exactly as entered (unhashed) in the sign-on table and SHALL compare them as entered at sign-in."
+    plain_text: "Passwords are kept exactly as typed, without any protection such as hashing, and compared as typed."
+    technical_note: "Admin Guide §1.2 warning. UserDAO INSERT_USER writes the password parameter directly; authenticate compares with String.equals."
+    confidence: "high"
+    confidence_basis: "Documented and visible in both the insert and the comparison."
+    risk_class: "regulated"
+    basis: "Admin Guide §1.2 warning box."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.2 Sample accounts"
+        line_start: 45
+        line_end: 45
+        excerpt: "<div class=\"warn\">Change these passwords before the store is used outside a test environment. Passwords are stored as entered in table SIGNON.</div>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 98
+        line_end: 98
+        excerpt: "        \"insert into signon (username, password, role, failed_attempts, locked, created_ts) values (?, ?, ?, 0, 'N', ?)\";\n"
+    stack_metadata:
+      source: "docs/guides"
+      db.object: "SIGNON.password"
+  - record_key: "LOCK-BR-0001"
+    kind: "business-rule"
+    capability_key: "account-lockout"
+    requirement: "The system SHALL add 1 to an account's failed-attempt count on each failed sign-in with a wrong password, and SHALL reset the count to 0 on a successful sign-in (rule R2)."
+    plain_text: "Each wrong password adds one to the account's failure count; a successful sign-in resets it to zero."
+    technical_note: "UserDAO.authenticate: UPDATE_SUCCESS sets failed_attempts = 0; failure path increments failedAttempts and writes it with UPDATE_FAILURE."
+    confidence: "high"
+    confidence_basis: "Two guides plus the update statements."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R2; User Guide §5.3."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 51
+        line_end: 51
+        excerpt: " <tr><td>R2</td><td>Each failed sign-in adds 1 to the account's failed attempts. A successful sign-in sets it back to 0.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.3 Locked account"
+        line_start: 131
+        line_end: 131
+        excerpt: "A successful sign-in resets the count of failed attempts to zero.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 140
+        line_end: 148
+        excerpt: "            }\n            failedAttempts++;\n            boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;\n            PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);\n            update.setInt(1, failedAttempts);\n            update.setString(2, lockNow ? \"Y\" : \"N\");\n            update.setTimestamp(3, lockNow ? now : null);\n            update.setString(4, userName);\n            update.executeUpdate();\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "LOCK-BR-0002"
+    kind: "business-rule"
+    capability_key: "account-lockout"
+    requirement: "WHEN a wrong password brings the account's consecutive failed attempts to 3 THEN the system SHALL lock the account, record the time of the lock, record SIGNON_FAIL and ACCOUNT_LOCKED, and show the Account Locked page (rule R3)."
+    plain_text: "The third wrong password in a row locks the account and the time of the lock is recorded."
+    technical_note: "UserDAO.MAX_FAILED_ATTEMPTS = 3; lockNow = failedAttempts >= 3 sets locked = 'Y' and locked_ts = now and audits ACCOUNT_LOCKED; signon.maxFailedAttempts=3 in properties."
+    confidence: "high"
+    confidence_basis: "Two guides, a code constant and configuration agree."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R3; User Guide §5.3 warning."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 52
+        line_end: 52
+        excerpt: " <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.3 Locked account"
+        line_start: 128
+        line_end: 128
+        excerpt: "<div class=\"warn\">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 69
+        line_end: 69
+        excerpt: "    public static final int MAX_FAILED_ATTEMPTS = 3;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 141
+        line_end: 154
+        excerpt: "            failedAttempts++;\n            boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;\n            PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);\n            update.setInt(1, failedAttempts);\n            update.setString(2, lockNow ? \"Y\" : \"N\");\n            update.setTimestamp(3, lockNow ? now : null);\n            update.setString(4, userName);\n            update.executeUpdate();\n            update.close();\n            audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);\n            if (lockNow) {\n                audit(connection, userName, EVENT_ACCOUNT_LOCKED, remoteAddr);\n                return SIGNON_LOCKED;\n            }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 15
+        line_end: 15
+        excerpt: "signon.maxFailedAttempts=3\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "LOCK-BR-0003"
+    kind: "business-rule"
+    capability_key: "account-lockout"
+    requirement: "GIVEN a locked account WHEN anyone tries to sign in to it, even with the right password, THEN the system SHALL refuse the sign-in, record SIGNON_LOCKED and leave the failed-attempt count unchanged (rule R4)."
+    plain_text: "A locked account cannot sign in even with the correct password; the attempt is recorded but does not count as a further failure."
+    technical_note: "UserDAO.authenticate checks locked before comparing passwords and returns SIGNON_LOCKED after auditing, with no update to failed_attempts."
+    confidence: "high"
+    confidence_basis: "Two guides plus the code path."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R4; User Guide §5.3."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 53
+        line_end: 53
+        excerpt: " <tr><td>R4</td><td>A locked account cannot sign in, even with the right password. The attempt is recorded as SIGNON_LOCKED and the failed count does not change.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.3 Locked account"
+        line_start: 128
+        line_end: 128
+        excerpt: "<div class=\"warn\">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 127
+        line_end: 130
+        excerpt: "            if (locked) {\n                audit(connection, userName, EVENT_SIGNON_LOCKED, remoteAddr);\n                return SIGNON_LOCKED;\n            }\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "LOCK-WF-0004"
+    kind: "workflow"
+    capability_key: "account-lockout"
+    requirement: "The system SHALL, every 15 minutes around the clock, unlock every account locked more than 30 minutes earlier, reset its failed attempts to 0, clear its lock time and record ACCOUNT_UNLOCKED with the address 'batch:PSL_ACCT_UNLOCK' (rule R5)."
+    plain_text: "Locked accounts unlock automatically 30 minutes after the lock; the store checks every 15 minutes, so unlocking can take up to 45 minutes. The unlock is recorded in the sign-in history."
+    technical_note: "Control-M PSL_ACCT_UNLOCK (cyclic, interval 15M, 0000-2359) runs db/batch/acct_unlock.sql: INSERT audit rows then UPDATE signon where locked='Y' and locked_ts < now-30 minutes; signon.unlockAfterMinutes=30."
+    confidence: "high"
+    confidence_basis: "Three documents, the scheduler and the SQL agree."
+    risk_class: "regulated"
+    basis: "Admin Guide R5; User Guide §5.3; Runbook §2 and §3.6."
+    interface: false
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 54
+        line_end: 54
+        excerpt: " <tr><td>R5</td><td>Batch job PSL_ACCT_UNLOCK runs every 15 minutes and unlocks accounts locked more than 30 minutes ago. It sets failed attempts to 0 and records ACCOUNT_UNLOCKED.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.3 Locked account"
+        line_start: 129
+        line_end: 130
+        excerpt: "<p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set\n(the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.6 PSL_ACCT_UNLOCK"
+        line_start: 184
+        line_end: 184
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml"
+        line_start: 78
+        line_end: 84
+        excerpt: "    <JOB JOBISN=\"1\" APPLICATION=\"PETSTORE\" SUB_APPLICATION=\"SECURITY\" JOBNAME=\"PSL_ACCT_UNLOCK\"\n         DESCRIPTION=\"Unlock sign-on accounts locked for more than 30 minutes\"\n         TASKTYPE=\"Job\" MEMLIB=\"/opt/petstore/batch\" MEMNAME=\"psl_acct_unlock.sh\"\n         RUN_AS=\"tomcat\" NODEID=\"psl-app01\" PRIORITY=\"AA\"\n         TIMEFROM=\"0000\" TIMETO=\"2359\" WEEKDAYS=\"ALL\"\n         CYCLIC=\"1\" CYCLIC_TYPE=\"Interval\" INTERVAL=\"00015M\" IND_CYCLIC=\"START\"\n         CREATED_BY=\"psl_ops\" CREATION_DATE=\"20031014\" CHANGE_DATE=\"20260915\">\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql"
+        line_start: 6
+        line_end: 15
+        excerpt: "INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)\n  SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'\n    FROM signon\n   WHERE locked = 'Y'\n     AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};\n\nUPDATE signon\n   SET locked = 'N', failed_attempts = 0, locked_ts = NULL\n WHERE locked = 'Y'\n   AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};\n"
+      - path: "legacy-source/j2ee-pet-store-lite/conf/petstore.properties"
+        line_start: 16
+        line_end: 16
+        excerpt: "signon.unlockAfterMinutes=30\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_ACCT_UNLOCK every 15 min"
+  - record_key: "LOCK-REQ-0005"
+    kind: "requirement"
+    capability_key: "account-lockout"
+    requirement: "The system SHALL offer no screen to unlock an account; an earlier unlock SHALL be done by operations, either by running the unlock job on demand (which only releases locks older than 30 minutes) or by a manual database update that clears the lock, resets the count and records ACCOUNT_UNLOCKED with address 'admin'."
+    plain_text: "There is no screen for unlocking an account. To unlock someone sooner, operations must run the unlock job (which still waits 30 minutes) or change the database directly and record the unlock."
+    technical_note: "Admin Guide §2.1 gives the SQL: UPDATE signon ... ; INSERT INTO signon_audit ... 'ACCOUNT_UNLOCKED' ... 'admin'."
+    confidence: "medium"
+    confidence_basis: "Documented procedure only; it is manual by nature and has no code of its own."
+    risk_class: "operational"
+    basis: "Admin Guide §2.1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2.1 Unlock an account at once"
+        line_start: 60
+        line_end: 65
+        excerpt: "<h2>2.1 Unlock an account at once</h2>\n<p>There is no unlock screen. To unlock before the batch job runs, ask operations to run PSL_ACCT_UNLOCK on demand (it only unlocks\nlocks older than 30 minutes) or to run this SQL as the store schema owner:</p>\n<pre>UPDATE signon SET locked = 'N', failed_attempts = 0, locked_ts = NULL WHERE username = '&lt;user&gt;';\nINSERT INTO signon_audit (username, event_type, event_ts, remote_addr)\n  VALUES ('&lt;user&gt;', 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'admin');</pre>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "LOCK-SCR-0006"
+    kind: "screen"
+    capability_key: "account-lockout"
+    requirement: "WHEN a sign-in is refused because the account is locked THEN the system SHALL show the Account Locked page, and SHALL let the user keep browsing the catalog."
+    plain_text: "A locked-out customer sees an 'Account Locked' page telling them to wait 30 to 45 minutes; they can still browse the catalog."
+    technical_note: "User Guide §5.3 and §6; SignOnFilter forwards to signon_locked.screen on SIGNON_LOCKED."
+    confidence: "high"
+    confidence_basis: "Guide plus the filter's locked page constant."
+    risk_class: "presentational"
+    basis: "User Guide §5.3; §6 messages table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.3 Locked account"
+        line_start: 129
+        line_end: 130
+        excerpt: "<p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set\n(the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §6 Messages"
+        line_start: 160
+        line_end: 160
+        excerpt: " <tr><td>Account Locked</td><td>3 failed sign-ins in a row</td><td>Wait 30 to 45 minutes, then sign in</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 78
+        line_end: 78
+        excerpt: "    public static final String LOCKED_PAGE = \"signon_locked.screen\";\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "signon_locked.jsp"
+  - record_key: "ACL-BR-0001"
+    kind: "business-rule"
+    capability_key: "access-control"
+    requirement: "The system SHALL give every account exactly one role, CUSTOMER or ADMIN, stored with the account and read at sign-in."
+    plain_text: "Every account is either a customer or an administrator, and the role is fixed on the account."
+    technical_note: "Admin Guide §1; SIGNON.role constrained by ck_signon_role check (role in ('CUSTOMER','ADMIN'))."
+    confidence: "high"
+    confidence_basis: "Documented and enforced by a check constraint."
+    risk_class: "regulated"
+    basis: "Admin Guide §1 opening paragraph and role table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1 Roles and access control"
+        line_start: 16
+        line_end: 21
+        excerpt: "<p>Every account has one role. The role is stored with the account and read at sign-in.</p>\n<table class=\"grid\">\n <tr><th>Role</th><th>Who</th><th>How the account is created</th></tr>\n <tr><td>CUSTOMER</td><td>Store customers</td><td>Self sign-up on the Sign In page, or the sample data</td></tr>\n <tr><td>ADMIN</td><td>Store administrators</td><td>Sample data only (user <code>admin</code>). There is no screen to create an administrator.</td></tr>\n</table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql"
+        line_start: 80
+        line_end: 80
+        excerpt: "  constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),\n"
+    stack_metadata:
+      source: "docs/guides"
+      db.object: "SIGNON.ck_signon_role"
+  - record_key: "ACL-REQ-0002"
+    kind: "requirement"
+    capability_key: "access-control"
+    requirement: "The system SHALL leave the home, category, product, item, search, sign-in and create-account pages open to everyone; SHALL require a sign-in for My Account; and SHALL open Catalog Administration only to the ADMIN role, showing Access Denied to a signed-in CUSTOMER."
+    plain_text: "Anyone can browse, search, sign in and sign up. My Account needs a sign-in. Catalog Administration is for administrators only; a customer who opens it sees Access Denied."
+    technical_note: "Admin Guide §1.1 matrix and §4; WEB-INF/signon-config.xml protects account.screen and signon_welcome.screen (any signed-in user) and populate_admin.screen with auth-constraint ADMIN."
+    confidence: "high"
+    confidence_basis: "Admin guide matrix plus the declarative constraints."
+    risk_class: "regulated"
+    basis: "Admin Guide §1.1 matrix."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.1 Access matrix"
+        line_start: 25
+        line_end: 32
+        excerpt: " <tr><th>Page / function</th><th>Anonymous</th><th>CUSTOMER</th><th>ADMIN</th></tr>\n <tr><td>Home, category, product, item, search</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>Sign In, create account</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>My Account (<code>account.screen</code>)</td><td>Sign In page shown</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>\n <tr><td>First load of sample data (empty database)</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>Forced reload of sample data</td><td>Access Denied</td><td>Access Denied</td><td>Yes</td></tr>\n</table>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §4 Configuration"
+        line_start: 107
+        line_end: 107
+        excerpt: " <tr><td>Protected pages</td><td><code>WEB-INF/signon-config.xml</code></td><td>account.screen, signon_welcome.screen, populate_admin.screen (ADMIN)</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 24
+        line_end: 49
+        excerpt: " <!-- A Protected Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Account Screen</web-resource-name>\n    <url-pattern>account.screen</url-pattern>\n   </web-resource-collection>\n </security-constraint>\n\n <!-- A Protected Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Sign On Welcome Screen</web-resource-name>\n    <url-pattern>signon_welcome.screen</url-pattern>\n   </web-resource-collection>\n </security-constraint>\n\n <!-- An Administrator Only Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Populate Admin Screen</web-resource-name>\n    <url-pattern>populate_admin.screen</url-pattern>\n   </web-resource-collection>\n   <auth-constraint>\n    <role-name>ADMIN</role-name>\n   </auth-constraint>\n </security-constraint>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "ACL-REQ-0003"
+    kind: "requirement"
+    capability_key: "access-control"
+    requirement: "WHEN an anonymous user opens a protected page THEN the system SHALL show the Sign In page and, after a successful sign-in, SHALL send the user to the page first asked for."
+    plain_text: "Someone who is not signed in and opens a members-only page is asked to sign in, then taken to that page."
+    technical_note: "Admin Guide §1.1; User Guide §5.4. signon-config.xml signon-form-login-page signon.screen."
+    confidence: "high"
+    confidence_basis: "Two guides plus declared login page."
+    risk_class: "operational"
+    basis: "Admin Guide §1.1 paragraph; User Guide §5.4."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.1 Access matrix"
+        line_start: 33
+        line_end: 35
+        excerpt: "<p>Protected pages are listed in <code>WEB-INF/signon-config.xml</code>. A page with an <code>auth-constraint</code> is open only to the\nroles listed; a page without one is open to any signed-in user. When an anonymous user opens a protected page, the Sign In page\nis shown and, after a successful sign-in, the user is sent back to the page first asked for.</p>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.4 My Account"
+        line_start: 135
+        line_end: 135
+        excerpt: "<p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 14
+        line_end: 17
+        excerpt: " <!-- Form Sign On Page-->\n <signon-form-login-page>\n  signon.screen\n </signon-form-login-page>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "ACL-SCR-0004"
+    kind: "screen"
+    capability_key: "access-control"
+    requirement: "WHEN a signed-in user without the required role opens an administrator page THEN the system SHALL show the Access Denied page."
+    plain_text: "A customer who reaches an administrator-only page sees 'Access Denied' and can return to the catalog."
+    technical_note: "User Guide §6; Admin Guide Figure 2. PopulateServlet uses /access_denied.screen."
+    confidence: "high"
+    confidence_basis: "Two guides plus the servlet's access-denied redirect."
+    risk_class: "presentational"
+    basis: "User Guide §6 messages table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §6 Messages"
+        line_start: 162
+        line_end: 162
+        excerpt: " <tr><td>Access Denied</td><td>The page is for administrators only</td><td>Return to the catalog</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 67
+        line_end: 67
+        excerpt: "  private static final String ACCESS_DENIED_PAGE = \"/access_denied.screen\";\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "access_denied.jsp"
+  - record_key: "AUDIT-REQ-0001"
+    kind: "requirement"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL record every successful sign-in, failed sign-in, sign-in to a locked account, account lock, account unlock, sign-out and account creation as an audit event with the user name, event type, time and client address (rule R7), using only the event types SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF and USER_CREATED."
+    plain_text: "Every sign-in, failure, lock, unlock, sign-out and new account is logged with who, what, when and from which address."
+    technical_note: "UserDAO INSERT_AUDIT; SIGNON_AUDIT event_type check constraint ck_signon_audit_event lists the seven types."
+    confidence: "high"
+    confidence_basis: "Admin guide rule, user guide event table, DAO insert and a DDL check constraint."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R7; User Guide §5.4 event table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 56
+        line_end: 56
+        excerpt: " <tr><td>R7</td><td>Every sign-in, failure, lock, sign-out and new account is written to SIGNON_AUDIT with the time and the client address.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.4 My Account"
+        line_start: 137
+        line_end: 146
+        excerpt: "<table class=\"grid\">\n <tr><th>Event</th><th>Meaning</th></tr>\n <tr><td>USER_CREATED</td><td>The account was created</td></tr>\n <tr><td>SIGNON_OK</td><td>Successful sign-in</td></tr>\n <tr><td>SIGNON_FAIL</td><td>Wrong password (or unknown user name)</td></tr>\n <tr><td>ACCOUNT_LOCKED</td><td>The third failure in a row locked the account</td></tr>\n <tr><td>SIGNON_LOCKED</td><td>A sign-in was tried while the account was locked</td></tr>\n <tr><td>ACCOUNT_UNLOCKED</td><td>The lock was cleared by the store</td></tr>\n <tr><td>SIGNOFF</td><td>You signed out</td></tr>\n</table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 99
+        line_end: 100
+        excerpt: "    private static final String INSERT_AUDIT =\n        \"insert into signon_audit (username, event_type, event_ts, remote_addr) values (?, ?, ?, ?)\";\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql"
+        line_start: 85
+        line_end: 94
+        excerpt: "CREATE TABLE signon_audit (\n  audit_id bigint generated always as identity,\n  username varchar(25) not null,\n  event_type varchar(20) not null,\n  event_ts timestamp not null,\n  remote_addr varchar(45),\n  constraint pk_signon_audit primary key (audit_id),\n  constraint ck_signon_audit_event check (event_type in\n    ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))\n);\n"
+    stack_metadata:
+      source: "docs/guides"
+      db.object: "SIGNON_AUDIT"
+  - record_key: "AUDIT-BR-0002"
+    kind: "business-rule"
+    capability_key: "sign-on-audit"
+    requirement: "WHEN a sign-in uses a user name that does not exist THEN the system SHALL record SIGNON_FAIL against the user name as typed (rule R6)."
+    plain_text: "A sign-in attempt with an unknown user name is still logged as a failure, under the name that was typed."
+    technical_note: "UserDAO.authenticate audits EVENT_SIGNON_FAIL with the typed userName when the select finds no row."
+    confidence: "high"
+    confidence_basis: "Two guides plus code."
+    risk_class: "regulated"
+    basis: "Admin Guide §2 R6; User Guide §5.4 SIGNON_FAIL row."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §2 Sign-on rules"
+        line_start: 55
+        line_end: 55
+        excerpt: " <tr><td>R6</td><td>A sign-in with an unknown user name is recorded as SIGNON_FAIL against the name typed.</td></tr>\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.4 My Account"
+        line_start: 141
+        line_end: 141
+        excerpt: " <tr><td>SIGNON_FAIL</td><td>Wrong password (or unknown user name)</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 115
+        line_end: 119
+        excerpt: "            if (!rs.next()) {\n                rs.close();\n                select.close();\n                audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);\n                return SIGNON_INVALID;\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "AUDIT-REQ-0003"
+    kind: "requirement"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL show on My Account the user name, the role and the user's 10 most recent sign-in events, newest first."
+    plain_text: "My Account shows the customer's name, role and their last 10 sign-in events, newest first."
+    technical_note: "User Guide §5.4. UserDAO SELECT_AUDIT orders by event_ts desc, audit_id desc; the limit of 10 is applied elsewhere (not verified in this pass)."
+    confidence: "medium"
+    confidence_basis: "Ordering is visible in code; the count of 10 rests on the guide alone."
+    risk_class: "operational"
+    basis: "User Guide §5.4 first paragraph."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §5.4 My Account"
+        line_start: 135
+        line_end: 136
+        excerpt: "<p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,\nyour role and your 10 most recent sign-in events, newest first.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 101
+        line_end: 102
+        excerpt: "    private static final String SELECT_AUDIT =\n        \"select event_type, event_ts, remote_addr from signon_audit where username = ? order by event_ts desc, audit_id desc\";\n"
+    stack_metadata:
+      source: "docs/guides"
+      jsp.page: "account.jsp"
+  - record_key: "AUDIT-INT-0004"
+    kind: "integration"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL, every day at 01:30 after a successful backup, export the previous day's audit events (00:00 to 24:00) ordered by event number to a comma-separated file named signon_audit_YYYYMMDD.csv for the security team, with columns audit_id, username, event_type, event_ts, remote_addr, no header row, and a final trailer line 'TRAILER,YYYYMMDD,<row count>' where the count excludes the trailer."
+    plain_text: "Each night the previous day's sign-in history is exported to a dated file for the security team, in a fixed five-column layout with a trailer line giving the row count."
+    technical_note: "PSL_AUDIT_EXTRACT (Control-M, INCOND PSL_DB_BACKUP-OK) runs db/batch/audit_extract.sql (SYSCS_EXPORT_QUERY) then batch/psl_audit_extract.sh renames the file and appends the trailer using wc -l."
+    confidence: "high"
+    confidence_basis: "Runbook layout matches the export query and the trailer code."
+    risk_class: "regulated"
+    basis: "Runbook §3.2 column table and trailer sentence."
+    interface: true
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.2 PSL_AUDIT_EXTRACT"
+        line_start: 158
+        line_end: 169
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql"
+        line_start: 4
+        line_end: 10
+        excerpt: "CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY(\n  'SELECT audit_id, username, event_type, event_ts, remote_addr\n     FROM signon_audit\n    WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}\n      AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)\n    ORDER BY audit_id',\n  '/var/petstore/extract/signon_audit_extract.csv', ',', '\"', 'UTF-8');\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh"
+        line_start: 6
+        line_end: 13
+        excerpt: "DAY=$(date -d yesterday '+%Y%m%d' 2>/dev/null || date -v-1d '+%Y%m%d')\nOUT=\"$PSL_EXTRACT_DIR/signon_audit_$DAY.csv\"\npsl_log \"start day=$DAY\"\nrm -f \"$PSL_EXTRACT_DIR/signon_audit_extract.csv\"\npsl_ij \"$PSL_SQL/audit_extract.sql\" > /dev/null || { psl_log \"FAILED: export\"; exit 8; }\nmv \"$PSL_EXTRACT_DIR/signon_audit_extract.csv\" \"$OUT\"\nROWS=$(wc -l < \"$OUT\" | tr -d ' ')\necho \"TRAILER,$DAY,$ROWS\" >> \"$OUT\"\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_AUDIT_EXTRACT daily 01:30"
+  - record_key: "AUDIT-REQ-0005"
+    kind: "requirement"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL always extract the day before the run date; re-extracting an older day SHALL be done by running the export query by hand with changed dates."
+    plain_text: "The nightly export always covers yesterday. An older day can only be re-exported manually."
+    technical_note: "Runbook §4.2; the export query derives the window from CURRENT_DATE with no parameter."
+    confidence: "high"
+    confidence_basis: "Runbook statement plus the fixed CURRENT_DATE window in the SQL."
+    risk_class: "regulated"
+    basis: "Runbook §4.2."
+    interface: true
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §4.2 Rerunning the extract"
+        line_start: 200
+        line_end: 202
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql"
+        line_start: 7
+        line_end: 8
+        excerpt: "    WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}\n      AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "AUDIT-REQ-0006"
+    kind: "requirement"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL, every day at 01:45 after a successful audit extract, write a report signon_report_YYYYMMDD.txt with the previous day's count per event type, the number of locked accounts and the number of accounts per role."
+    plain_text: "Each night a short report is produced with yesterday's sign-in event counts, how many accounts are locked, and how many accounts each role has."
+    technical_note: "PSL_SIGNON_REPORT runs psl_signon_report.sh / db/batch/signon_report.sql (not read in this pass)."
+    confidence: "medium"
+    confidence_basis: "Runbook statement and schedule; report SQL not read here."
+    risk_class: "regulated"
+    basis: "Runbook §2 schedule row and §3.3."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §2 Batch schedule"
+        line_start: 143
+        line_end: 143
+        excerpt: "\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.3 PSL_SIGNON_REPORT"
+        line_start: 171
+        line_end: 173
+        excerpt: "\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_SIGNON_REPORT daily 01:45"
+  - record_key: "AUDIT-BR-0007"
+    kind: "business-rule"
+    capability_key: "sign-on-audit"
+    requirement: "The system SHALL, on Sundays at 02:00 and only after that day's audit extract has succeeded, delete audit events older than 90 days."
+    plain_text: "Sign-in history is kept for 90 days. Older entries are deleted every Sunday, but only after that night's export has run, so nothing is deleted before it has been exported."
+    technical_note: "PSL_AUDIT_PURGE (WEEKDAYS=0, TIMEFROM 0200, INCOND PSL_AUDIT_EXTRACT-OK) runs db/batch/audit_purge.sql: delete where event_ts < CURRENT_DATE - 90 days; batch.audit.retentionDays=90."
+    confidence: "high"
+    confidence_basis: "Runbook, scheduler, SQL and configuration agree."
+    risk_class: "regulated"
+    basis: "Runbook §2, §3.4 and §5 settings."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.4 PSL_AUDIT_PURGE"
+        line_start: 175
+        line_end: 176
+        excerpt: "\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §5 Settings"
+        line_start: 209
+        line_end: 209
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml"
+        line_start: 51
+        line_end: 57
+        excerpt: "    <JOB JOBISN=\"4\" APPLICATION=\"PETSTORE\" SUB_APPLICATION=\"SECURITY\" JOBNAME=\"PSL_AUDIT_PURGE\"\n         DESCRIPTION=\"Delete SIGNON_AUDIT rows older than 90 days (Sundays)\"\n         TASKTYPE=\"Job\" MEMLIB=\"/opt/petstore/batch\" MEMNAME=\"psl_audit_purge.sh\"\n         RUN_AS=\"tomcat\" NODEID=\"psl-app01\" PRIORITY=\"AD\"\n         TIMEFROM=\"0200\" WEEKDAYS=\"0\"\n         CREATED_BY=\"psl_ops\" CREATION_DATE=\"20031014\" CHANGE_DATE=\"20260915\">\n      <INCOND NAME=\"PSL_AUDIT_EXTRACT-OK\" ODATE=\"ODAT\" AND_OR=\"A\" />\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql"
+        line_start: 5
+        line_end: 6
+        excerpt: "DELETE FROM signon_audit\n WHERE event_ts < {fn TIMESTAMPADD(SQL_TSI_DAY, -90, CAST(CURRENT_DATE AS TIMESTAMP))};\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_AUDIT_PURGE Sunday 02:00"
+  - record_key: "BATCH-WF-0001"
+    kind: "workflow"
+    capability_key: "batch-operations"
+    requirement: "The system SHALL run the nightly jobs in this order: database backup at 01:00; audit extract at 01:30 only after a successful backup; sign-on report at 01:45 and (Sundays) audit purge at 02:00, each only after a successful extract; catalog check daily at 06:00 and account unlock every 15 minutes independently."
+    plain_text: "The nightly jobs run in a fixed chain: backup first, then the sign-in history export, then the report and the Sunday purge. The catalog check at 6:00 and the 15-minute unlock run on their own."
+    technical_note: "scheduler/control-m/PSL_PETSTORE.xml, folders PSL_PETSTORE_DAILY and PSL_PETSTORE_CYCLIC, chained by OK in-conditions."
+    confidence: "high"
+    confidence_basis: "Runbook table and diagram match the Control-M definitions."
+    risk_class: "operational"
+    basis: "Runbook §2 table and diagram."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §2 Batch schedule"
+        line_start: 137
+        line_end: 150
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml"
+        line_start: 15
+        line_end: 21
+        excerpt: "    <JOB JOBISN=\"1\" APPLICATION=\"PETSTORE\" SUB_APPLICATION=\"DATABASE\" JOBNAME=\"PSL_DB_BACKUP\"\n         DESCRIPTION=\"Online backup of PetStoreDB, keep 7 days\"\n         TASKTYPE=\"Job\" MEMLIB=\"/opt/petstore/batch\" MEMNAME=\"psl_db_backup.sh\"\n         RUN_AS=\"tomcat\" NODEID=\"psl-app01\" PRIORITY=\"AA\" CRITICAL=\"1\"\n         TIMEFROM=\"0100\" WEEKDAYS=\"ALL\" DAYSCAL=\"PSL_CAL\" MAXRERUN=\"2\" INTERVAL=\"00010M\"\n         CREATED_BY=\"psl_ops\" CREATION_DATE=\"20031014\" CHANGE_DATE=\"20260915\">\n      <OUTCOND NAME=\"PSL_DB_BACKUP-OK\" ODATE=\"ODAT\" SIGN=\"+\" />\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M DC_PSL_PRD"
+  - record_key: "BATCH-REQ-0002"
+    kind: "requirement"
+    capability_key: "batch-operations"
+    requirement: "The system SHALL take an online backup of the store database every day at 01:00 into a folder named PetStoreDB_YYYYMMDD and SHALL delete backups older than 7 days."
+    plain_text: "The database is backed up every night at 1:00 into a dated folder; backups older than 7 days are deleted."
+    technical_note: "batch/psl_db_backup.sh runs db/batch/db_backup.sql (SYSCS_BACKUP_DATABASE), moves the result to PetStoreDB_$STAMP and deletes with find -mtime +$PSL_BACKUP_KEEP_DAYS; batch.backup.keepDays=7."
+    confidence: "high"
+    confidence_basis: "Runbook, scheduler description, script and configuration agree on 7 days (see the suspected off-by-one in the find predicate)."
+    risk_class: "operational"
+    basis: "Runbook §3.1 and §5."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.1 PSL_DB_BACKUP"
+        line_start: 153
+        line_end: 156
+        excerpt: "\n"
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §5 Settings"
+        line_start: 210
+        line_end: 210
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh"
+        line_start: 5
+        line_end: 11
+        excerpt: "STAMP=$(date '+%Y%m%d')\npsl_log \"start\"\nrm -rf \"$PSL_BACKUP_DIR/PetStoreDB\"\npsl_ij \"$PSL_SQL/db_backup.sql\" > /dev/null || { psl_log \"FAILED: backup\"; exit 8; }\nrm -rf \"$PSL_BACKUP_DIR/PetStoreDB_$STAMP\"\nmv \"$PSL_BACKUP_DIR/PetStoreDB\" \"$PSL_BACKUP_DIR/PetStoreDB_$STAMP\"\nfind \"$PSL_BACKUP_DIR\" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf {} \\;\n"
+    stack_metadata:
+      source: "docs/guides"
+      batch.trigger: "Control-M PSL_DB_BACKUP daily 01:00"
+  - record_key: "BATCH-REQ-0003"
+    kind: "requirement"
+    capability_key: "batch-operations"
+    requirement: "WHEN the backup fails THEN the system SHALL rerun it up to 2 times 10 minutes apart and, if it still fails, SHALL mail the operations team and hold the audit extract."
+    plain_text: "A failed backup is retried twice, ten minutes apart; if it still fails, operations is emailed and the nightly export waits."
+    technical_note: "PSL_DB_BACKUP: CRITICAL=1, MAXRERUN=2, INTERVAL=00010M, DOMAIL to psl-ops on NOTOK; extract waits on PSL_DB_BACKUP-OK."
+    confidence: "high"
+    confidence_basis: "Runbook plus scheduler definition."
+    risk_class: "operational"
+    basis: "Runbook §3.1 last sentence."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.1 PSL_DB_BACKUP"
+        line_start: 156
+        line_end: 156
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml"
+        line_start: 18
+        line_end: 24
+        excerpt: "         RUN_AS=\"tomcat\" NODEID=\"psl-app01\" PRIORITY=\"AA\" CRITICAL=\"1\"\n         TIMEFROM=\"0100\" WEEKDAYS=\"ALL\" DAYSCAL=\"PSL_CAL\" MAXRERUN=\"2\" INTERVAL=\"00010M\"\n         CREATED_BY=\"psl_ops\" CREATION_DATE=\"20031014\" CHANGE_DATE=\"20260915\">\n      <OUTCOND NAME=\"PSL_DB_BACKUP-OK\" ODATE=\"ODAT\" SIGN=\"+\" />\n      <ON STMT=\"*\" CODE=\"NOTOK\">\n        <DOMAIL URGENCY=\"U\" DEST=\"psl-ops@example.invalid\" SUBJECT=\"PSL_DB_BACKUP failed\" MESSAGE=\"Petstore DB backup failed, audit extract is held\" />\n      </ON>\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "BATCH-REQ-0004"
+    kind: "requirement"
+    capability_key: "batch-operations"
+    requirement: "The system SHALL end each batch job with exit code 0 on success, 4 when the catalog check finds bad data, and 8 on an SQL or file error."
+    plain_text: "Each nightly job reports success, 'bad catalog data' (catalog check only) or 'technical error' through a fixed exit code that tells operations what to do."
+    technical_note: "Runbook §4; scripts exit 8 on psl_ij or curl failure and 4 in psl_catalog_check.sh."
+    confidence: "high"
+    confidence_basis: "Runbook plus scripts."
+    risk_class: "operational"
+    basis: "Runbook §4 exit-code table."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §4 Exit codes and recovery"
+        line_start: 186
+        line_end: 192
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh"
+        line_start: 8
+        line_end: 8
+        excerpt: "psl_ij \"$PSL_SQL/db_backup.sql\" > /dev/null || { psl_log \"FAILED: backup\"; exit 8; }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 16
+        line_end: 19
+        excerpt: "if echo \"$OUT\" | grep -qE \"^C[1-4] \"; then\n  psl_log \"FAILED: integrity check found rows\"\n  exit 4\nfi\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "BATCH-REQ-0005"
+    kind: "requirement"
+    capability_key: "batch-operations"
+    requirement: "The system SHALL be restorable from a dated backup by stopping the application, moving the live database aside, copying the backup folder into its place and starting the application again."
+    plain_text: "The store can be restored from any kept nightly backup by stopping it, swapping in the backup and starting it again."
+    technical_note: "Runbook §4.1 manual procedure."
+    confidence: "medium"
+    confidence_basis: "Documented procedure only."
+    risk_class: "operational"
+    basis: "Runbook §4.1."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §4.1 Restore from backup"
+        line_start: 193
+        line_end: 199
+        excerpt: "\n"
+    stack_metadata:
+      source: "docs/guides"
+  - record_key: "BATCH-REQ-0006"
+    kind: "requirement"
+    capability_key: "batch-operations"
+    requirement: "The system SHALL write one line to the batch job log for each job start and each job end."
+    plain_text: "Every batch job logs when it starts and when it ends."
+    technical_note: "Runbook §1; scripts call psl_log 'start' and 'end OK' / 'FAILED' (log file /var/petstore/log/batch.log)."
+    confidence: "high"
+    confidence_basis: "Runbook plus script calls."
+    risk_class: "operational"
+    basis: "Runbook §1 job log row."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §1 System overview"
+        line_start: 134
+        line_end: 134
+        excerpt: "\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh"
+        line_start: 6
+        line_end: 6
+        excerpt: "psl_log \"start\"\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh"
+        line_start: 12
+        line_end: 12
+        excerpt: "psl_log \"end OK backup=$PSL_BACKUP_DIR/PetStoreDB_$STAMP\"\n"
+    stack_metadata:
+      source: "docs/guides"
+findings:
+  - kind: "ambiguity"
+    path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+    description: "The guides say an item shows a 'Your Price' (discounted member price) but never state how it is derived from the list price or unit cost, or whether it depends on being signed in. The item page and catalog code should be read, and the business owner should confirm the discount rule."
+  - kind: "ambiguity"
+    path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+    description: "PSL_SIGNON_REPORT output file is described only by its contents; the runbook does not say who consumes signon_report_YYYYMMDD.txt, so it is not stated whether it is an interface to another team or system (AUDIT-REQ-0006 leaves interface unstated)."
+  - kind: "ambiguity"
+    path: "legacy-analysis/sources"
+    description: "No legacy-analysis/sources/**/extracted.md files exist in this branch, so the guides were traced directly as HTML under legacy-source/j2ee-pet-store-lite/docs/guides with document anchors naming the guide section. Screenshots referenced by the guides (docs/screenshots) were not examined."
+suspected_defects:
+  - capability_key: "catalog-search"
+    record_keys:
+      - "SEARCH-BR-0003"
+    severity: "medium"
+    category: "contradicts-document"
+    title: "Search is case-sensitive for words typed with capitals"
+    description: "The User Guide says search is not case-sensitive. The search lower-cases the product name, category code and description but passes the typed words unchanged, so a word typed with any capital letter (for example 'Dog' or 'DOGS') finds nothing on a case-sensitive comparison."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        anchor: "User Guide PSL-UG-01 §4 Searching"
+        line_start: 93
+        line_end: 93
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 119
+        line_end: 119
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 362
+        line_end: 365
+  - capability_key: "sample-data-population"
+    record_keys:
+      - "POP-REQ-0001"
+    severity: "medium"
+    category: "contradicts-document"
+    title: "Entering the store signs the user out even when no load runs"
+    description: "The Admin Guide says that when data already exists nothing happens on 'enter the store'. The populate request invalidates the session unconditionally before checking, so a signed-in user who clicks 'enter the store' loses their session."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.1 First load"
+        line_start: 76
+        line_end: 77
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 126
+        line_end: 127
+  - capability_key: "sample-data-population"
+    record_keys:
+      - "POP-REQ-0001"
+      - "CATINT-BR-0006"
+    severity: "high"
+    category: "error-swallowed"
+    title: "A failed 'already loaded' check wipes accounts and history"
+    description: "On a non-forced load, any error raised while checking whether the store already holds data is caught and discarded, and the store is then treated as empty: every table, including accounts and sign-in history, is dropped and reloaded from the sample data. The same happens when the catalog tables are missing but the account tables are not (for example via the 06:00 catalog check). The guides describe the first load as touching only an empty store."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §3.1 First load"
+        line_start: 76
+        line_end: 77
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 162
+        line_end: 170
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 10
+        line_end: 14
+  - capability_key: "sign-on"
+    record_keys:
+      - "SIGNON-BR-0007"
+      - "POP-ENT-0005"
+    severity: "high"
+    category: "other"
+    title: "Passwords are stored and compared in clear text"
+    description: "Account passwords are written to the sign-on table exactly as typed and compared as typed. The Admin Guide acknowledges this. Anyone with read access to the database or a backup can read every password."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        anchor: "Admin Guide PSL-AG-01 §1.2 Sample accounts"
+        line_start: 45
+        line_end: 45
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 98
+        line_end: 98
+  - capability_key: "batch-operations"
+    record_keys:
+      - "BATCH-REQ-0002"
+    severity: "low"
+    category: "other"
+    title: "Backup retention keeps one day longer than documented"
+    description: "The runbook says backups older than 7 days are deleted. The cleanup deletes only folders whose age, rounded down to whole days, is greater than 7, so a backup between 7 and 8 days old is kept and about eight dated backups exist at a time."
+    traces:
+      - kind: "document"
+        path: "legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html"
+        anchor: "Operations Runbook PSL-RB-01 §3.1 PSL_DB_BACKUP"
+        line_start: 155
+        line_end: 155
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh"
+        line_start: 11
+        line_end: 11
