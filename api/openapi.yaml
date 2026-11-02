@@ -1,0 +1,422 @@
+# EXTRACTED FROM LEGACY SOURCE — evidence of what exists, not a build target. Where this disagrees with a capability delta spec, the delta spec wins.
+#
+# Spec extraction SX-0001. This documents the HTTP surface of the legacy Java Pet Store
+# Lite as it runs today: a server-rendered J2EE web application whose every page is an
+# HTML response and whose every action ends in a 302 redirect. It is NOT the rebuild's
+# API. The rebuild is a SPA plus a JSON server API, designed from the capability delta
+# specs under openspec/changes/sx-*/; read those for the behaviour to build.
+#
+# Sources read:
+#   src/main/webapp/WEB-INF/web.xml                    servlet and filter mappings, 15-min session
+#   src/main/webapp/WEB-INF/signon-config.xml          protected pages and the ADMIN-only page
+#   src/main/webapp/WEB-INF/screendefinitions_en_US.xml the 15 named pages (*.screen)
+#   src/main/java/.../signon/web/SignOnFilter.java     j_signon_check, cookie, redirects
+#   src/main/java/.../signon/web/CreateUserServlet.java createuser.do
+#   src/main/java/.../signon/web/SignOffServlet.java   signoff.do
+#   src/main/java/.../petstore/tools/populate/PopulateServlet.java  /Populate
+#   src/main/java/.../waf/view/template/TemplateServlet.java        locale parameter, PREVIOUS
+#   src/main/webapp/*.jsp                              request parameters each page reads
+#   src/main/webapp/META-INF/context.xml               context path /petstore
+#   batch/psl_catalog_check.sh                         the batch caller of /Populate
+openapi: 3.0.3
+info:
+  title: Java Pet Store Lite (legacy) HTTP surface
+  version: legacy-sx-0001
+  description: >
+    Every path below is relative to the context root /petstore. Pages are named
+    "<name>.screen" and composed by one template servlet from a shared layout (banner,
+    Pets side bar, body, footer). The sign-on filter runs on every request (/*): it
+    handles j_signon_check, sends anonymous visitors of a protected page to the Sign In
+    page, and sends a signed-in visitor without the required role to the Access Denied
+    page. Session state is a servlet session cookie; the session times out after 15
+    minutes of inactivity. A request name with no page definition returns the bare text
+    "Error: Definition for screen <name> not found" with status 200. Any unhandled
+    exception is forwarded to general_error.screen.
+servers:
+  - url: http://localhost:8080/petstore
+    description: Legacy container (Tomcat, Dockerfile line 3)
+tags:
+  - name: catalog-browsing
+  - name: catalog-search
+  - name: sign-on
+  - name: account-lockout
+  - name: account-registration
+  - name: access-control
+  - name: sign-on-audit
+  - name: sample-data-population
+components:
+  securitySchemes:
+    servletSession:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: >
+        Container session. Signed-in state is the session attribute j_signon=true, with
+        j_signon_username and j_signon_role (CUSTOMER or ADMIN).
+  parameters:
+    start:
+      name: start
+      in: query
+      required: false
+      description: Zero-based position of the first row. Applied only when count is also supplied.
+      schema: { type: integer, default: 0 }
+    count:
+      name: count
+      in: query
+      required: false
+      description: Page size. When absent the page shows 2 rows from position 0. A value of 0 or less returns exactly one row.
+      schema: { type: integer, default: 2 }
+    locale:
+      name: locale
+      in: query
+      required: false
+      description: >
+        Display language as language_COUNTRY. Remembered in the session. Only en_US page
+        definitions exist; any other value falls back to en_US.
+      schema: { type: string, example: en_US }
+  headers:
+    Location:
+      description: Redirect target, relative to the context root unless stated.
+      schema: { type: string }
+  responses:
+    Page:
+      description: HTML page on the shared layout.
+      content:
+        text/html:
+          schema: { type: string }
+  schemas:
+    SignOnForm:
+      type: object
+      required: [j_username, j_password]
+      properties:
+        j_username:
+          type: string
+          description: Compared case-sensitively with signon.username.
+        j_password:
+          type: string
+          format: password
+          description: Compared exactly (case-sensitive, as stored) with signon.password.
+        j_remember_username:
+          type: string
+          description: >
+            Checkbox. Present (any value) sets cookie bp_signon=<user name> with max-age
+            2678400 s (31 days); absent deletes an existing bp_signon cookie.
+    CreateUserForm:
+      type: object
+      required: [j_username, j_password, j_password_confirm]
+      properties:
+        j_username:
+          type: string
+          minLength: 3
+          maxLength: 25
+          description: >
+            Trimmed length 3 to 25; letters, digits, "-" and "_" only; must not already
+            exist (case-sensitive).
+        j_password:
+          type: string
+          format: password
+          description: >
+            4 to 25 characters as shown on the Sign In page; the bounds are named
+            constants in UserDAO whose values are redacted in the extraction copy.
+        j_password_confirm:
+          type: string
+          format: password
+          description: Must equal j_password.
+    PopulateRequest:
+      type: object
+      properties:
+        forcefully:
+          type: string
+          description: >
+            "true" (any letter case) forces a drop-and-reload of every catalog and sign-on
+            table and requires a signed-in ADMIN. Any other value or absence loads only
+            when the tables are missing or the check query fails.
+        success_page:
+          type: string
+          description: Redirect target after a load. A value starting "//" is resolved against the request URL.
+        error_page:
+          type: string
+          description: Redirect target when the load fails. When absent a failure surfaces as the general error page.
+paths:
+  /index.jsp:
+    get:
+      tags: [sample-data-population]
+      summary: Store entry page (welcome file)
+      description: Describes the store and links "enter the store" to populating.jsp.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /populating.jsp:
+    get:
+      tags: [sample-data-population]
+      summary: First-load interstitial
+      description: >
+        "Please wait" page whose meta refresh requests
+        Populate?success_page=main.screen&forcefully=false immediately.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /Populate:
+    get:
+      tags: [sample-data-population]
+      summary: Load the sample data (same handling as POST)
+      description: >
+        GET is delegated to POST. Called by populating.jsp and by the 06:00 catalog check
+        batch job (curl -sf "$PSL_STORE_URL/Populate?forcefully=false"; a non-2xx/3xx
+        result exits the job with code 8).
+      parameters:
+        - { name: forcefully, in: query, schema: { type: string } }
+        - { name: success_page, in: query, schema: { type: string } }
+        - { name: error_page, in: query, schema: { type: string } }
+      responses:
+        "302":
+          description: See POST.
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+    post:
+      tags: [sample-data-population, access-control]
+      summary: Load, or force a reload of, the sample catalog and accounts
+      description: >
+        Forced mode without a signed-in ADMIN redirects to access_denied.screen and leaves
+        the session intact. Otherwise the session is invalidated on every accepted request
+        (signing the caller out), then, when forced or not already populated, all tables
+        are dropped, recreated and loaded from populate/Populate-UTF8.xml without a
+        rollback on partial failure. Redirects to success_page, else the Referer header;
+        with neither, the response is empty with status 200. Sent by the Catalog
+        Administration page with forcefully=true and success_page=main.screen.
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema: { $ref: "#/components/schemas/PopulateRequest" }
+      responses:
+        "200":
+          description: No success_page and no Referer; empty body.
+        "302":
+          description: >
+            To success_page (or Referer) after the load or when already populated; to
+            error_page on a load failure; to access_denied.screen when a forced reload is
+            refused.
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+  /main.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: Home page ("Welcome to the BluePrints Petstore")
+      description: Pet picture whose regions link to category.screen?category_id=BIRDS, FISH, DOGS, REPTILES and CATS.
+      parameters: [{ $ref: "#/components/parameters/locale" }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /category.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: Products for a category ("Products")
+      description: >
+        Lists the category's products (en_US), two per page by default, each name linking
+        to product.screen?product_id=<id>, with Previous/Next links only when an earlier
+        or later page exists.
+      parameters:
+        - { name: category_id, in: query, required: true, schema: { type: string, example: DOGS } }
+        - { $ref: "#/components/parameters/start" }
+        - { $ref: "#/components/parameters/count" }
+        - { $ref: "#/components/parameters/locale" }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /product.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: Items for a product ("Items")
+      description: >
+        Lists the product's items with attribute, product name (linking to
+        item.screen?item_id=<id>), description and list price in en_US currency.
+      parameters:
+        - { name: product_id, in: query, required: true, schema: { type: string, example: K9-BD-01 } }
+        - { $ref: "#/components/parameters/start" }
+        - { $ref: "#/components/parameters/count" }
+        - { $ref: "#/components/parameters/locale" }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /item.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: Item page ("Item")
+      description: Image, List Price (listprice), Your Price (unitcost), description and Item ID, prices in en_US currency.
+      parameters:
+        - { name: item_id, in: query, required: true, schema: { type: string, example: EST-6 } }
+        - { $ref: "#/components/parameters/locale" }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /search.screen:
+    get:
+      tags: [catalog-search]
+      summary: Keyword search ("Search")
+      description: >
+        Sent by the banner search form (GET). Keywords are split on whitespace and an item
+        matches when any keyword occurs (SQL LIKE, so "%" and "_" act as wildcards) in the
+        product name, category code or item description, restricted to the en_US locale.
+        Results show the item unit cost and have no defined order. An empty keywords value
+        or no match shows "No results were found for your search."; a request with no
+        keywords parameter at all reaches the general error page (read from code, not
+        executed).
+      parameters:
+        - { name: keywords, in: query, required: true, schema: { type: string } }
+        - { $ref: "#/components/parameters/start" }
+        - { $ref: "#/components/parameters/count" }
+        - { $ref: "#/components/parameters/locale" }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /signon.screen:
+    get:
+      tags: [sign-on, account-registration]
+      summary: Sign In page ("Sign On")
+      description: >
+        Returning-customer form posting to j_signon_check (user name pre-filled from the
+        bp_signon cookie, else "j2ee") and new-customer form posting to createuser.do.
+        Also served in place of any protected page requested while signed out.
+      parameters:
+        - { name: bp_signon, in: cookie, required: false, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /j_signon_check:
+    post:
+      tags: [sign-on, account-lockout, sign-on-audit]
+      summary: Submit credentials (handled inside the sign-on filter)
+      description: >
+        On success resets the failure count, stores last_signon, writes SIGNON_OK, puts
+        j_signon=true, the user name and role in the session and redirects to the page
+        that was intercepted (j_signon_original_url) or main.screen. A wrong password
+        increments the failure count and writes SIGNON_FAIL; the third consecutive
+        failure also locks the account and writes ACCOUNT_LOCKED. A locked account writes
+        SIGNON_LOCKED. Unknown user names write SIGNON_FAIL and change no account. An
+        account-store error surfaces as the general error page.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema: { $ref: "#/components/schemas/SignOnForm" }
+      responses:
+        "302":
+          description: >
+            To the intercepted page or main.screen (accepted); signon_locked.screen
+            (account already locked, or the third consecutive failure that locks it,
+            UserDAO.authenticate lines 141-153); signon_error.screen (unknown user name
+            or a wrong password that does not lock). Sets or deletes cookie bp_signon.
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+  /signon_welcome.screen:
+    get:
+      tags: [sign-on, access-control]
+      summary: Welcome page shown after sign-in (protected; home page body)
+      description: The banner "Sign in" link targets this page, so a signed-out visitor is shown the Sign In page first.
+      security: [{ servletSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /signon_error.screen:
+    get:
+      tags: [sign-on]
+      summary: Sign-in Error page ("Sign On Error")
+      description: Same wording for an unknown user name and a wrong password; links "try again" to signon_welcome.screen.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /signon_locked.screen:
+    get:
+      tags: [account-lockout]
+      summary: Account Locked page ("Account Locked")
+      description: States the lock after 3 failed attempts in a row and the automatic unlock 30 minutes after the lock; links back to main.screen.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /createuser.do:
+    post:
+      tags: [account-registration, sign-on-audit]
+      summary: Create a customer account and sign it in
+      description: >
+        Checks, in order, user name length, user name characters, password length and
+        password confirmation, reporting only the first failure; then inserts the account
+        (role CUSTOMER, 0 failures, unlocked) and writes USER_CREATED. A duplicate user
+        name is refused with "The user name <name> is already taken. Choose another user
+        name." The refusal message is carried in session attribute j_user_creation_error.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema: { $ref: "#/components/schemas/CreateUserForm" }
+      responses:
+        "302":
+          description: >
+            To the intercepted page or main.screen, signed in as CUSTOMER (created); to
+            user_creation_error.screen (refused).
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+  /user_creation_error.screen:
+    get:
+      tags: [account-registration]
+      summary: Create Account Error page ("Create Account Error")
+      description: '"Could Not Create Your Account" with the refusal message and a "go back" link to signon_welcome.screen.'
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /signoff.do:
+    get:
+      tags: [sign-on, sign-on-audit]
+      summary: Sign out
+      description: >
+        When a session with a user name exists, writes SIGNOFF (an audit failure is only
+        logged) and invalidates the session. Always redirects to signoff.screen, also
+        without a session. A session timeout writes no SIGNOFF.
+      responses:
+        "302":
+          description: To signoff.screen.
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+    post:
+      tags: [sign-on]
+      summary: Sign out (same handling as GET)
+      responses:
+        "302":
+          description: To signoff.screen.
+          headers: { Location: { $ref: "#/components/headers/Location" } }
+  /signoff.screen:
+    get:
+      tags: [sign-on]
+      summary: Signed-out page ("Sign Off")
+      description: '"You are signed out." with a link to sign in again (signon_welcome.screen).'
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /account.screen:
+    get:
+      tags: [sign-on-audit, access-control]
+      summary: My Account (protected, any signed-in role)
+      description: >
+        User name, role and a "Recent Sign-in Activity" table of the user's 10 most recent
+        audit events, newest first (ties by most recently recorded), each with time
+        (yyyy-MM-dd HH:mm:ss), event code and client address.
+      security: [{ servletSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /populate_admin.screen:
+    get:
+      tags: [sample-data-population, access-control]
+      summary: Catalog Administration (protected, ADMIN only)
+      description: >
+        Warns that a reload drops and recreates every catalog and sign-on table, deletes
+        every account and all sign-in history and signs the administrator out; its
+        "Reload Sample Data" button posts forcefully=true and success_page=main.screen to
+        /Populate. A signed-in non-ADMIN is forwarded to access_denied.screen.
+      security: [{ servletSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /access_denied.screen:
+    get:
+      tags: [access-control]
+      summary: Access Denied page ("Access Denied")
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /general_error.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: General Error page ("General Error")
+      description: Target of the web.xml error-page for java.lang.Exception; links back to main.screen.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /PREVIOUS.screen:
+    get:
+      tags: [catalog-browsing]
+      summary: Re-show the last page shown in this session
+      description: >
+        Special page name handled by the template servlet. No link in the store targets
+        it; reachability is disputed (unresolved-reachability) in the catalog-browsing
+        delta spec.
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
