@@ -13,19 +13,18 @@ testable requirements so the security team's file and the user's view keep worki
 
 Adds the `sign-on-audit` capability, recovered from spec extraction SX-0001:
 
-- Approved: the audit entry shape (`SWHR5-R-0010`), the Sunday purge after a successful extract
-  (`SWHR5-R-0011`) and the daily extract file (`SWHR5-R-0012`).
-- Draft requirements awaiting SME decision: closed event-type set, system-assigned event number,
+- All 48 records of the capability are approved and each is written as one requirement carrying
+  its key: the audit entry fields and closed event-type set, the system-assigned event number,
   user name as typed, the events written per sign-on outcome, the two-event lock, USER_CREATED,
-  explicit-only SIGNOFF, audited automatic unlock, origin field content, extract line format,
-  trailer, previous-day-only extract, extract failure handling, daily report, purge cutoff and
-  indexed retrieval.
-- Four screen requirements for My Account: page access, identity display, recent activity
-  selection and recent activity rows.
+  explicit-only SIGNOFF, audited automatic unlock, origin field content, 90-day retention and the
+  Sunday purge, the daily extract file (content, line format, trailer, empty day, previous-day
+  window, rerun, location, failure alert), the daily statistics report, and indexed retrieval.
+- Four screen requirements for My Account: the page itself, the sign-in gate and identity
+  display, recent activity selection and recent activity rows.
 
 ## Impact
 
-- Spec: `specs/sign-on-audit/spec.md` (23 requirements: 3 approved, 16 draft, 4 screens).
+- Spec: `specs/sign-on-audit/spec.md` (48 approved requirements, 4 of them screens).
 - Related capabilities: sign-on, account lockout, account registration and access control produce
   or gate the events; this change covers only what is recorded, shown, exported and purged.
 - Open items: the Oracle populate DDL id-generation dispute and low-confidence format details,

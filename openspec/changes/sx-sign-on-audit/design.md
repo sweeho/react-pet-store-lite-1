@@ -107,11 +107,11 @@ order by event_ts desc, audit_id desc`; the loop stops after 10 rows (no SQL row
 
 ## Evidence quality and open points
 
-- Approved: `AUD-ENT-0001` (SWHR5-R-0010), `AUDIT-BR-0007` (SWHR5-R-0011), `AUDIT-INT-0004`
-  (SWHR5-R-0012). `AUD-ENT-0001` exists in five modules with different wording; the approved
-  requirement is written from the `signon` module record, which the DDL and DAO SQL back. The
-  other variants carry field lists that agree with it, plus the batch origin marker, which the spec
-  states separately as a draft.
+- All 48 records are approved. Several record keys occur in more than one extraction module
+  with different wording (for example `AUD-BR-0001`, `AUDIT-BR-0002`, `AUDIT-REQ-0001`,
+  `SOA-REQ-0001`). Each key is written once in the spec, from the module variant whose behaviour
+  is not already stated by another key; the other variants restate behaviour covered elsewhere.
+  `AUD-REQ-0002` is written from its `signon` module variant, the My Account screen record.
 - Empty-day extract (trailer with count 0) is inferred from the script; no sample of an empty day
   exists (`SIGNON-AUDIT-RULE-0002`, low).
 - Extract time zone and fractional-seconds format rest on one sample file (`SOA-INT-0006`, low).
