@@ -1,0 +1,170 @@
+# SX-0001 synthesize, account-registration. Recommendations only; not decisions.
+# Note: several record_keys are reused across modules with different meanings
+# (REG-BR-0001, REG-BR-0002, REG-SCR-0001, REG-ENT-0001). Where that happens the
+# reason names the module the recommendation refers to.
+recommendations:
+  - record_key: REG-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      In the signon, conf and docs modules this is the user name length rule (trimmed, 3 to 25). Code constants,
+      petstore.properties, the varchar(25) column and User Guide 5.1 all agree. The same key in data/migration and
+      data/seed describes the account-created event and new-account defaults; those are covered by ACCT-BR-0001 and
+      REG-REQ-0002 and should be merged there, not under this key.
+  - record_key: REG-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Both signon passes agree on a 4-to-25 password length with spaces counted. The enforcing constants and property
+      values are redacted in the extraction copy, so an SME should confirm the unredacted UserDAO.MIN/MAX_PASSWORD_LENGTH
+      before approval; the class comment, page hint, User Guide and the varchar(25) column all say 4 to 25.
+  - record_key: REG-RUL-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Duplicate of REG-BR-0003 (password 4 to 25) from the webapp module; same redaction caveat. Merge into REG-BR-0003.
+  - record_key: ACCOUNT-REGISTRATION-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Duplicate of REG-BR-0001 (user name trimmed length 3 to 25) from conf/b; config and constants agree. Merge into
+      REG-BR-0001.
+  - record_key: ACCOUNT-REGISTRATION-BR-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Same rule as REG-BR-0003 but states the bounds as unknown. Prefer the 4-to-25 wording once an SME confirms the
+      redacted constants; then merge into REG-BR-0003.
+    edited_requirement: >
+      The system SHALL refuse to create an account whose password is shorter than 4 or longer than 25 characters, with
+      the message "The password must be 4 to 25 characters."
+  - record_key: AR-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Guide-sourced restatement of the five field rules, their messages and their order; it matches the servlet code
+      exactly. Accept as corroboration of REG-REQ-0001 and the individual rule records rather than as a separate
+      requirement.
+  - record_key: REG-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The check order and first-failure-only reporting are read from the early returns in validate() and the DAO
+      duplicate check running afterwards. No document states the order, but AR-BR-0001 (User Guide table) lists the
+      rules in the same sequence.
+  - record_key: REG-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Immediate sign-in as CUSTOMER and redirect to the original URL or home page are clear in CreateUserServlet and
+      agreed by AR-WF-0003, REG-WF-0007, REG-WF-0001 and User Guide 5.1 step 3.
+  - record_key: AR-WF-0003
+    recommendation: accept
+    confidence: high
+    reason: Duplicate of REG-REQ-0003 from the webapp module; merge.
+  - record_key: REG-WF-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Combines REG-REQ-0003 (success path) and REG-REQ-0001 (failure path and order); code-backed. Merge into those two.
+  - record_key: REG-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Docs-sourced statement of CUSTOMER role, immediate sign-in and no self-service ADMIN; agrees with the code. Merge
+      into REG-REQ-0002 and REG-REQ-0003.
+  - record_key: AR-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Docs plus servlet line 88; restates CUSTOMER role, immediate sign-in, USER_CREATED audit and case-sensitive names.
+      All covered by other records; accept as corroboration.
+  - record_key: REG-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: Same statement as the approved REG-REQ-0002 from the signon/b pass; merge into it.
+  - record_key: AR-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The CUSTOMER column default is real, but self sign-up binds CUSTOMER explicitly (UserDAO INSERT_USER), so the
+      default is not what decides the role. Accept as a data-model fact under the account record, not as a separate rule.
+  - record_key: ACCT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      UserDAO.createUser (INSERT_USER then audit USER_CREATED) and the history generator agree on the new-account state
+      and the account-created event. Use as the source record for the audit-event requirement.
+  - record_key: ACCTREG-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      40/40 exact timestamp matches in the migration extract plus the createUser audit call. Note the code takes the
+      audit time separately from created_ts, so exact equality is observed rather than guaranteed; the rebuild should
+      use one timestamp for both. Merge with ACCT-BR-0001.
+  - record_key: ACCTREG-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      The observed names include '.', which the current sign-up rule refuses, so this is not a sign-up rule. It matters
+      for migration: existing accounts must load without re-applying sign-up validation. Re-word as a migration
+      constraint.
+    edited_requirement: >
+      The system SHALL migrate every existing account unchanged, including user names that would not pass the current
+      sign-up character or length rules.
+  - record_key: REG-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Code (raw bind and String.equals) and Admin Guide line 45 both show passwords stored as entered. Accept as a
+      statement of what the legacy system does; whether the rebuild keeps plaintext storage is a suspected defect for
+      the Business Owner's defect register, so it is not written as a requirement in spec.md.
+  - record_key: REG-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      seed/c reads the DDL (PK, CHECK, defaults) and the seed agrees; seed/b says the same with medium confidence.
+      Use as the source record for the account-record requirement.
+  - record_key: AR-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: Both db/schema passes agree with the DDL and UserDAO; merge into REG-ENT-0001.
+  - record_key: ACCT-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: Populate-script copy of the same SIGNON DDL; merge into REG-ENT-0001.
+  - record_key: AREG-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: Populate-script copy of the same SIGNON DDL; merge into REG-ENT-0001.
+  - record_key: ACR-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Inventory DDL export agrees with the schema in both dialects. Its traces use paths without the legacy-source/
+      prefix, which ingest may not resolve; merge into REG-ENT-0001.
+  - record_key: ACCREG-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: Inventory DDL export; same facts as REG-ENT-0001 plus case-sensitive PK comparison. Merge.
+  - record_key: REG-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      In src/main/webapp this is the sign-up form; signon.jsp and User Guide 5.1 agree, and AR-SCR-0001 is the same
+      screen from pass b. In waf it is the "Create Account Error" page definition from screendefinitions_en_US.xml,
+      which is a distinct screen record; the key collision should be resolved at ingest.
+  - record_key: AR-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: Same sign-up form as REG-SCR-0001 (webapp); the password bound caveat matches REG-BR-0003.
+  - record_key: REG-SCR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      user_creation_error.jsp and the servlet redirect agree; heading, reason and go-back link are all in the JSP.
+      AR-SCR-0002 is the same screen from pass b.
+  - record_key: AR-SCR-0002
+    recommendation: accept
+    confidence: high
+    reason: Same screen as REG-SCR-0002; merge.
