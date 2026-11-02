@@ -1,0 +1,80 @@
+%% EXTRACTED FROM LEGACY SOURCE — evidence of what exists, not a build target. Where this disagrees with a capability delta spec, the delta spec wins.
+%%
+%% Spec extraction SX-0001: entity-relationship view of the legacy Java Pet Store Lite
+%% database (schema ESTOREUSER), drawn from
+%%   legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+%%   legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+%% The column-level DDL, with dialect differences, is in architecture/schema.sql.
+%% Notes:
+%%   - Text (name, description, image) and item prices are held per locale in the
+%%     *_DETAILS tables; the store reads only en_US.
+%%   - SIGNON_AUDIT.username has NO foreign key to SIGNON: failed sign-ins for unknown
+%%     user names are recorded as typed. The dotted line below is a logical link only.
+%%   - "at least one product per category" and "at least one item per product" are NOT
+%%     enforced by the schema; the daily catalog check (rules C1, C2) reports breaches.
+%%     The cardinalities below show what the DDL enforces (zero or more).
+%%   - V_CATALOG_ITEM (a join view over the six catalog tables) is not drawn; no reader
+%%     of it was found.
+erDiagram
+    CATEGORY ||--o{ CATEGORY_DETAILS : "described per locale by"
+    CATEGORY ||--o{ PRODUCT : "contains"
+    PRODUCT ||--o{ PRODUCT_DETAILS : "described per locale by"
+    PRODUCT ||--o{ ITEM : "sold as"
+    ITEM ||--o{ ITEM_DETAILS : "priced and described per locale by"
+    SIGNON |o..o{ SIGNON_AUDIT : "username (no FK)"
+
+    CATEGORY {
+        char10 catid PK
+    }
+    CATEGORY_DETAILS {
+        char10 catid PK, FK
+        char10 locale PK
+        varchar80 name "not null"
+        varchar255 image
+        varchar255 descn
+    }
+    PRODUCT {
+        char10 productid PK
+        char10 catid FK "not null, indexed"
+    }
+    PRODUCT_DETAILS {
+        char10 productid PK, FK
+        char10 locale PK
+        varchar80 name "not null"
+        varchar255 image
+        varchar255 descn
+    }
+    ITEM {
+        char10 itemid PK
+        char10 productid FK "not null, indexed"
+    }
+    ITEM_DETAILS {
+        char10 itemid PK, FK
+        char10 locale PK
+        decimal10_2 listprice "not null, shown as List Price, CHECK listprice >= unitcost"
+        decimal10_2 unitcost "not null, shown as Your Price"
+        varchar255 image "not null"
+        varchar255 descn "not null"
+        varchar80 attr1
+        varchar80 attr2
+        varchar80 attr3
+        varchar80 attr4
+        varchar80 attr5
+    }
+    SIGNON {
+        varchar25 username PK
+        varchar25 password "not null, stored as entered"
+        varchar10 role "CUSTOMER or ADMIN, default CUSTOMER"
+        integer failed_attempts "default 0, consecutive failures"
+        char1 locked "Y or N, default N"
+        timestamp locked_ts
+        timestamp last_signon
+        timestamp created_ts "default current_timestamp"
+    }
+    SIGNON_AUDIT {
+        bigint audit_id PK "identity (Derby), sequence+trigger (Oracle schema file)"
+        varchar25 username "not null, as typed"
+        varchar20 event_type "SIGNON_OK SIGNON_FAIL SIGNON_LOCKED ACCOUNT_LOCKED SIGNOFF USER_CREATED ACCOUNT_UNLOCKED"
+        timestamp event_ts "not null, indexed"
+        varchar45 remote_addr "client address, or batch/admin marker"
+    }
