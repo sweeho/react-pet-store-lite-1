@@ -1,0 +1,519 @@
+# Recommendations for sign-on-audit records not in the approved table.
+# Approved (not listed): AUD-ENT-0001 (SWHR5-R-0010, all five modules), AUDIT-BR-0007 (SWHR5-R-0011),
+# AUDIT-INT-0004 (SWHR5-R-0012). Record keys repeat across modules; each reason names its module.
+# Disputed records: SOA-RULE-0001 (db/schema) and SAUD-BR-0002 (webapp/populate).
+recommendations:
+  - record_key: SOA-REQ-0001
+    recommendation: accept
+    confidence: low
+    reason: >
+      Module inventory/ddl-export-default-001. idx_signon_audit_ts exists in both dialects and the extract, report and purge filter on event_ts, but no query plan was read. Keep as the SHOULD draft 'Audit retrieval by user and by time'.
+  - record_key: SAUD-REQ-0001
+    recommendation: accept
+    confidence: low
+    reason: >
+      Module inventory/ddl-export-default-001. idx_signon_audit_ts exists in both dialects and the extract, report and purge filter on event_ts, but no query plan was read. Keep as the SHOULD draft 'Audit retrieval by user and by time'.
+  - record_key: SOA-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module inventory/ddl-export-default-002. idx_signon_audit_user_ts in both dialects serves the My Account query (UserDAO.java:102). Non-functional; keep as the draft 'Audit retrieval by user and by time'.
+  - record_key: SAU-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. Field list agrees with the SIGNON_AUDIT DDL (petstore_derby.sql:85-94) and the DAO insert; merge into SWHR5-R-0010 as a duplicate.
+  - record_key: SAU-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. The CHECK constraint ck_signon_audit_event is identical in the Derby, Oracle and populate DDL and the user guide event table lists the same seven codes. Spec draft 'Closed set of audit event types'.
+  - record_key: SAU-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. Derby identity and the Oracle sequence plus trigger both generate the id, and getRecentActivity tie-breaks on it. Spec draft 'System-assigned ascending event number'.
+  - record_key: SAU-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. No foreign key from signon_audit.username to SIGNON, UserDAO.java:115-120 audits the unknown name, and admin guide rule R6 says the same. Spec draft 'Events recorded against the user name as typed'.
+  - record_key: AUDIT-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. Field list agrees with the SIGNON_AUDIT DDL (petstore_derby.sql:85-94) and the DAO insert; merge into SWHR5-R-0010 as a duplicate.
+  - record_key: AUDIT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. The CHECK constraint ck_signon_audit_event is identical in the Derby, Oracle and populate DDL and the user guide event table lists the same seven codes. Spec draft 'Closed set of audit event types'.
+  - record_key: AUDIT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. Derby identity and the Oracle sequence plus trigger both generate the id, and getRecentActivity tie-breaks on it. Spec draft 'System-assigned ascending event number'.
+  - record_key: AUDIT-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module inventory/ddl-export-default-003. No foreign key from signon_audit.username to SIGNON, UserDAO.java:115-120 audits the unknown name, and admin guide rule R6 says the same. Spec draft 'Events recorded against the user name as typed'.
+  - record_key: SIGNON-AUDIT-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module Dockerfile. The Dockerfile creates the extract directory and the script writes there via PSL_EXTRACT_DIR. This is deployment detail of SWHR5-R-0012; merge as a note rather than a separate requirement.
+  - record_key: SIGNONAUDIT-ENT-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module vortex/samples. Built from anonymised or generated data; the column shape (user token, day/hour, source_kind) is anonymisation, not the stored record. The event vocabulary matches the DDL CHECK. Merge into SWHR5-R-0010 without the sample's columns.
+    edited_requirement: >
+      The system SHALL record each sign-on audit event with the user name, one of the seven event types, the event time and the origin (client address or batch job identifier).
+  - record_key: SIGNONAUDIT-BR-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module vortex/samples. The sample spans 2026-08-01 to 2026-10-29, consistent with the 90-day purge but not proof of it; the purge code is the authority. Merge into SWHR5-R-0011 and spec draft 'Purge cutoff and atomicity' without the sample dates.
+    edited_requirement: >
+      The system SHALL retain sign-on audit events for at least 90 days and delete older events by the weekly purge.
+  - record_key: SIGN-ON-AUDIT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module conf. audit_purge.sql:5-6 deletes event_ts < CURRENT_DATE - 90 days under one COMMIT. The configured retentionDays is only logged; the SQL hard-codes 90. Spec draft 'Purge cutoff and atomicity'.
+  - record_key: AUDIT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module conf. audit_purge.sql:5-6 deletes event_ts < CURRENT_DATE - 90 days under one COMMIT. The configured retentionDays is only logged; the SQL hard-codes 90. Spec draft 'Purge cutoff and atomicity'.
+  - record_key: SOA-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides. The document lists ACCOUNT_UNLOCKED among events written per user action; in code only the batch unlock and the manual SQL write it, and the web layer never does. Split: the per-outcome list (spec draft 'Sign-on outcomes are audited') and the unlock rule (draft 'Automatic unlock is audited').
+    edited_requirement: >
+      The system SHALL record SIGNON_OK, SIGNON_FAIL (including unknown user names), SIGNON_LOCKED, ACCOUNT_LOCKED, SIGNOFF and USER_CREATED for the corresponding user actions, each with user name as typed, time and client address; ACCOUNT_UNLOCKED SHALL be recorded by the unlock run.
+  - record_key: SOA-SCR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides. The record mixes the identity/list display with the sign-in redirect; account.jsp and signon-config.xml confirm both. Split into the screen requirements 'My Account page access' and 'My Account identity display'.
+    edited_requirement: >
+      The My Account page SHALL display the signed-in user's user name and role; a visitor who is not signed in SHALL be shown the Sign In page first.
+  - record_key: SOA-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: SOA-REQ-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module docs/guides. The runbook omits the distinct-user count that signon_report.sql:2 produces and does not say locked/role figures are a run-time snapshot. Trust the SQL.
+    edited_requirement: >
+      The system SHALL, every day after the audit extract succeeds, write signon_report_YYYYMMDD.txt with, per event type that occurred on the previous day, the event count and distinct user count; and the locked-account count and accounts per role at run time.
+  - record_key: SOA-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. Scheduler (WEEKDAYS=0, 0200, INCOND extract-OK), audit_purge.sql and the runbook agree. Duplicate of SWHR5-R-0011; merge into it.
+  - record_key: AUD-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides. The document lists ACCOUNT_UNLOCKED among events written per user action; in code only the batch unlock and the manual SQL write it, and the web layer never does. Split: the per-outcome list (spec draft 'Sign-on outcomes are audited') and the unlock rule (draft 'Automatic unlock is audited').
+    edited_requirement: >
+      The system SHALL record SIGNON_OK, SIGNON_FAIL (including unknown user names), SIGNON_LOCKED, ACCOUNT_LOCKED, SIGNOFF and USER_CREATED for the corresponding user actions, each with user name as typed, time and client address; ACCOUNT_UNLOCKED SHALL be recorded by the unlock run.
+  - record_key: AUD-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. account.jsp:13-22 shows User Name and Role; user guide 5.4 agrees. Spec screen 'My Account identity display'.
+  - record_key: AUD-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: AUD-INT-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module docs/guides. The runbook omits the distinct-user count that signon_report.sql:2 produces and does not say locked/role figures are a run-time snapshot. Trust the SQL.
+    edited_requirement: >
+      The system SHALL, every day after the audit extract succeeds, write signon_report_YYYYMMDD.txt with, per event type that occurred on the previous day, the event count and distinct user count; and the locked-account count and accounts per role at run time.
+  - record_key: AUD-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. Scheduler (WEEKDAYS=0, 0200, INCOND extract-OK), audit_purge.sql and the runbook agree. Duplicate of SWHR5-R-0011; merge into it.
+  - record_key: AUDIT-REQ-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module docs/guides. The document lists ACCOUNT_UNLOCKED among events written per user action; in code only the batch unlock and the manual SQL write it, and the web layer never does. Split: the per-outcome list (spec draft 'Sign-on outcomes are audited') and the unlock rule (draft 'Automatic unlock is audited').
+    edited_requirement: >
+      The system SHALL record SIGNON_OK, SIGNON_FAIL (including unknown user names), SIGNON_LOCKED, ACCOUNT_LOCKED, SIGNOFF and USER_CREATED for the corresponding user actions, each with user name as typed, time and client address; ACCOUNT_UNLOCKED SHALL be recorded by the unlock run.
+  - record_key: AUDIT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. No foreign key from signon_audit.username to SIGNON, UserDAO.java:115-120 audits the unknown name, and admin guide rule R6 says the same. Spec draft 'Events recorded against the user name as typed'.
+  - record_key: AUDIT-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. account.jsp:13-22 shows User Name and Role; user guide 5.4 agrees. Spec screen 'My Account identity display'.
+  - record_key: AUDIT-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides. The window is fixed to CURRENT_DATE - 1 in the SQL and the script has no parameter; the runbook says to re-extract by hand. Spec draft 'Extract always covers the previous day'.
+  - record_key: AUDIT-REQ-0006
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module docs/guides. The runbook omits the distinct-user count that signon_report.sql:2 produces and does not say locked/role figures are a run-time snapshot. Trust the SQL.
+    edited_requirement: >
+      The system SHALL, every day after the audit extract succeeds, write signon_report_YYYYMMDD.txt with, per event type that occurred on the previous day, the event count and distinct user count; and the locked-account count and accounts per role at run time.
+  - record_key: AUDT-SCR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module waf. screendefinitions_en_US.xml:90-96 defines the 'My Account' screen and signon-config.xml protects it; user guide 5.4 says sign-in is shown first. Spec screen 'My Account page access'.
+  - record_key: AUDIT-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. Every audit() call site in UserDAO (lines 118, 128, 138, 150, 152, 188, 218) matches the listed events, and admin guide R7 agrees. Spec draft 'Sign-on outcomes are audited'.
+  - record_key: AUDIT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. UserDAO.java:150-153 writes SIGNON_FAIL then ACCOUNT_LOCKED in the same attempt; the seed history shows the same pairs. Spec draft 'Locking attempt writes two events'.
+  - record_key: AUDIT-SCR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. AccountHelper RECENT_ACTIVITY_COUNT=10 and SELECT_AUDIT ordered by event_ts desc, audit_id desc; user guide 5.4 agrees. Spec screen 'My Account recent activity selection'.
+  - record_key: AUD-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. Every audit() call site in UserDAO (lines 118, 128, 138, 150, 152, 188, 218) matches the listed events, and admin guide R7 agrees. Spec draft 'Sign-on outcomes are audited'.
+  - record_key: AUD-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. UserDAO.java:150-153 writes SIGNON_FAIL then ACCOUNT_LOCKED in the same attempt; the seed history shows the same pairs. Spec draft 'Locking attempt writes two events'.
+  - record_key: AUD-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon. AccountHelper RECENT_ACTIVITY_COUNT=10 and SELECT_AUDIT ordered by event_ts desc, audit_id desc; user guide 5.4 agrees. Spec screen 'My Account recent activity selection'.
+  - record_key: SOA-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp. account.jsp:24-45 renders When (yyyy-MM-dd HH:mm:ss), Event (raw code) and From, and the fixed note. Spec screen 'My Account recent activity rows'.
+  - record_key: AUD-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp. account.jsp:24-45 renders When (yyyy-MM-dd HH:mm:ss), Event (raw code) and From, and the fixed note. Spec screen 'My Account recent activity rows'.
+  - record_key: SAUD-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module src/main/webapp/populate. Field list agrees with the SIGNON_AUDIT DDL (petstore_derby.sql:85-94) and the DAO insert; merge into SWHR5-R-0010 as a duplicate.
+  - record_key: SAUD-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module src/main/webapp/populate. The intended behaviour (id generated on insert) is clear from the Derby DDL and the Oracle schema script; the Oracle block of PopulateSQL.xml lacks a generator, which is a suspected legacy defect. Confirm which DDL built any production Oracle database; whether the populate gap matters goes to the defect register. Spec draft 'System-assigned ascending event number'.
+  - record_key: AUDIT-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module scheduler/control-m. PSL_PETSTORE.xml:27-38 sets TIMEFROM 0130, INCOND PSL_DB_BACKUP-OK and MAXRERUN 1; runbook agrees. Scheduling is in SWHR5-R-0012; the rerun is in spec draft 'Extract failure handling'.
+  - record_key: AUDIT-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module scheduler/control-m. The DOMAIL URGENCY=R to psl-security is in scheduler config only, and the hold of report and purge follows from their INCOND on PSL_AUDIT_EXTRACT-OK. No run history was read. Spec draft 'Extract failure handling'.
+  - record_key: AUDIT-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module scheduler/control-m. PSL_SIGNON_REPORT has TIMEFROM 0145 and INCOND PSL_AUDIT_EXTRACT-OK. Spec draft 'Daily sign-on statistics report'.
+  - record_key: AUDIT-RULE-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module scheduler/control-m. Scheduler (WEEKDAYS=0, 0200, INCOND extract-OK), audit_purge.sql and the runbook agree. Duplicate of SWHR5-R-0011; merge into it.
+  - record_key: AUDIT-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module scheduler/control-m. PSL_PETSTORE.xml:27-38 sets TIMEFROM 0130, INCOND PSL_DB_BACKUP-OK and MAXRERUN 1; runbook agrees. Scheduling is in SWHR5-R-0012; the rerun is in spec draft 'Extract failure handling'.
+  - record_key: AUDIT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module scheduler/control-m. Scheduler (WEEKDAYS=0, 0200, INCOND extract-OK), audit_purge.sql and the runbook agree. Duplicate of SWHR5-R-0011; merge into it.
+  - record_key: SA-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/schema. Field list agrees with the SIGNON_AUDIT DDL (petstore_derby.sql:85-94) and the DAO insert; merge into SWHR5-R-0010 as a duplicate.
+  - record_key: SA-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/schema. The CHECK constraint ck_signon_audit_event is identical in the Derby, Oracle and populate DDL and the user guide event table lists the same seven codes. Spec draft 'Closed set of audit event types'.
+  - record_key: SA-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/schema. No foreign key from signon_audit.username to SIGNON, UserDAO.java:115-120 audits the unknown name, and admin guide rule R6 says the same. Spec draft 'Events recorded against the user name as typed'.
+  - record_key: SA-BR-0004
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module db/schema. Combines two rules (daily extract, 90-day purge) from a table comment. Both are covered by SWHR5-R-0012 and SWHR5-R-0011; merge and retire this record.
+    edited_requirement: >
+      The system SHALL extract sign-on events daily and purge events older than 90 days weekly after a successful extract.
+  - record_key: SOA-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/schema. Field list agrees with the SIGNON_AUDIT DDL (petstore_derby.sql:85-94) and the DAO insert; merge into SWHR5-R-0010 as a duplicate.
+  - record_key: SOA-RULE-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module db/schema. The intended behaviour (id generated on insert) is clear from the Derby DDL and the Oracle schema script; the Oracle block of PopulateSQL.xml lacks a generator, which is a suspected legacy defect. Confirm which DDL built any production Oracle database; whether the populate gap matters goes to the defect register. Spec draft 'System-assigned ascending event number'.
+  - record_key: SOA-RULE-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module db/schema. Combines two rules (daily extract, 90-day purge) from a table comment. Both are covered by SWHR5-R-0012 and SWHR5-R-0011; merge and retire this record.
+    edited_requirement: >
+      The system SHALL extract sign-on events daily and purge events older than 90 days weekly after a successful extract.
+  - record_key: AUD-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. acct_unlock.sql:4-17 inserts ACCOUNT_UNLOCKED with 'batch:PSL_ACCT_UNLOCK' and updates SIGNON before one COMMIT. Spec draft 'Automatic unlock is audited'. Note the manual runbook unlock writes origin 'admin'.
+  - record_key: AUD-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: AUD-INT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. psl_audit_extract.sh:12-13 appends TRAILER,$DAY,$(wc -l) and the sample's last line matches its 28 rows. Spec draft 'Extract trailer line'.
+  - record_key: AUD-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. audit_purge.sql:5-6 deletes event_ts < CURRENT_DATE - 90 days under one COMMIT. The configured retentionDays is only logged; the SQL hard-codes 90. Spec draft 'Purge cutoff and atomicity'.
+  - record_key: AUD-INT-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. SYSCS_EXPORT_QUERY with ',' and '"' and UTF-8 (audit_extract.sql:10) and the sample file agree on five fields, quoting and no header. Spec draft 'Extract file line format'.
+  - record_key: AUD-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. The window is fixed to CURRENT_DATE - 1 in the SQL and the script has no parameter; the runbook says to re-extract by hand. Spec draft 'Extract always covers the previous day'.
+  - record_key: AUD-BR-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. Scheduler (WEEKDAYS=0, 0200, INCOND extract-OK), audit_purge.sql and the runbook agree. Duplicate of SWHR5-R-0011; merge into it.
+  - record_key: AUD-BR-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. signon_report.sql:1-11 and psl_signon_report.sh agree with the runbook; the runbook omits the distinct-user count, which the SQL adds. Spec draft 'Daily sign-on statistics report'.
+  - record_key: AUD-BR-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/batch. signon_report.sql:1-11 and psl_signon_report.sh agree with the runbook; the runbook omits the distinct-user count, which the SQL adds. Spec draft 'Daily sign-on statistics report'.
+  - record_key: AUDIT-ENT-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module data/seed. Field list matches SWHR5-R-0010; the batch origin marker is confirmed by acct_unlock.sql:6-7 and is carried by the draft 'Origin field content'. Merge into SWHR5-R-0010 and drop sample-only details (anonymised day/hour, source_kind).
+    edited_requirement: >
+      The system SHALL record each sign-on audit event with a system-assigned event number, the user name as typed, one of the seven event types, the event time and the client address or, for automatic unlocks, the unlock job's identifier.
+  - record_key: AUD-RULE-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/seed. UserDAO.createUser writes USER_CREATED (line 188); the seed data shows it as each account's first event. The 'before any other event' ordering is a consequence of creation, confirmed by data only. Spec draft 'Account creation is audited'.
+  - record_key: AUD-RULE-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/seed. SignOffServlet.java:61-65 records SIGNOFF only when the session holds a user name, and there is no session-expiry listener that audits; the sample data agrees. Spec draft 'Sign-off is audited only on explicit sign-out'.
+  - record_key: AUDIT-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/seed. UserDAO.createUser writes USER_CREATED (line 188); the seed data shows it as each account's first event. The 'before any other event' ordering is a consequence of creation, confirmed by data only. Spec draft 'Account creation is audited'.
+  - record_key: SOA-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: SOA-INT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. SYSCS_EXPORT_QUERY with ',' and '"' and UTF-8 (audit_extract.sql:10) and the sample file agree on five fields, quoting and no header. Spec draft 'Extract file line format'.
+  - record_key: SOA-INT-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. psl_audit_extract.sh:12-13 appends TRAILER,$DAY,$(wc -l) and the sample's last line matches its 28 rows. Spec draft 'Extract trailer line'.
+  - record_key: SOA-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. The CHECK constraint ck_signon_audit_event is identical in the Derby, Oracle and populate DDL and the user guide event table lists the same seven codes. Spec draft 'Closed set of audit event types'.
+  - record_key: SOA-BR-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/interface. request.getRemoteAddr() in the web path and the literal in acct_unlock.sql agree with the extract sample. The admin-guide manual unlock writes 'admin', a third value; confirm with the SME whether manual unlocks still happen. Spec draft 'Origin field content'.
+  - record_key: SOA-INT-0006
+    recommendation: accept
+    confidence: low
+    reason: >
+      Module data/interface. Based on one sample file only (Derby's timestamp rendering, server local time). Accept as the observed format but have the security team confirm what their consumer parses. Spec draft 'Extract file line format'.
+  - record_key: SIGNON-AUDIT-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: SIGNON-AUDIT-INT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. SYSCS_EXPORT_QUERY with ',' and '"' and UTF-8 (audit_extract.sql:10) and the sample file agree on five fields, quoting and no header. Spec draft 'Extract file line format'.
+  - record_key: SIGNON-AUDIT-INT-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. psl_audit_extract.sh:12-13 appends TRAILER,$DAY,$(wc -l) and the sample's last line matches its 28 rows. Spec draft 'Extract trailer line'.
+  - record_key: SIGNON-AUDIT-INT-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/interface. request.getRemoteAddr() in the web path and the literal in acct_unlock.sql agree with the extract sample. The admin-guide manual unlock writes 'admin', a third value; confirm with the SME whether manual unlocks still happen. Spec draft 'Origin field content'.
+  - record_key: SIGNON-AUDIT-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/interface. The window is fixed to CURRENT_DATE - 1 in the SQL and the script has no parameter; the runbook says to re-extract by hand. Spec draft 'Extract always covers the previous day'.
+  - record_key: SIGNON-AUDIT-RULE-0002
+    recommendation: accept
+    confidence: low
+    reason: >
+      Module data/interface. Inferred from the script: an empty export yields wc -l = 0. No empty-day sample exists; confirm with one test run. Spec draft 'Extract trailer line'.
+  - record_key: AUDIT-ENT-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module data/generate_history.py. Built from anonymised or generated data; the column shape (user token, day/hour, source_kind) is anonymisation, not the stored record. The event vocabulary matches the DDL CHECK. Merge into SWHR5-R-0010 without the sample's columns.
+    edited_requirement: >
+      The system SHALL record each sign-on audit event with the user name, one of the seven event types, the event time and the origin (client address or batch job identifier).
+  - record_key: SIGNONAUD-ENT-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module data/migration. Field list matches SWHR5-R-0010; the batch origin marker is confirmed by acct_unlock.sql:6-7 and is carried by the draft 'Origin field content'. Merge into SWHR5-R-0010 and drop sample-only details (anonymised day/hour, source_kind).
+    edited_requirement: >
+      The system SHALL record each sign-on audit event with a system-assigned event number, the user name as typed, one of the seven event types, the event time and the client address or, for automatic unlocks, the unlock job's identifier.
+  - record_key: SIGNONAUD-BR-0002
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module data/migration. The sample spans 2026-08-01 to 2026-10-29, consistent with the 90-day purge but not proof of it; the purge code is the authority. Merge into SWHR5-R-0011 and spec draft 'Purge cutoff and atomicity' without the sample dates.
+    edited_requirement: >
+      The system SHALL retain sign-on audit events for at least 90 days and delete older events by the weekly purge.
+  - record_key: SIGNONAUD-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/migration. SignOffServlet.java:61-65 records SIGNOFF only when the session holds a user name, and there is no session-expiry listener that audits; the sample data agrees. Spec draft 'Sign-off is audited only on explicit sign-out'.
+  - record_key: AUD-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module data/migration. The sample spans 2026-08-01 to 2026-10-29, consistent with the 90-day purge but not proof of it; the purge code is the authority. Merge into SWHR5-R-0011 and spec draft 'Purge cutoff and atomicity' without the sample dates.
+    edited_requirement: >
+      The system SHALL retain sign-on audit events for at least 90 days and delete older events by the weekly purge.
+  - record_key: AUDIT-ENT-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module data/migration. Field list matches SWHR5-R-0010; the batch origin marker is confirmed by acct_unlock.sql:6-7 and is carried by the draft 'Origin field content'. Merge into SWHR5-R-0010 and drop sample-only details (anonymised day/hour, source_kind).
+    edited_requirement: >
+      The system SHALL record each sign-on audit event with a system-assigned event number, the user name as typed, one of the seven event types, the event time and the client address or, for automatic unlocks, the unlock job's identifier.
+  - record_key: AUDIT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module data/migration. The purge depends on that day's extract-OK condition so nothing is deleted unextracted. Merge into SWHR5-R-0011.
+  - record_key: AUDIT-INT-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module data/migration. Matches the extract layout (no header, event-number order, trailer) shown by the interface sample. Duplicate of SWHR5-R-0012; merge.
+  - record_key: AUDIT-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: AUDIT-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. psl_audit_extract.sh:12-13 appends TRAILER,$DAY,$(wc -l) and the sample's last line matches its 28 rows. Spec draft 'Extract trailer line'.
+  - record_key: AUDIT-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. signon_report.sql:1-11 and psl_signon_report.sh agree with the runbook; the runbook omits the distinct-user count, which the SQL adds. Spec draft 'Daily sign-on statistics report'.
+  - record_key: AUDIT-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. audit_purge.sql:5-6 deletes event_ts < CURRENT_DATE - 90 days under one COMMIT. The configured retentionDays is only logged; the SQL hard-codes 90. Spec draft 'Purge cutoff and atomicity'.
+  - record_key: AUD-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. audit_extract.sql:4-10, psl_audit_extract.sh and the runbook column table agree, and the 2026-10-29 sample file matches. Duplicate of SWHR5-R-0012; merge into it.
+  - record_key: AUD-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. signon_report.sql:1-11 and psl_signon_report.sh agree with the runbook; the runbook omits the distinct-user count, which the SQL adds. Spec draft 'Daily sign-on statistics report'.
+  - record_key: AUD-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. audit_purge.sql:5-6 deletes event_ts < CURRENT_DATE - 90 days under one COMMIT. The configured retentionDays is only logged; the SQL hard-codes 90. Spec draft 'Purge cutoff and atomicity'.
+  - record_key: AUD-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module batch. acct_unlock.sql:4-17 inserts ACCOUNT_UNLOCKED with 'batch:PSL_ACCT_UNLOCK' and updates SIGNON before one COMMIT. Spec draft 'Automatic unlock is audited'. Note the manual runbook unlock writes origin 'admin'.
