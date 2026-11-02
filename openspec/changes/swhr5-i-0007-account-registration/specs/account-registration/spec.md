@@ -7,24 +7,28 @@ Recovered from: REG-BR-0001
 The system SHALL refuse to create an account whose user name is missing or whose length, after leading and trailing spaces are removed, is shorter than 3 or longer than 25 characters, with the message "The user name must be 3 to 25 characters."
 
 #### Scenario: User name too short
+ID: SWHR5-R-0166.01
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit the user name "ab" with a valid, matching password
 - **THEN** no account is created and the refusal reason shown is "The user name must be 3 to 25 characters."
 
 #### Scenario: User name too long
+ID: SWHR5-R-0166.02
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit a 26-character user name with a valid, matching password
 - **THEN** no account is created and the refusal reason shown is "The user name must be 3 to 25 characters."
 
 #### Scenario: User name missing
+ID: SWHR5-R-0166.03
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit an empty user name with a valid, matching password
 - **THEN** no account is created and the refusal reason shown is "The user name must be 3 to 25 characters."
 
 #### Scenario: Boundary lengths accepted
+ID: SWHR5-R-0166.04
 
 - **GIVEN** no account named "abc" exists
 - **WHEN** a visitor submits the user name "abc" with a valid, matching password
@@ -37,18 +41,21 @@ Recovered from: REG-BR-0002
 The system SHALL refuse to create an account whose user name contains any character other than a letter, a digit, '-' or '_', with the message "The user name can only contain letters, digits, '-' and '_'."
 
 #### Scenario: User name with a space
+ID: SWHR5-R-0015.01
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit the user name "pet lover" with a valid, matching password
 - **THEN** no account is created and the refusal reason shown is "The user name can only contain letters, digits, '-' and '\_'."
 
 #### Scenario: User name with surrounding spaces
+ID: SWHR5-R-0015.02
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit the user name " alice " with a valid, matching password
 - **THEN** the length check passes, no account is created, and the refusal reason shown is "The user name can only contain letters, digits, '-' and '\_'."
 
 #### Scenario: Hyphen and underscore accepted
+ID: SWHR5-R-0015.03
 
 - **GIVEN** no account named "pet_lover-1" exists
 - **WHEN** a visitor submits the user name "pet_lover-1" with a valid, matching password
@@ -61,12 +68,14 @@ Recovered from: REG-BR-0003
 The system SHALL refuse to create an account whose password is missing, shorter than 4 characters or longer than 25 characters, with the message "The password must be 4 to 25 characters."
 
 #### Scenario: Password too short
+ID: SWHR5-R-0158.01
 
 - **GIVEN** a visitor on the sign-up form with a valid user name
 - **WHEN** they submit the password "abc" twice
 - **THEN** no account is created and the refusal reason shown is "The password must be 4 to 25 characters."
 
 #### Scenario: Password too long
+ID: SWHR5-R-0158.02
 
 - **GIVEN** a visitor on the sign-up form with a valid user name
 - **WHEN** they submit a 26-character password twice
@@ -79,12 +88,14 @@ Recovered from: REG-RUL-0001
 The system SHALL accept a new password only when it is 4 to 25 characters long, and spaces in the password MUST count towards its length without trimming.
 
 #### Scenario: Boundary lengths accepted
+ID: SWHR5-R-0035.01
 
 - **GIVEN** a visitor on the sign-up form with a valid, unused user name
 - **WHEN** they submit a 4-character password twice, or a 25-character password twice
 - **THEN** the password length check passes
 
 #### Scenario: Spaces count towards length
+ID: SWHR5-R-0035.02
 
 - **GIVEN** a visitor on the sign-up form with a valid, unused user name
 - **WHEN** they submit the password "ab " (two letters and two spaces) twice
@@ -97,12 +108,14 @@ Recovered from: REG-BR-0004
 The system SHALL refuse to create an account when the repeated password is not identical to the password, with the message "The password and the confirmation do not match."
 
 #### Scenario: Confirmation differs
+ID: SWHR5-R-0016.01
 
 - **GIVEN** a visitor on the sign-up form with a valid user name
 - **WHEN** they submit the password "secret1" and the repeated password "secret2"
 - **THEN** no account is created and the refusal reason shown is "The password and the confirmation do not match."
 
 #### Scenario: Confirmation differs only in case
+ID: SWHR5-R-0016.02
 
 - **GIVEN** a visitor on the sign-up form with a valid user name
 - **WHEN** they submit the password "Secret1" and the repeated password "secret1"
@@ -115,6 +128,7 @@ Recovered from: REG-BR-0005
 The system SHALL refuse to create an account whose user name exactly matches the user name of an existing account, with the message "The user name <name> is already taken. Choose another user name." where <name> is the submitted user name.
 
 #### Scenario: Name already taken
+ID: SWHR5-R-0017.01
 
 - **GIVEN** an account named "j2ee" exists
 - **WHEN** a visitor submits the user name "j2ee" with a valid, matching password
@@ -127,6 +141,7 @@ Recovered from: REG-BR-0006
 The system SHALL treat user names as case-sensitive, so that user names differing only in letter case MUST be different accounts.
 
 #### Scenario: Same name in different case
+ID: SWHR5-R-0033.01
 
 - **GIVEN** an account named "j2ee" exists and none named "J2EE"
 - **WHEN** a visitor submits the user name "J2EE" with a valid, matching password
@@ -139,12 +154,14 @@ Recovered from: REG-REQ-0001
 The system SHALL check a sign-up request in this order: user name length, user name characters, password length, password confirmation, then user name already taken; and SHALL report only the first failing check.
 
 #### Scenario: Several rules broken
+ID: SWHR5-R-0034.01
 
 - **GIVEN** a visitor on the sign-up form
 - **WHEN** they submit the user name "a b" with the password "ab" and the repeated password "xy"
 - **THEN** no account is created and the only refusal reason shown is "The user name can only contain letters, digits, '-' and '\_'."
 
 #### Scenario: Duplicate checked only after field rules pass
+ID: SWHR5-R-0034.02
 
 - **GIVEN** an account named "shopper" exists
 - **WHEN** a visitor submits the user name "shopper" with the password "abc" twice
@@ -157,12 +174,14 @@ Recovered from: REG-REQ-0002
 The system SHALL create every self-registered account with the CUSTOMER role, a failed sign-on count of zero, an unlocked state and its creation time, and self-registration SHALL NOT be able to create an administrator account.
 
 #### Scenario: New account defaults
+ID: SWHR5-R-0007.01
 
 - **GIVEN** no account named "newpet" exists
 - **WHEN** a visitor signs up as "newpet" with a valid, matching password
 - **THEN** the account "newpet" has the CUSTOMER role, zero failed sign-ons, is unlocked, has no lock time and carries its creation time
 
 #### Scenario: Role cannot be requested
+ID: SWHR5-R-0007.02
 
 - **GIVEN** a sign-up request that additionally carries a role value of ADMIN
 - **WHEN** the account is created
@@ -175,6 +194,7 @@ Recovered from: REG-WF-0001
 WHEN an account is created successfully THEN it SHALL be given the CUSTOMER role, and the system SHALL offer no self-service way to create an ADMIN account.
 
 #### Scenario: Only customer sign-up is offered
+ID: SWHR5-R-0038.01
 
 - **GIVEN** an anonymous visitor
 - **WHEN** they look for a way to create an account
@@ -187,6 +207,7 @@ Recovered from: REG-REQ-0003
 WHEN a new account is created successfully, THEN the system SHALL sign the new user in immediately with the CUSTOMER role, without asking them to sign in again.
 
 #### Scenario: New user is signed in
+ID: SWHR5-R-0164.01
 
 - **GIVEN** an anonymous visitor on the sign-up form
 - **WHEN** they create the account "newpet" successfully
@@ -199,12 +220,14 @@ Recovered from: AR-WF-0003
 The system SHALL, after creating an account, take the new user to the page they originally asked for before being sent to sign in, or to the home page when there was none.
 
 #### Scenario: Visitor was sent to sign in from a protected page
+ID: SWHR5-R-0168.01
 
 - **GIVEN** an anonymous visitor who was sent to the Sign In page when requesting a protected page
 - **WHEN** they create an account successfully
 - **THEN** they are taken to the protected page they originally requested
 
 #### Scenario: Visitor opened the Sign In page directly
+ID: SWHR5-R-0168.02
 
 - **GIVEN** an anonymous visitor with no recorded original destination
 - **WHEN** they create an account successfully
@@ -217,6 +240,7 @@ Recovered from: REG-REQ-0007
 WHEN a new account passes every rule THEN the system SHALL create it with the CUSTOMER role, record an account-created (USER_CREATED) event, sign the user in at once and take them to the page they asked for or to the home page; the system SHALL offer no screen for creating an ADMIN account.
 
 #### Scenario: Valid sign-up completes every step
+ID: SWHR5-R-0169.01
 
 - **GIVEN** no account named "newpet" exists and the visitor has no recorded original destination
 - **WHEN** they sign up as "newpet" with a valid, matching password
@@ -229,12 +253,14 @@ Recovered from: AR-REQ-0001
 WHEN an account is created through self sign-up THEN the system SHALL record exactly one USER_CREATED audit event carrying the user name and the requesting client address. A refused sign-up SHALL NOT record a USER_CREATED event.
 
 #### Scenario: Sign-up is audited
+ID: SWHR5-R-0032.01
 
 - **GIVEN** no account named "newpet" exists
 - **WHEN** a visitor at address 10.0.0.5 signs up as "newpet" successfully
 - **THEN** the audit log holds one USER_CREATED event for "newpet" with client address 10.0.0.5
 
 #### Scenario: Refused sign-up is not audited
+ID: SWHR5-R-0032.02
 
 - **GIVEN** an account named "j2ee" exists
 - **WHEN** a visitor's sign-up as "j2ee" is refused as already taken
@@ -247,6 +273,7 @@ Recovered from: ACCT-BR-0001
 WHEN a customer account is created THEN the system SHALL record its account-created event at the account's creation time, and no other audit event for that account SHALL precede it; creating an account SHALL NOT itself record a successful sign-on event.
 
 #### Scenario: Event time equals creation time
+ID: SWHR5-R-0159.01
 
 - **GIVEN** no account named "newpet" exists
 - **WHEN** a visitor signs up as "newpet" successfully
@@ -259,6 +286,7 @@ Recovered from: REG-REQ-0004
 The system SHALL store the account password exactly as entered, without hashing or encryption, and SHALL compare it as stored at sign-on.
 
 #### Scenario: Stored password matches entry
+ID: SWHR5-R-0162.01
 
 - **GIVEN** a visitor signs up as "newpet" with the password "Secret 1"
 - **WHEN** the stored account is read back
@@ -271,12 +299,14 @@ Recovered from: ACCREG-ENT-0001
 The system SHALL hold one sign-on account per user name, where the user name is mandatory, at most 25 characters and unique, and the password is mandatory and at most 25 characters; the system SHALL refuse to store a second account with the same user name.
 
 #### Scenario: Second account with the same user name is refused by the store
+ID: SWHR5-R-0165.01
 
 - **GIVEN** an account named "shopper" is stored
 - **WHEN** a second account named "shopper" is stored by any path
 - **THEN** the store refuses it and the existing account is unchanged
 
 #### Scenario: Account without a password is refused by the store
+ID: SWHR5-R-0165.02
 
 - **GIVEN** no account named "nopass" exists
 - **WHEN** an account named "nopass" is stored with no password
@@ -289,6 +319,7 @@ Recovered from: AR-ENT-0001
 The system SHALL store each account under a unique user name of at most 25 characters, SHALL require a password of at most 25 characters, and SHALL record the time the account was created, defaulting to the moment the account is stored.
 
 #### Scenario: Creation time defaults
+ID: SWHR5-R-0160.01
 
 - **GIVEN** an account is stored without an explicit creation time
 - **WHEN** the account is read back
@@ -301,6 +332,7 @@ Recovered from: AREG-ENT-0001
 The system SHALL keep one sign-on account per user name, recording when the account was created (defaulting to the moment of creation) and when the user last signed on; the last sign-on time MUST be empty until the first successful sign-on.
 
 #### Scenario: New account has no last sign-on time
+ID: SWHR5-R-0161.01
 
 - **GIVEN** no account named "newpet" exists
 - **WHEN** a visitor signs up as "newpet" successfully
@@ -313,12 +345,14 @@ Recovered from: REG-ENT-0001
 The system SHALL keep, for each account, a unique user name of at most 25 characters, a password, a role of CUSTOMER or ADMIN (default CUSTOMER), a consecutive failed attempt count (default 0), a locked flag of Y or N (default N), the time it was locked (empty when unlocked), the time of the last successful sign-on (empty until the first one) and the creation time.
 
 #### Scenario: Defaults applied when only name and password are given
+ID: SWHR5-R-0163.01
 
 - **GIVEN** an account is stored with only a user name and a password
 - **WHEN** the account is read back
 - **THEN** its role is CUSTOMER, its failed attempt count is 0, its locked flag is N, its lock time and last sign-on time are empty and its creation time is set
 
 #### Scenario: Role outside the allowed set
+ID: SWHR5-R-0163.02
 
 - **GIVEN** an account is stored with the role "MANAGER"
 - **WHEN** the store validates the record
@@ -331,6 +365,7 @@ Recovered from: AR-BR-0002
 GIVEN an account is created without an explicit role THEN the system SHALL give it the CUSTOMER role.
 
 #### Scenario: Role omitted
+ID: SWHR5-R-0167.01
 
 - **GIVEN** an account is stored by any path without a role value
 - **WHEN** the account is read back
@@ -343,12 +378,14 @@ Recovered from: REG-SCR-0001
 The Sign In page SHALL offer a new-customer form with a User Name text input, a masked Password input, a masked Password (Repeat) input and a "Create New Account" button, and SHALL display the rules "User name: 3 to 25 letters, digits, '-' or '\_'." and "Password: 4 to 25 characters." Pressing "Create New Account" MUST submit the three values as one sign-up request.
 
 #### Scenario: Form displayed to an anonymous visitor
+ID: SWHR5-R-0036.01
 
 - **GIVEN** an anonymous visitor
 - **WHEN** the Sign In page is displayed
 - **THEN** the new-customer form shows the User Name, Password and Password (Repeat) inputs (both passwords masked, all empty), the "Create New Account" button and the two rule lines
 
 #### Scenario: Form submitted
+ID: SWHR5-R-0036.02
 
 - **GIVEN** the visitor has filled in User Name, Password and Password (Repeat)
 - **WHEN** they press "Create New Account"
@@ -361,12 +398,14 @@ Recovered from: REG-SCR-0002
 GIVEN an account-creation request that breaks a field rule or uses a taken user name THEN the system SHALL show a page headed "Could Not Create Your Account" with the specific refusal reason and a "go back" link to the Sign In page.
 
 #### Scenario: Refusal displayed
+ID: SWHR5-R-0110.01
 
 - **GIVEN** a visitor submitted a sign-up with mismatching passwords
 - **WHEN** the refusal page is displayed
 - **THEN** it shows the heading "Could Not Create Your Account", the reason "The password and the confirmation do not match." and a "go back" link
 
 #### Scenario: Go back
+ID: SWHR5-R-0110.02
 
 - **GIVEN** the refusal page is displayed to an anonymous visitor
 - **WHEN** they follow the "go back" link
@@ -379,6 +418,7 @@ Recovered from: REG-SCR-0008
 WHEN account creation is refused THEN the system SHALL show the "Could Not Create Your Account" page, titled "Create Account Error" within the store's standard page layout, carrying the message of the rule that was broken.
 
 #### Scenario: Taken user name refused
+ID: SWHR5-R-0037.01
 
 - **GIVEN** an account named "j2ee" exists
 - **WHEN** a visitor signs up as "j2ee" with a valid, matching password
