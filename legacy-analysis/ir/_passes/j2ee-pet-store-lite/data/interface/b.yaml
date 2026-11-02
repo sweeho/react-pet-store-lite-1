@@ -1,0 +1,553 @@
+records:
+  - record_key: SOA-INT-0001
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL produce, once per day, a sign-on audit extract file named
+      signon_audit_YYYYMMDD.csv (YYYYMMDD being the previous calendar day) in the
+      extract directory for the security team, containing every sign-on audit event
+      whose event time is on or after 00:00 of the previous day and before 00:00 of
+      the current day, ordered by ascending event number.
+    plain_text: >
+      Every day the store hands the security team a file with all of yesterday's
+      sign-in related events (midnight to midnight), in the order they were
+      recorded. The file is named after the day it covers.
+    technical_note: >
+      batch/psl_audit_extract.sh computes DAY with `date -d yesterday`, runs
+      db/batch/audit_extract.sql through ij (Derby SYSCS_UTIL.SYSCS_EXPORT_QUERY to
+      /var/petstore/extract/signon_audit_extract.csv), then renames it to
+      $PSL_EXTRACT_DIR/signon_audit_$DAY.csv. The window is
+      [CURRENT_DATE - 1 day, CURRENT_DATE) evaluated by the database clock; the
+      lower bound is inclusive, the upper bound exclusive. ORDER BY audit_id.
+      PSL_EXTRACT_DIR defaults to /var/petstore/extract (conf/env.sh).
+    interface: true
+    confidence: high
+    confidence_basis: >
+      The window, ordering and file name are enforced in the SQL and the shell
+      script and are restated in the operations runbook and the Control-M job
+      description; the sample file in this module matches (all rows on 2026-10-29,
+      ascending audit_id). Three independent places agree.
+    risk_class: regulated
+    basis: >
+      Export query with a one-day window and ORDER BY audit_id; script names the
+      file after yesterday's date; runbook 3.2 describes the same file for the
+      security team; sample file signon_audit_20261029.csv holds only 2026-10-29
+      events in audit_id order 1659..1686.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 1
+        line_end: 10
+        excerpt: |
+          -- PSL_AUDIT_EXTRACT: export yesterday's sign-on audit events for the
+          -- security team. Output: /var/petstore/extract/signon_audit_extract.csv
+          -- (the script renames it to signon_audit_YYYYMMDD.csv).
+          CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY(
+            'SELECT audit_id, username, event_type, event_ts, remote_addr
+               FROM signon_audit
+              WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}
+                AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)
+              ORDER BY audit_id',
+            '/var/petstore/extract/signon_audit_extract.csv', ',', '"', 'UTF-8');
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 6
+        line_end: 11
+        excerpt: |
+          DAY=$(date -d yesterday '+%Y%m%d' 2>/dev/null || date -v-1d '+%Y%m%d')
+          OUT="$PSL_EXTRACT_DIR/signon_audit_$DAY.csv"
+          psl_log "start day=$DAY"
+          rm -f "$PSL_EXTRACT_DIR/signon_audit_extract.csv"
+          psl_ij "$PSL_SQL/audit_extract.sql" > /dev/null || { psl_log "FAILED: export"; exit 8; }
+          mv "$PSL_EXTRACT_DIR/signon_audit_extract.csv" "$OUT"
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 46
+        line_end: 48
+        excerpt: |
+          <h2>3.2 PSL_AUDIT_EXTRACT</h2>
+          <p>Exports yesterday's rows of SIGNON_AUDIT (00:00 to 24:00) to <code>/var/petstore/extract/signon_audit_YYYYMMDD.csv</code>
+          for the security team (<code>db/batch/audit_extract.sql</code>).</p>
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          1659,"idanair","SIGNON_OK","2026-10-29 09:23:47.0","10.17.227.177"
+          1660,"zoedas","SIGNON_OK","2026-10-29 10:09:48.0","10.17.129.107"
+    stack_metadata:
+      job.entrypoint: batch/psl_audit_extract.sh
+      db.procedure: SYSCS_UTIL.SYSCS_EXPORT_QUERY
+      db.table: SIGNON_AUDIT
+      config.key: PSL_EXTRACT_DIR
+      file.path: /var/petstore/extract/signon_audit_YYYYMMDD.csv
+
+  - record_key: SOA-INT-0002
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL write each audit event in the extract file as one line with
+      exactly five comma-separated fields in this order: event number (unquoted
+      integer), user name, event type, event time and client address, the four text
+      fields enclosed in double quotes, UTF-8 encoded, with no header line.
+    plain_text: >
+      Each line of the security file is one event with five values: event number,
+      user name as typed, what happened, when, and where from. There is no heading
+      line.
+    technical_note: >
+      Column list and order come from the SELECT in db/batch/audit_extract.sql;
+      delimiter ',' and character delimiter '"' and codeset UTF-8 are the
+      SYSCS_EXPORT_QUERY arguments. Derby quotes only character columns, so audit_id
+      (bigint) is unquoted. No header is emitted by the Derby export. Runbook 3.2
+      documents the same five columns and "No header row".
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Layout is fixed by the export call, documented column-by-column in the
+      runbook, and visible in all 28 data lines of the sample file.
+    risk_class: regulated
+    basis: >
+      SELECT column order plus export delimiters; runbook column table; sample lines.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 5
+        line_end: 10
+        excerpt: |
+            'SELECT audit_id, username, event_type, event_ts, remote_addr
+               FROM signon_audit
+              WHERE event_ts >= {fn TIMESTAMPADD(SQL_TSI_DAY, -1, CAST(CURRENT_DATE AS TIMESTAMP))}
+                AND event_ts <  CAST(CURRENT_DATE AS TIMESTAMP)
+              ORDER BY audit_id',
+            '/var/petstore/extract/signon_audit_extract.csv', ',', '"', 'UTF-8');
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 49
+        line_end: 57
+        excerpt: |
+          <table class="grid">
+           <tr><th>Column</th><th>Content</th></tr>
+           <tr><td>1 audit_id</td><td>Event number</td></tr>
+           <tr><td>2 username</td><td>User name as typed</td></tr>
+           <tr><td>3 event_type</td><td>SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF, USER_CREATED</td></tr>
+           <tr><td>4 event_ts</td><td>Time of the event</td></tr>
+           <tr><td>5 remote_addr</td><td>Client address, or <code>batch:PSL_ACCT_UNLOCK</code></td></tr>
+          </table>
+          <p>No header row. The last line is a trailer <code>TRAILER,YYYYMMDD,&lt;row count&gt;</code>; the count excludes the trailer.</p>
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          1659,"idanair","SIGNON_OK","2026-10-29 09:23:47.0","10.17.227.177"
+    stack_metadata:
+      db.procedure: SYSCS_UTIL.SYSCS_EXPORT_QUERY
+      file.delimiter: ","
+      file.quote: '"'
+      file.encoding: UTF-8
+
+  - record_key: SOA-INT-0003
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL end the extract file with a trailer line of the form
+      TRAILER,<YYYYMMDD>,<count>, where YYYYMMDD is the day the file covers and count
+      is the number of event lines in the file, excluding the trailer itself.
+    plain_text: >
+      The last line of the security file says "TRAILER", the date covered and how
+      many event lines came before it, so the receiver can check it got the whole
+      file.
+    technical_note: >
+      psl_audit_extract.sh counts lines with `wc -l` on the renamed file before
+      appending, then appends "TRAILER,$DAY,$ROWS". The count is physical lines, not
+      rows. Sample: 28 event lines, trailer TRAILER,20261029,28.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Enforced in the script, documented in the runbook, and the sample file's
+      trailer count (28) equals its event lines.
+    risk_class: regulated
+    basis: >
+      Script lines 12-13; runbook trailer sentence; sample line 29.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 12
+        line_end: 13
+        excerpt: |
+          ROWS=$(wc -l < "$OUT" | tr -d ' ')
+          echo "TRAILER,$DAY,$ROWS" >> "$OUT"
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 57
+        line_end: 57
+        excerpt: |
+          <p>No header row. The last line is a trailer <code>TRAILER,YYYYMMDD,&lt;row count&gt;</code>; the count excludes the trailer.</p>
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 28
+        line_end: 29
+        excerpt: |
+          1686,"deekoh","ACCOUNT_LOCKED","2026-10-29 23:40:00.0","10.35.138.73"
+          TRAILER,20261029,28
+    stack_metadata:
+      job.entrypoint: batch/psl_audit_extract.sh
+
+  - record_key: SOA-BR-0004
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL restrict the event type carried in each audit record, and so
+      in the extract file, to exactly one of SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED,
+      ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF and USER_CREATED.
+    plain_text: >
+      Every event in the security file is one of seven kinds: successful sign-in,
+      failed sign-in, sign-in attempt on a locked account, account locked, account
+      unlocked, sign-out, and new account created.
+    technical_note: >
+      CHECK constraint ck_signon_audit_event on SIGNON_AUDIT.EVENT_TYPE
+      (db/schema/petstore_derby.sql). Writers: UserDAO constants EVENT_SIGNON_OK /
+      EVENT_SIGNON_FAIL / EVENT_SIGNON_LOCKED / ACCOUNT_LOCKED etc.; acct_unlock.sql
+      writes ACCOUNT_UNLOCKED. Runbook 3.2 lists the same seven values for column 3.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Database constraint and runbook list agree on the seven values; the DAO uses
+      the same literals.
+    risk_class: regulated
+    basis: >
+      Schema check constraint plus runbook column 3 definition.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 85
+        line_end: 93
+        excerpt: |
+          CREATE TABLE signon_audit (
+            audit_id bigint generated always as identity,
+            username varchar(25) not null,
+            event_type varchar(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar(45),
+            constraint pk_signon_audit primary key (audit_id),
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 53
+        line_end: 53
+        excerpt: |
+           <tr><td>3 event_type</td><td>SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF, USER_CREATED</td></tr>
+    stack_metadata:
+      db.table: SIGNON_AUDIT
+      db.constraint: ck_signon_audit_event
+
+  - record_key: SOA-BR-0005
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL fill the client-address field of an audit record with the
+      network address of the client that made the request, and, for an unlock made
+      by the scheduled unlock job, with the literal value batch:PSL_ACCT_UNLOCK.
+      The field may be empty, and holds at most 45 characters.
+    plain_text: >
+      Each event records where it came from: the user's network address, or a
+      marker showing the automatic unlock job did it.
+    technical_note: >
+      UserDAO.audit(...) is passed remoteAddr by the caller; db/batch/acct_unlock.sql
+      inserts 'batch:PSL_ACCT_UNLOCK'. The admin guide's manual-unlock SQL inserts
+      'admin', a value the runbook column description does not mention.
+      remote_addr is varchar(45), nullable.
+    interface: true
+    confidence: medium
+    confidence_basis: >
+      The batch marker is in code and runbook; the client-address source is read
+      from the DAO signature but the servlet passing request.getRemoteAddr() was not
+      opened in this pass. The 'admin' value from the documented manual procedure
+      means the set of non-address values is not closed.
+    risk_class: regulated
+    basis: >
+      Unlock SQL literal, runbook column 5, schema column definition, sample IPv4
+      values.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 7
+        excerpt: |
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 55
+        line_end: 55
+        excerpt: |
+           <tr><td>5 remote_addr</td><td>Client address, or <code>batch:PSL_ACCT_UNLOCK</code></td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 63
+        line_end: 65
+        excerpt: |
+          <pre>UPDATE signon SET locked = 'N', failed_attempts = 0, locked_ts = NULL WHERE username = '&lt;user&gt;';
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            VALUES ('&lt;user&gt;', 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'admin');</pre>
+    stack_metadata:
+      db.table: SIGNON_AUDIT
+      db.column: remote_addr
+
+  - record_key: SOA-INT-0006
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL write the event time in the extract file as
+      YYYY-MM-DD HH:MM:SS followed by a fractional-seconds part (for example
+      2026-10-29 09:23:47.0), in the server's local time, and the user name exactly
+      as it was typed at sign-in.
+    plain_text: >
+      Times in the security file look like "2026-10-29 09:23:47.0" in the store's
+      local time, and user names appear exactly as the person typed them.
+    technical_note: >
+      The timestamp text is Derby's default rendering of a TIMESTAMP column by
+      SYSCS_EXPORT_QUERY (java.sql.Timestamp.toString form); no explicit format is
+      applied in audit_extract.sql. Event times are written with
+      new Timestamp(System.currentTimeMillis()) or CURRENT_TIMESTAMP, i.e. server
+      local time with no zone marker. Unknown user names are audited as typed
+      (UserDAO.authenticate audits the input name before any lookup succeeds).
+    interface: true
+    confidence: low
+    confidence_basis: >
+      The format is only visible in the sample file and implied by the export tool's
+      default; no code or document states it. Local-time interpretation is inferred.
+    risk_class: regulated
+    basis: >
+      Sample lines; runbook "User name as typed"; absence of any formatting in the
+      export query.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 14
+        line_end: 15
+        excerpt: |
+          1672,"eli.ng5","SIGNON_FAIL","2026-10-29 20:41:13.0","10.11.69.248"
+          1673,"eli.ng5","SIGNON_OK","2026-10-29 20:42:00.0","10.11.69.248"
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 52
+        line_end: 54
+        excerpt: |
+           <tr><td>2 username</td><td>User name as typed</td></tr>
+           <tr><td>3 event_type</td><td>SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF, USER_CREATED</td></tr>
+           <tr><td>4 event_ts</td><td>Time of the event</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 114
+        line_end: 119
+        excerpt: |
+                      if (!rs.next()) {
+                          rs.close();
+                          select.close();
+                          audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                          return SIGNON_INVALID;
+                      }
+    stack_metadata:
+      db.procedure: SYSCS_UTIL.SYSCS_EXPORT_QUERY
+
+  - record_key: BATCH-WF-0007
+    kind: workflow
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL run the sign-on audit extract daily no earlier than 01:30,
+      only after that day's database backup has succeeded, allow one rerun, and
+      report failure of the export step with exit code 8; a successful run SHALL
+      exit 0 and release the Sunday audit purge.
+    plain_text: >
+      The security file is produced every night at 01:30 or later, but only once
+      the nightly backup has worked. If the export fails the job is marked failed
+      and may be retried once; old audit events are only purged after the extract
+      has succeeded.
+    technical_note: >
+      Control-M job PSL_AUDIT_EXTRACT: TIMEFROM=0130, WEEKDAYS=ALL, MAXRERUN=1,
+      INCOND PSL_DB_BACKUP-OK, OUTCOND PSL_AUDIT_EXTRACT-OK which PSL_AUDIT_PURGE
+      (Sundays 02:00) waits on. Script exits 8 when psl_ij fails, else 0. No ON
+      NOTOK mail is defined for this job in the excerpt read.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Schedule and dependencies in the Control-M definition, exit codes in the
+      script, ordering restated in the runbook (3.1 and 3.4).
+    risk_class: operational
+    basis: >
+      Scheduler job definition plus script exit paths plus runbook.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 27
+        line_end: 35
+        excerpt: |
+              <JOB JOBISN="2" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_AUDIT_EXTRACT"
+                   DESCRIPTION="Export yesterday SIGNON_AUDIT rows to signon_audit_YYYYMMDD.csv"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_audit_extract.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AB"
+                   TIMEFROM="0130" WEEKDAYS="ALL" MAXRERUN="1"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <INCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" SIGN="-" />
+                <OUTCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" SIGN="+" />
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 10
+        line_end: 15
+        excerpt: |
+          psl_ij "$PSL_SQL/audit_extract.sql" > /dev/null || { psl_log "FAILED: export"; exit 8; }
+          mv "$PSL_EXTRACT_DIR/signon_audit_extract.csv" "$OUT"
+          ROWS=$(wc -l < "$OUT" | tr -d ' ')
+          echo "TRAILER,$DAY,$ROWS" >> "$OUT"
+          psl_log "end OK file=$OUT rows=$ROWS"
+          exit 0
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 64
+        line_end: 64
+        excerpt: |
+          <p>Sundays only. Deletes SIGNON_AUDIT rows older than 90 days. It waits for that day's extract so no row is deleted before it is extracted.</p>
+    stack_metadata:
+      schedule.trigger: Control-M PSL_PETSTORE / PSL_AUDIT_EXTRACT TIMEFROM=0130
+      job.entrypoint: batch/psl_audit_extract.sh
+
+  - record_key: LOCK-BR-0008
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN an account with two consecutive failed sign-ins
+      WHEN a third consecutive sign-in with a wrong password is made
+      THEN the system SHALL record a SIGNON_FAIL event followed by an ACCOUNT_LOCKED
+      event for that user, both carrying the same time and client address.
+    plain_text: >
+      The third wrong password in a row is logged as a failed sign-in and then
+      immediately as "account locked", at the same moment.
+    technical_note: >
+      UserDAO.authenticate: failedAttempts++, lockNow = failedAttempts >=
+      MAX_FAILED_ATTEMPTS, then audit(SIGNON_FAIL) and, if lockNow,
+      audit(ACCOUNT_LOCKED). The sample interface file instead shows ACCOUNT_LOCKED
+      20 seconds after the third SIGNON_FAIL; that file is produced by the synthetic
+      history generator (data/generate_history.py), not by the application.
+    interface: true
+    confidence: medium
+    confidence_basis: >
+      Sequence read directly in one code path. Same-time stamping is inferred: the
+      audit helper's timestamp source was not opened, and the sample file disagrees.
+    dispute:
+      reason: conflicting-sources
+      detail: >
+        Application code writes ACCOUNT_LOCKED in the same call as the third
+        SIGNON_FAIL; the sample extract (lines 21-24, 25-28) shows ACCOUNT_LOCKED 20
+        seconds after it, matching data/generate_history.py lines 86-88. If the
+        receiving security system was built against the sample, it may expect the
+        delay. Settle by checking a real production extract or the audit() helper's
+        timestamp.
+    risk_class: regulated
+    basis: >
+      Lock branch in UserDAO.authenticate; sample file lock sequences.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 155
+        excerpt: |
+                      failedAttempts++;
+                      boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+                      PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);
+                      update.setInt(1, failedAttempts);
+                      update.setString(2, lockNow ? "Y" : "N");
+                      update.setTimestamp(3, lockNow ? now : null);
+                      update.setString(4, userName);
+                      update.executeUpdate();
+                      update.close();
+                      audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                      if (lockNow) {
+                          audit(connection, userName, EVENT_ACCOUNT_LOCKED, remoteAddr);
+                          return SIGNON_LOCKED;
+                      }
+                      return SIGNON_INVALID;
+      - path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+        line_start: 21
+        line_end: 24
+        excerpt: |
+          1679,"cal.ng41","SIGNON_FAIL","2026-10-29 23:38:00.0","10.11.113.89"
+          1680,"cal.ng41","SIGNON_FAIL","2026-10-29 23:38:20.0","10.11.113.89"
+          1681,"cal.ng41","SIGNON_FAIL","2026-10-29 23:38:40.0","10.11.113.89"
+          1682,"cal.ng41","ACCOUNT_LOCKED","2026-10-29 23:39:00.0","10.11.113.89"
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 86
+        line_end: 88
+        excerpt: |
+                  for i in range(3):
+                      events.append((ts + timedelta(seconds=20 * i), name, "SIGNON_FAIL", ip))
+                  events.append((ts + timedelta(seconds=60), name, "ACCOUNT_LOCKED", ip))
+    stack_metadata:
+      view.function: UserDAO.authenticate
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/interface/signon_audit_20261029.csv
+    description: >
+      The only file in this module is a sample extract that appears to be synthetic
+      (event patterns match data/generate_history.py: 20-second failure spacing,
+      lock at +60 s, 10.x addresses). It shows layout but is not evidence of
+      production behaviour. A human should confirm whether a real extract is
+      available to compare against, and who consumes the file (the security team's
+      system is not named anywhere read).
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+    description: >
+      No line terminator (LF vs CRLF) or file permissions are stated for the
+      extract; Derby uses the JVM platform line separator. Decide whether the
+      receiver depends on a specific terminator.
+
+suspected_defects:
+  - capability_key: sign-on-audit
+    record_keys: [SOA-INT-0003, BATCH-WF-0007]
+    severity: medium
+    category: error-swallowed
+    title: Extract reports success even when the rename or count fails
+    description: >
+      Only the export step's exit status is checked. If the export call returns
+      success but no file was produced, or the rename fails, the script still
+      counts lines of a missing file (empty count), appends "TRAILER,<day>," to a
+      new file containing only the trailer, logs "end OK" and exits 0. The job
+      is then marked OK and releases the Sunday purge, so events may be deleted
+      without ever reaching the security team.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 10
+        line_end: 15
+  - capability_key: sign-on-audit
+    record_keys: [SOA-INT-0001, BATCH-WF-0007]
+    severity: medium
+    category: other
+    title: A late run extracts the wrong day and the scheduled day is never extracted
+    description: >
+      The window and the file name are both computed from the clock at run time
+      ("yesterday"), not from the scheduler's order date. If the extract is held past
+      midnight (the runbook says it waits when the backup fails) or rerun on a later
+      day, it exports the day before the actual run, and the day it was scheduled
+      for is never exported by any run. The runbook describes the file as always
+      covering "yesterday" relative to the scheduled night.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 6
+        line_end: 7
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 7
+        line_end: 8
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 44
+        line_end: 47
+  - capability_key: sign-on-audit
+    record_keys: [SOA-INT-0003]
+    severity: low
+    category: other
+    title: Trailer count is physical lines, not events
+    description: >
+      The trailer count is the number of newline characters in the exported file.
+      A user name containing a line break (stored "as typed" for unknown users)
+      would be exported as a quoted multi-line field and inflate the count, so the
+      count would no longer equal the number of events.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_extract.sh
+        line_start: 12
+        line_end: 13
+  - capability_key: sign-on-audit
+    record_keys: [SOA-BR-0005]
+    severity: low
+    category: contradicts-document
+    title: Documented manual unlock writes an address value the file spec does not list
+    description: >
+      The admin guide's manual unlock inserts remote_addr 'admin', while the runbook's
+      extract column definition lists only a client address or
+      batch:PSL_ACCT_UNLOCK.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 63
+        line_end: 65
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 55
+        line_end: 55
