@@ -1,0 +1,719 @@
+# Spec extraction SX-0001, stage extract-a, shard j2ee-pet-store-lite/conf
+# Sources in shard: conf/petstore.properties (37 lines), conf/env.sh (31 lines).
+# No legacy-analysis/sources/**/extracted.md exists, so no document traces are cited.
+# Key observation: petstore.properties is read by no code in the tree (grep for the
+# file name and for every key finds only the file itself, README, docs and vortex/).
+# Each record therefore cites the property AND the code/SQL that actually enforces
+# the value; the property alone is treated as declared intent, not behaviour.
+# The DB password in conf/env.sh line 10 is masked as "****" in excerpts below.
+records:
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL lock a customer account when its consecutive failed
+      sign-on count reaches 3.
+    plain_text: >
+      Three wrong passwords in a row lock the account.
+    technical_note: >
+      Declared as signon.maxFailedAttempts=3 in conf/petstore.properties (comment says it
+      must match UserDAO). Enforced by UserDAO.MAX_FAILED_ATTEMPTS = 3 and the
+      failedAttempts >= MAX_FAILED_ATTEMPTS check in UserDAO.authenticate, which sets
+      SIGNON.LOCKED='Y' and LOCKED_TS. The property itself is not read.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The value 3 appears in the configuration and in the enforcing Java constant and
+      comparison, and is restated in the acct_unlock.sql header comment. Three places agree.
+    risk_class: operational
+    basis: >
+      Property and Java constant both state 3; the >= comparison means the third failure
+      locks.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 14
+        line_end: 15
+        excerpt: |
+          # Sign-on rules (must match UserDAO and CreateUserServlet)
+          signon.maxFailedAttempts=3
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 69
+        line_end: 69
+        excerpt: |
+              public static final int MAX_FAILED_ATTEMPTS = 3;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 142
+        excerpt: |
+                      failedAttempts++;
+                      boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+    stack_metadata:
+      config.key: signon.maxFailedAttempts
+      db.object: SIGNON.FAILED_ATTEMPTS, SIGNON.LOCKED
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL automatically unlock an account whose lock was set more than
+      30 minutes earlier, resetting its failed sign-on count to zero.
+    plain_text: >
+      A locked account unlocks itself once it has been locked for more than 30 minutes.
+    technical_note: >
+      Declared as signon.unlockAfterMinutes=30 in conf/petstore.properties. Actually
+      enforced by db/batch/acct_unlock.sql (PSL_ACCT_UNLOCK batch job), which hard-codes
+      TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP). The unlock therefore happens
+      at the next batch run after the 30 minutes elapse, not at exactly 30 minutes; the
+      job schedule is outside this shard.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configuration value and the enforcing SQL (twice, in the audit insert and the
+      update) agree on 30 minutes. The run frequency of the unlock job was not checked
+      in this shard, so the effective unlock delay is not established here.
+    risk_class: operational
+    basis: >
+      Property 30 and the SQL literal -30 minutes on locked_ts.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 16
+        line_end: 16
+        excerpt: |
+          signon.unlockAfterMinutes=30
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 15
+        excerpt: |
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+    stack_metadata:
+      config.key: signon.unlockAfterMinutes
+      batch.trigger: PSL_ACCT_UNLOCK
+      db.object: SIGNON.LOCKED_TS
+
+  - record_key: REG-BR-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL reject a new account whose user name, after trimming leading and
+      trailing spaces, is shorter than 3 or longer than 25 characters.
+    plain_text: >
+      A new user name must be between 3 and 25 characters long.
+    technical_note: >
+      Declared as signon.username.minLength=3 / maxLength=25. Enforced by
+      UserDAO.MIN_USERNAME_LENGTH / MAX_USERNAME_LENGTH and CreateUserServlet.validate,
+      which compares userName.trim().length().
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configuration and the Java constants plus the validating comparison agree.
+      Whether the database column enforces 25 was not checked in this shard.
+    risk_class: operational
+    basis: >
+      Property values 3 and 25 match the Java constants used by the registration check.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 17
+        line_end: 18
+        excerpt: |
+          signon.username.minLength=3
+          signon.username.maxLength=25
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 70
+        line_end: 71
+        excerpt: |
+              public static final int MIN_USERNAME_LENGTH = 3;
+              public static final int MAX_USERNAME_LENGTH = 25;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 103
+        line_end: 105
+        excerpt: |
+                  if (userName == null || userName.trim().length() < UserDAO.MIN_USERNAME_LENGTH
+                      || userName.trim().length() > UserDAO.MAX_USERNAME_LENGTH) {
+                      return "The user name must be " + UserDAO.MIN_USERNAME_LENGTH + " to " + UserDAO.MAX_USERNAME_LENGTH + " characters.";
+    stack_metadata:
+      config.key: signon.username.minLength, signon.username.maxLength
+
+  - record_key: REG-BR-0002
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL reject a new account whose password length is outside a
+      configured minimum and maximum; the numeric bounds are not visible in this pass.
+    plain_text: >
+      A new password must be within a minimum and maximum length. The actual numbers
+      were hidden from this review and must be confirmed.
+    technical_note: >
+      Declared as signon.password.minLength / maxLength in conf/petstore.properties and as
+      UserDAO.MIN_PASSWORD_LENGTH / MAX_PASSWORD_LENGTH, checked in
+      CreateUserServlet.validate. All four values are redacted in the committed source
+      (secret-scanner placeholders), so neither the bounds nor whether config and code
+      agree can be read.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      The existence of a min/max password-length rule is clear from config, constants
+      and the error message, but the values are redacted everywhere, so the rule as
+      stated cannot be checked. Graded low because the substantive part is unreadable.
+    risk_class: operational
+    basis: >
+      Configuration keys and the registration error message
+      "The password must be <min> to <max> characters."
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 19
+        line_end: 20
+        excerpt: |
+          signon.password.minLength=«REDACTED:secret-finding-2»
+          signon.password.maxLength=«REDACTED:secret-finding-3»
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java
+        line_start: 114
+        line_end: 115
+        excerpt: |
+                      || password.length() > UserDAO.MAX_PASSWORD_LENGTH) {
+                      return "The password must be " + UserDAO.MIN_PASSWORD_LENGTH + " to " + UserDAO.MAX_PASSWORD_LENGTH + " characters.";
+    stack_metadata:
+      config.key: signon.password.minLength, signon.password.maxLength
+
+  - record_key: SIGN-BR-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      The system SHALL end a signed-in session after 15 minutes of inactivity.
+    plain_text: >
+      A signed-in user who does nothing for 15 minutes is signed out.
+    technical_note: >
+      Declared as signon.session.timeoutMinutes=15; enforced by the servlet container
+      through web.xml <session-timeout>15</session-timeout>. The property is not read.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configuration and the declarative web.xml session timeout agree.
+    risk_class: operational
+    basis: >
+      Property value 15 matches web.xml session-config.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 21
+        line_end: 21
+        excerpt: |
+          signon.session.timeoutMinutes=15
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 123
+        line_end: 125
+        excerpt: |
+            <session-config>
+              <session-timeout>15</session-timeout>
+            </session-config>
+    stack_metadata:
+      config.key: signon.session.timeoutMinutes
+      session.scope: container session
+
+  - record_key: SIGN-BR-0002
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      WHEN a user signs on with "remember my user name" selected THEN the system SHALL
+      store the user name in a browser cookie named bp_signon that expires after
+      2 678 400 seconds (31 days), and SHALL pre-fill the sign-on user name from it.
+    plain_text: >
+      If the user ticks "remember me", their user name is remembered on that browser for
+      31 days and filled in next time.
+    technical_note: >
+      Declared as signon.rememberUsernameCookie=bp_signon and maxAgeSeconds=2678400.
+      Enforced by SignOnFilter.COOKIE_NAME and setMaxAge(2678400) (code comment says
+      "one month"); signon.jsp reads cookie['bp_signon'] to pre-fill j_username.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Cookie name and lifetime agree between configuration and SignOnFilter; the JSP
+      confirms the read side.
+    risk_class: presentational
+    basis: >
+      Property values match the Java constant and the setMaxAge literal.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 22
+        line_end: 23
+        excerpt: |
+          signon.rememberUsernameCookie=bp_signon
+          signon.rememberUsernameCookie.maxAgeSeconds=2678400
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java
+        line_start: 174
+        line_end: 178
+        excerpt: |
+                  if (rememberUserName != null) {
+                    // set a cookie with the username in it
+                    Cookie userNameCookie = new Cookie(COOKIE_NAME, userName);
+                    // set cookie to last for one month
+                    userNameCookie.setMaxAge(2678400);
+    stack_metadata:
+      config.key: signon.rememberUsernameCookie, signon.rememberUsernameCookie.maxAgeSeconds
+      jsp.page: signon.jsp
+
+  - record_key: BROWSE-BR-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL show catalog listings 2 entries per page by default.
+    plain_text: >
+      Catalog lists show two entries per page.
+    technical_note: >
+      Declared as catalog.pageSize=2; the effective default is the literal
+      `private int count = 2;` in CatalogHelper. Whether a request parameter can override
+      it is for the catalog shard to establish.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configuration and the Java default agree. Override behaviour not examined here.
+    risk_class: presentational
+    basis: >
+      Property 2 matches CatalogHelper.count default.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 27
+        line_end: 27
+        excerpt: |
+          catalog.pageSize=2
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/client/CatalogHelper.java
+        line_start: 73
+        line_end: 73
+        excerpt: |
+              private int count = 2;
+    stack_metadata:
+      config.key: catalog.pageSize
+
+  - record_key: INTEG-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL require catalog text in the en_US locale, and the daily integrity
+      check SHALL report every item that has no en_US description.
+    plain_text: >
+      Every catalog item must have an English (US) description; the daily check flags
+      any item that lacks one.
+    technical_note: >
+      Declared as catalog.locale=en_US. Enforced by check C4 in db/batch/catalog_check.sql
+      (d.locale = 'en_US'), which psl_catalog_check.sh turns into exit code 4.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Configuration and the integrity-check SQL agree on en_US.
+    risk_class: operational
+    basis: >
+      Property and C4 query both name en_US.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 26
+        line_end: 26
+        excerpt: |
+          catalog.locale=en_US
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 11
+        line_end: 13
+        excerpt: |
+          -- C4: items without an en_US description
+          SELECT 'C4' AS chk, i.itemid FROM item i
+           WHERE NOT EXISTS (SELECT 1 FROM item_details d WHERE d.itemid = i.itemid AND d.locale = 'en_US');
+    stack_metadata:
+      config.key: catalog.locale
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: INTEG-BR-0002
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The configuration declares that the catalog SHALL hold at least 5 categories and
+      at least 28 items; no component enforces or checks these minimums.
+    plain_text: >
+      The settings say the catalog should have at least 5 categories and 28 items, but
+      nothing actually checks this today.
+    technical_note: >
+      catalog.minCategories=5 and catalog.minItems=28 in conf/petstore.properties. The
+      daily check (catalog_check.sql) only prints COUNT(*) of categories and items for
+      the log; psl_catalog_check.sh fails only on C1-C4 rows. No Java or script reads
+      these keys.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      Bare literals in a configuration file that no code reads; the only related code
+      logs the counts without comparing them. Intent is inferred, not enforced.
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        The configuration states minimums, the integrity check computes the totals but
+        never compares them. An SME must decide whether the minimums are a real rule
+        (then the check is incomplete) or a stale setting (then drop the record).
+    risk_class: operational
+    basis: >
+      Declared in configuration only; catalog_check.sql lines 14-16 compute the counts
+      without a threshold.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 28
+        line_end: 29
+        excerpt: |
+          catalog.minCategories=5
+          catalog.minItems=28
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 14
+        line_end: 16
+        excerpt: |
+          -- Totals for the log
+          SELECT COUNT(*) AS categories FROM category;
+          SELECT COUNT(*) AS items FROM item;
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 16
+        line_end: 19
+        excerpt: |
+          if echo "$OUT" | grep -qE "^C[1-4] "; then
+            psl_log "FAILED: integrity check found rows"
+            exit 4
+          fi
+    stack_metadata:
+      config.key: catalog.minCategories, catalog.minItems
+
+  - record_key: AUDIT-BR-0001
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL delete sign-on audit events older than 90 days, measured from the
+      start of the current day.
+    plain_text: >
+      Sign-on history is kept for 90 days and then deleted.
+    technical_note: >
+      Declared twice: batch.audit.retentionDays=90 (properties) and
+      PSL_AUDIT_RETENTION_DAYS=90 (env.sh). psl_audit_purge.sh only logs the variable;
+      the deletion uses the literal -90 days in db/batch/audit_purge.sql against
+      CAST(CURRENT_DATE AS TIMESTAMP).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Three sources (properties, env.sh, enforcing SQL) agree on 90 days.
+    risk_class: regulated
+    basis: >
+      Audit-trail retention is a record-keeping rule; 90 is stated in config and
+      enforced in SQL.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 36
+        line_end: 36
+        excerpt: |
+          batch.audit.retentionDays=90
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          PSL_AUDIT_RETENTION_DAYS=90
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 5
+        line_end: 6
+        excerpt: |
+          DELETE FROM signon_audit
+           WHERE event_ts < {fn TIMESTAMPADD(SQL_TSI_DAY, -90, CAST(CURRENT_DATE AS TIMESTAMP))};
+    stack_metadata:
+      config.key: batch.audit.retentionDays
+      batch.trigger: PSL_AUDIT_PURGE
+      db.object: SIGNON_AUDIT
+
+  - record_key: BATCH-BR-0001
+    kind: business-rule
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL keep daily database backups for 7 days and delete older ones
+      after each successful backup.
+    plain_text: >
+      Database backups are kept for a week; older ones are removed automatically.
+    technical_note: >
+      Declared as batch.backup.keepDays=7 and PSL_BACKUP_KEEP_DAYS=7 (env.sh).
+      psl_db_backup.sh runs `find ... -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf` on
+      PetStoreDB_* folders. find's -mtime +7 matches only folders 8 or more whole days
+      old, so 8 dated backups typically remain (see suspected defects).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The value 7 is in properties and env.sh and is consumed by the backup script; the
+      exact count retained depends on find semantics, noted separately.
+    risk_class: operational
+    basis: >
+      Configuration and the purge command in the backup script.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 32
+        line_end: 33
+        excerpt: |
+          batch.backup.dir=/var/petstore/backup
+          batch.backup.keepDays=7
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 12
+        line_end: 12
+        excerpt: |
+          PSL_BACKUP_KEEP_DAYS=7
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          find "$PSL_BACKUP_DIR" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf {} \;
+    stack_metadata:
+      config.key: batch.backup.keepDays
+      batch.trigger: PSL_DB_BACKUP
+
+  - record_key: BATCH-REQ-0001
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      The batch jobs SHALL write backups to /var/petstore/backup, extract files to
+      /var/petstore/extract and logs to /var/petstore/log by default, each overridable
+      by the operator's environment, and SHALL append every job log line, prefixed with
+      a date-time stamp and the job name, to a shared batch.log.
+    plain_text: >
+      Nightly jobs put backups, extract files and logs in fixed folders (which operations
+      can change), and every job writes time-stamped progress lines to one shared log.
+    technical_note: >
+      env.sh defaults PSL_BACKUP_DIR, PSL_EXTRACT_DIR, PSL_LOG_DIR with ${VAR:-default};
+      the same paths are repeated in petstore.properties batch.* keys but not read from
+      there. psl_log() tees "YYYY-MM-DD HH:MM:SS [$PSL_JOB] msg" to $PSL_LOG_DIR/batch.log.
+      The extract folder is where the daily sign-on extract file is placed; whether
+      another system collects it is not visible in this shard.
+    confidence: high
+    confidence_basis: >
+      Paths agree between properties and env.sh, and env.sh is sourced by every batch
+      script (psl_db_backup.sh, psl_audit_purge.sh, psl_catalog_check.sh observed).
+    risk_class: operational
+    basis: >
+      env.sh variable defaults and psl_log function.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 6
+        line_end: 8
+        excerpt: |
+          PSL_LOG_DIR=${PSL_LOG_DIR:-/var/petstore/log}
+          PSL_BACKUP_DIR=${PSL_BACKUP_DIR:-/var/petstore/backup}
+          PSL_EXTRACT_DIR=${PSL_EXTRACT_DIR:-/var/petstore/extract}
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 28
+        line_end: 31
+        excerpt: |
+          # Write a time-stamped line to the job log and stdout.
+          psl_log() {
+            echo "$(date '+%Y-%m-%d %H:%M:%S') [$PSL_JOB] $*" | tee -a "$PSL_LOG_DIR/batch.log"
+          }
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 32
+        line_end: 35
+        excerpt: |
+          batch.backup.dir=/var/petstore/backup
+          batch.backup.keepDays=7
+          batch.extract.dir=/var/petstore/extract
+          batch.log.dir=/var/petstore/log
+    stack_metadata:
+      config.key: batch.backup.dir, batch.extract.dir, batch.log.dir
+
+  - record_key: BATCH-REQ-0002
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      A batch database step SHALL be treated as failed when the SQL tool's output
+      contains a line beginning with "ERROR", and as succeeded otherwise.
+    plain_text: >
+      A nightly database step counts as failed only when the database tool reports an
+      error line.
+    technical_note: >
+      psl_ij() in env.sh runs Derby ij against PSL_DB_URL (network server,
+      localhost:1527), echoes its output and returns 1 only if a line matches ^ERROR.
+      The java process exit status is not inspected. Callers map a non-zero return to
+      job exit code 8.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear implementation with an explanatory comment; no second enforcement point.
+    risk_class: operational
+    basis: >
+      psl_ij function body and its usage comment.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 17
+        line_end: 26
+        excerpt: |
+          # Run a SQL script with Derby ij against the store database.
+          # Usage: psl_ij <script.sql>   Fails when ij reports an ERROR line.
+          psl_ij() {
+            out=$("$JAVA_CMD" -cp "$DERBY_LIB/derbytools-10.14.2.0.jar:$DERBY_LIB/derbyclient-10.14.2.0.jar" \
+                  -Dij.connection.psl="$PSL_DB_URL" -Dij.outfile=/dev/stdout \
+                  org.apache.derby.tools.ij "$1" 2>&1)
+            echo "$out"
+            echo "$out" | grep -q "^ERROR" && return 1
+            return 0
+          }
+    stack_metadata:
+      framework: Derby ij
+      db.object: PetStoreDB (schema ESTOREUSER)
+
+  - record_key: BATCH-INT-0001
+    kind: integration
+    capability_key: batch-operations
+    requirement: >
+      The batch jobs SHALL reach the running store over HTTP at the configured store
+      address (default http://localhost:8080/petstore) and the store database through
+      the database network listener on localhost port 1527.
+    plain_text: >
+      The nightly jobs talk to the live store and its database over the network on the
+      same server.
+    technical_note: >
+      PSL_STORE_URL (env.sh, overridable; also batch.store.url in properties) is used by
+      psl_catalog_check.sh to call /Populate?forcefully=false. PSL_DB_URL is the Derby
+      network client URL jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB with
+      credentials inline; the web tier opens the same database embedded
+      (META-INF/context.xml) with the Derby network server started inside Tomcat
+      (Dockerfile CATALINA_OPTS).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      URLs agree between properties and env.sh and are consumed by batch scripts;
+      Dockerfile and runbook confirm the network-server arrangement.
+    risk_class: operational
+    basis: >
+      env.sh PSL_STORE_URL and PSL_DB_URL; petstore.properties db and store URLs.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 9
+        line_end: 10
+        excerpt: |
+          PSL_STORE_URL=${PSL_STORE_URL:-http://localhost:8080/petstore}
+          PSL_DB_URL="jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB;user=estoreuser;password=****"
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 10
+        line_end: 12
+        excerpt: |
+          petstore.db.url.embedded=jdbc:derby:/var/petstore/db/PetStoreDB
+          petstore.db.url.network=jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB
+          petstore.db.dialect=derby
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 12
+        line_end: 12
+        excerpt: |
+            curl -sf -o /dev/null "$PSL_STORE_URL/Populate?forcefully=false" || { psl_log "FAILED: populate"; exit 8; }
+    stack_metadata:
+      framework: Derby network server (DRDA) + embedded
+      config.key: batch.store.url, petstore.db.url.network
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+    description: >
+      The password length bounds (lines 19-20) and the database password (line 9) are
+      redacted, as are the matching UserDAO constants. An SME must supply the password
+      length bounds for REG-BR-0002; the extraction cannot state them.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+    description: >
+      petstore.db.name, db.home, db.user and db.dialect describe the store database
+      (Derby PetStoreDB under /var/petstore/db, user estoreuser). These are deployment
+      facts, not business rules, and produced no record. A human should confirm the
+      rebuild does not need them as requirements.
+
+suspected_defects:
+  - capability_key: batch-operations
+    record_keys: [LOCK-BR-0001, LOCK-BR-0002, REG-BR-0001, SIGN-BR-0001, SIGN-BR-0002, BROWSE-BR-0001, AUDIT-BR-0001, BATCH-BR-0001]
+    severity: medium
+    category: contradicts-document
+    title: The settings file is not read by anything, so changing it changes nothing
+    description: >
+      The header of petstore.properties says it is read by the batch scripts through
+      env.sh. env.sh does not read it; it hard-codes its own copies of the values. The
+      web-tier rules (lockout count, user-name length, session timeout, cookie, page
+      size) are hard-coded in Java and web.xml, and the unlock delay and audit retention
+      are hard-coded in SQL. Today the two copies agree, but an operator who edits the
+      settings file gets no change in behaviour.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 1
+        line_end: 3
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 1
+        line_end: 15
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-BR-0001]
+    severity: low
+    category: other
+    title: Audit retention setting is logged but not used by the purge
+    description: >
+      The purge job logs "retention=${PSL_AUDIT_RETENTION_DAYS}d", implying the value
+      controls the purge, but the delete statement uses a fixed 90 days. Changing the
+      variable changes the log line only.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 11
+        line_end: 11
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_audit_purge.sh
+        line_start: 6
+        line_end: 7
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 5
+        line_end: 6
+  - capability_key: batch-operations
+    record_keys: [BATCH-BR-0001]
+    severity: low
+    category: other
+    title: Backups are kept one day longer than the configured 7 days
+    description: >
+      Retention uses find -mtime +7, which only matches folders at least 8 whole days
+      old. With one backup a day, eight dated backups normally remain, not seven.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 12
+        line_end: 12
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
+  - capability_key: catalog-data-integrity
+    record_keys: [INTEG-BR-0002]
+    severity: low
+    category: other
+    title: Declared catalog minimums are never checked
+    description: >
+      The settings declare at least 5 categories and 28 items, and the daily integrity
+      check counts both, but it never compares the counts against those minimums. A
+      catalog with fewer categories or items passes the check.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 28
+        line_end: 29
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 14
+        line_end: 16
+  - capability_key: batch-operations
+    record_keys: [BATCH-INT-0001, BATCH-REQ-0002]
+    severity: high
+    category: other
+    title: Database password stored in plain text and passed on the command line
+    description: >
+      env.sh hard-codes the database user and password inside PSL_DB_URL (the value was
+      not redacted, unlike petstore.properties and context.xml). psl_ij passes the URL as
+      a -D system property, so the password is visible in the process list to any local
+      user while a job runs. The Dockerfile starts the database listener on 0.0.0.0:1527.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 10
+        line_end: 10
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 20
+        line_end: 22
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 22
+        line_end: 23
+  - capability_key: batch-operations
+    record_keys: [BATCH-REQ-0002]
+    severity: low
+    category: error-swallowed
+    title: A database step is judged only by its printed output, not its exit status
+    description: >
+      psl_ij ignores the exit status of the Java/ij process and fails only when an output
+      line starts with "ERROR". A failure that prints differently (for example the JVM
+      failing to start because the jar path is wrong) is reported as success.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 20
+        line_end: 25
