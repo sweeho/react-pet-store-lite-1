@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+ Copyright 2002 Sun Microsystems, Inc. All rights reserved.
+ Redistribution and use subject to the license in LICENSE-SUN.txt.
+
+ Petstore Lite web tier deployment descriptor.
+ Capabilities: catalog browsing and search, sample data population,
+ sign-on and access control.
+-->
+
+<!DOCTYPE web-app PUBLIC '-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN' 'http://java.sun.com/dtd/web-app_2_3.dtd'>
+
+<web-app>
+  <display-name>PetStoreLiteWAR</display-name>
+  <description>Web Tier DD for the Petstore Lite application</description>
+
+  <!-- Encoding Filter Declaration Start -->
+  <filter>
+    <filter-name>EncodingFilter</filter-name>
+    <display-name>EncodingFilter</display-name>
+    <description>Sets UTF-8 on every request</description>
+    <filter-class>com.sun.j2ee.blueprints.encodingfilter.web.EncodingFilter</filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>UTF-8</param-value>
+    </init-param>
+  </filter>
+  <!-- Encoding Filter Declaration End -->
+
+  <!-- Signon Filter Declaration Start -->
+  <filter>
+    <filter-name>SignOnFilter</filter-name>
+    <display-name>SignOnFilter</display-name>
+    <description>Guards the protected resources in signon-config.xml and handles j_signon_check</description>
+    <filter-class>com.sun.j2ee.blueprints.signon.web.SignOnFilter</filter-class>
+  </filter>
+  <!-- Signon Filter Declaration End -->
+
+  <filter-mapping>
+    <filter-name>EncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>SignOnFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!-- Template Servlet Configuration -->
+  <servlet>
+    <servlet-name>TemplateServlet</servlet-name>
+    <display-name>TemplateServlet</display-name>
+    <description>Composes each *.screen from the screen definitions</description>
+    <servlet-class>com.sun.j2ee.blueprints.waf.view.template.TemplateServlet</servlet-class>
+    <init-param>
+      <param-name>locales</param-name>
+      <param-value>en_US</param-value>
+    </init-param>
+    <init-param>
+      <param-name>default_locale</param-name>
+      <param-value>en_US</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>CreateUserServlet</servlet-name>
+    <display-name>CreateUserServlet</display-name>
+    <description>Creates a customer sign-on from the sign on page</description>
+    <servlet-class>com.sun.j2ee.blueprints.signon.web.CreateUserServlet</servlet-class>
+  </servlet>
+
+  <servlet>
+    <servlet-name>SignOffServlet</servlet-name>
+    <display-name>SignOffServlet</display-name>
+    <description>Records the sign-off and ends the session</description>
+    <servlet-class>com.sun.j2ee.blueprints.signon.web.SignOffServlet</servlet-class>
+  </servlet>
+
+  <!-- PopulateServlet Declaration Start -->
+  <servlet>
+    <servlet-name>PopulateServlet</servlet-name>
+    <display-name>PopulateServlet</display-name>
+    <description>Creates the tables and loads the sample catalog and users</description>
+    <servlet-class>com.sun.j2ee.blueprints.petstore.tools.populate.PopulateServlet</servlet-class>
+    <init-param>
+      <param-name>PopulateSQL</param-name>
+      <param-value>/populate/PopulateSQL.xml</param-value>
+    </init-param>
+    <init-param>
+      <param-name>PopulateData</param-name>
+      <param-value>/populate/Populate-UTF8.xml</param-value>
+    </init-param>
+    <init-param>
+      <param-name>Database</param-name>
+      <param-value>derby</param-value>
+      <!--param-value>oracle</param-value-->
+    </init-param>
+  </servlet>
+  <!-- PopulateServlet Declaration End -->
+
+  <servlet-mapping>
+    <servlet-name>TemplateServlet</servlet-name>
+    <url-pattern>*.screen</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>CreateUserServlet</servlet-name>
+    <url-pattern>/createuser.do</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>SignOffServlet</servlet-name>
+    <url-pattern>/signoff.do</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>PopulateServlet</servlet-name>
+    <url-pattern>/Populate</url-pattern>
+  </servlet-mapping>
+
+  <session-config>
+    <session-timeout>15</session-timeout>
+  </session-config>
+
+  <welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+
+  <error-page>
+    <exception-type>java.lang.Exception</exception-type>
+    <location>/general_error.screen</location>
+  </error-page>
+
+  <taglib>
+    <taglib-uri>/WEB-INF/template.tld</taglib-uri>
+    <taglib-location>/WEB-INF/template.tld</taglib-location>
+  </taglib>
+
+  <!-- Fast Lane Reader: the catalog is read over JDBC in the web tier -->
+  <resource-ref>
+    <description>Catalog and sign-on database</description>
+    <res-ref-name>jdbc/CatalogDB</res-ref-name>
+    <res-type>javax.sql.DataSource</res-type>
+    <res-auth>Container</res-auth>
+  </resource-ref>
+
+  <env-entry>
+    <env-entry-name>param/CatalogDAOClass</env-entry-name>
+    <env-entry-type>java.lang.String</env-entry-type>
+    <env-entry-value>«REDACTED:secret-finding-19»</env-entry-value>
+  </env-entry>
+
+  <env-entry>
+    <env-entry-name>url/CatalogDAOSQLURL</env-entry-name>
+    <env-entry-type>java.lang.String</env-entry-type>
+    <env-entry-value>«REDACTED:secret-finding-20»</env-entry-value>
+  </env-entry>
+
+  <env-entry>
+    <env-entry-name>param/CatalogDAODatabase</env-entry-name>
+    <env-entry-type>java.lang.String</env-entry-type>
+    <env-entry-value>«REDACTED:secret-finding-21»</env-entry-value>
+  </env-entry>
+</web-app>

@@ -1,0 +1,17 @@
+productid,locale,name,image,descn
+FI-SW-01,en_US,Angelfish,fish1.jpg,Salt Water fish from Australia
+FI-SW-02,en_US,Tiger Shark,fish4.gif,Salt Water fish from Australia
+FI-FW-01,en_US,Koi,fish3.gif,Fresh Water fish from Japan
+FI-FW-02,en_US,Goldfish,fish2.gif,Fresh Water fish from China
+K9-BD-01,en_US,Bulldog,dog2.gif,Friendly dog from England
+K9-PO-02,en_US,Poodle,dog6.gif,Cute dog from France
+K9-DL-01,en_US,Dalmation,dog5.gif,Great dog for a Fire Station
+K9-RT-01,en_US,Golden Retriever,dog1.gif,Great family dog
+K9-RT-02,en_US,Labrador Retriever,dog5.gif,Great hunting dog
+K9-CW-01,en_US,Chihuahua,dog4.gif,Great companion dog
+RP-SN-01,en_US,Rattlesnake,lizard3.gif,Doubles as a watch dog
+RP-LI-02,en_US,Iguana,lizard2.gif,Friendly green friend
+FL-DSH-01,en_US,Manx,cat3.gif,Great for reducing mouse populations
+FL-DLH-02,en_US,Persian,cat1.gif,"Friendly house cat, doubles as a princess"
+AV-CB-01,en_US,Amazon Parrot,bird4.gif,Great companion for up to 75 years
+AV-SB-02,en_US,Finch,bird1.gif,Great stress reliever

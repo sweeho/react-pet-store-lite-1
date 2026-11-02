@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+ Copyright 2002 Sun Microsystems, Inc. All rights reserved.
+ Redistribution and use subject to the license in LICENSE-SUN.txt.
+
+ Petstore Lite screen definitions. Each NAME.screen request is composed by
+ the TemplateServlet from template.jsp and the parameters below.
+-->
+
+<screen-definitions>
+  <default-template>/template.jsp</default-template>
+  <screen name="main">
+    <parameter key="title" value="Welcome to the BluePrints Petstore" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/main.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="category">
+    <parameter key="title" value="Products" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/category.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="product">
+    <parameter key="title" value="Items" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/product.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="item">
+    <parameter key="title" value="Item" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/item.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="search">
+    <parameter key="title" value="Search" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/search.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="signon">
+    <parameter key="title" value="Sign On" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/signon.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="signon_welcome">
+    <parameter key="title" value="Welcome" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/main.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="signon_error">
+    <parameter key="title" value="Sign On Error" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/signon_failed.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="signon_locked">
+    <parameter key="title" value="Account Locked" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/signon_locked.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="user_creation_error">
+    <parameter key="title" value="Create Account Error" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/user_creation_error.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="signoff">
+    <parameter key="title" value="Sign Off" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/signoff.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="account">
+    <parameter key="title" value="My Account" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/account.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="access_denied">
+    <parameter key="title" value="Access Denied" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/access_denied.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="populate_admin">
+    <parameter key="title" value="Catalog Administration" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/populate_admin.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+  <screen name="general_error">
+    <parameter key="title" value="General Error" direct="true"/>
+    <parameter key="banner" value="/banner.jsp" />
+    <parameter key="sidebar" value="/sidebar.jsp" />
+    <parameter key="body" value="/general_error.jsp" />
+    <parameter key="footer" value="/footer.jsp" />
+  </screen>
+</screen-definitions>

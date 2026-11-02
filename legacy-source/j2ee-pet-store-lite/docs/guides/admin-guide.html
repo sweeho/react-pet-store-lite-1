@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Java Pet Store Lite - Administrator Guide</title><link rel="stylesheet" href="guide.css"></head>
+<body>
+<div class="cover">
+ <h1>Java&trade; Pet Store Lite</h1>
+ <div class="sub">Administrator Guide</div>
+ <table>
+  <tr><td>Document</td><td>PSL-AG-01</td></tr>
+  <tr><td>Version</td><td>1.3.2-lite-1</td></tr>
+  <tr><td>Audience</td><td>Store administrators (role ADMIN)</td></tr>
+  <tr><td>Related</td><td>PSL-UG-01 User Guide, PSL-RB-01 Operations Runbook</td></tr>
+ </table>
+</div>
+
+<h1 class="first">1. Roles and access control</h1>
+<p>Every account has one role. The role is stored with the account and read at sign-in.</p>
+<table class="grid">
+ <tr><th>Role</th><th>Who</th><th>How the account is created</th></tr>
+ <tr><td>CUSTOMER</td><td>Store customers</td><td>Self sign-up on the Sign In page, or the sample data</td></tr>
+ <tr><td>ADMIN</td><td>Store administrators</td><td>Sample data only (user <code>admin</code>). There is no screen to create an administrator.</td></tr>
+</table>
+
+<h2>1.1 Access matrix</h2>
+<table class="grid">
+ <tr><th>Page / function</th><th>Anonymous</th><th>CUSTOMER</th><th>ADMIN</th></tr>
+ <tr><td>Home, category, product, item, search</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+ <tr><td>Sign In, create account</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+ <tr><td>My Account (<code>account.screen</code>)</td><td>Sign In page shown</td><td>Yes</td><td>Yes</td></tr>
+ <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>
+ <tr><td>First load of sample data (empty database)</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+ <tr><td>Forced reload of sample data</td><td>Access Denied</td><td>Access Denied</td><td>Yes</td></tr>
+</table>
+<p>Protected pages are listed in <code>WEB-INF/signon-config.xml</code>. A page with an <code>auth-constraint</code> is open only to the
+roles listed; a page without one is open to any signed-in user. When an anonymous user opens a protected page, the Sign In page
+is shown and, after a successful sign-in, the user is sent back to the page first asked for.</p>
+<p>When signed in as ADMIN the banner shows an extra <b>Admin</b> link.</p>
+
+<h2>1.2 Sample accounts</h2>
+<table class="grid">
+ <tr><th>User name</th><th>Role</th><th>Password</th></tr>
+ <tr><td>j2ee</td><td>CUSTOMER</td><td>j2ee</td></tr>
+ <tr><td>shopper</td><td>CUSTOMER</td><td>j2ee</td></tr>
+ <tr><td>admin</td><td>ADMIN</td><td>admin</td></tr>
+</table>
+<div class="warn">Change these passwords before the store is used outside a test environment. Passwords are stored as entered in table SIGNON.</div>
+
+<h1>2. Sign-on rules</h1>
+<table class="grid">
+ <tr><th>#</th><th>Rule</th></tr>
+ <tr><td>R1</td><td>A sign-in succeeds when the user exists, is not locked and the password matches exactly.</td></tr>
+ <tr><td>R2</td><td>Each failed sign-in adds 1 to the account's failed attempts. A successful sign-in sets it back to 0.</td></tr>
+ <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>
+ <tr><td>R4</td><td>A locked account cannot sign in, even with the right password. The attempt is recorded as SIGNON_LOCKED and the failed count does not change.</td></tr>
+ <tr><td>R5</td><td>Batch job PSL_ACCT_UNLOCK runs every 15 minutes and unlocks accounts locked more than 30 minutes ago. It sets failed attempts to 0 and records ACCOUNT_UNLOCKED.</td></tr>
+ <tr><td>R6</td><td>A sign-in with an unknown user name is recorded as SIGNON_FAIL against the name typed.</td></tr>
+ <tr><td>R7</td><td>Every sign-in, failure, lock, sign-out and new account is written to SIGNON_AUDIT with the time and the client address.</td></tr>
+ <tr><td>R8</td><td>Sessions time out after 15 minutes without activity.</td></tr>
+</table>
+
+<h2>2.1 Unlock an account at once</h2>
+<p>There is no unlock screen. To unlock before the batch job runs, ask operations to run PSL_ACCT_UNLOCK on demand (it only unlocks
+locks older than 30 minutes) or to run this SQL as the store schema owner:</p>
+<pre>UPDATE signon SET locked = 'N', failed_attempts = 0, locked_ts = NULL WHERE username = '&lt;user&gt;';
+INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+  VALUES ('&lt;user&gt;', 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'admin');</pre>
+
+<h1>3. Catalog administration</h1>
+<p>The catalog and the sample accounts come from two files in the web application:</p>
+<table class="grid">
+ <tr><th>File</th><th>Content</th></tr>
+ <tr><td><code>populate/Populate-UTF8.xml</code></td><td>Users (id, password, role) and the catalog: 5 categories, 16 products, 28 items</td></tr>
+ <tr><td><code>populate/PopulateSQL.xml</code></td><td>Create, insert, check and drop statements per table, for <code>derby</code> and <code>oracle</code></td></tr>
+</table>
+
+<h2>3.1 First load</h2>
+<p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables
+already hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>
+
+<h2>3.2 Reload the sample data</h2>
+<ol>
+ <li>Sign in as an ADMIN user.</li>
+ <li>Click <b>Admin</b> in the banner. The page <i>Catalog Administration</i> opens.</li>
+ <li>Click <b>Reload Sample Data</b>.</li>
+ <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,
+ loads the file, ends your session and shows the home page.</li>
+</ol>
+<div class="warn">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>
+<figure><img src="../screenshots/15-admin-reload.png"><figcaption>Figure 1. Catalog Administration (ADMIN only)</figcaption></figure>
+<figure><img src="../screenshots/14-access-denied.png"><figcaption>Figure 2. Access Denied shown to a CUSTOMER</figcaption></figure>
+
+<h2>3.3 Catalog data rules</h2>
+<table class="grid">
+ <tr><th>#</th><th>Rule</th></tr>
+ <tr><td>C1</td><td>Every category has at least one product.</td></tr>
+ <tr><td>C2</td><td>Every product has at least one item.</td></tr>
+ <tr><td>C3</td><td>An item's list price is never below its unit cost (database check constraint).</td></tr>
+ <tr><td>C4</td><td>Every item has an en_US description.</td></tr>
+</table>
+<p>Job PSL_CATALOG_CHECK checks C1 to C4 every morning at 06:00 and alerts the catalog team when one fails.</p>
+
+<h1>4. Configuration</h1>
+<table class="grid">
+ <tr><th>Setting</th><th>Where</th><th>Value</th></tr>
+ <tr><td>Data source</td><td><code>META-INF/context.xml</code>, JNDI <code>jdbc/CatalogDB</code></td><td>Derby, <code>/var/petstore/db/PetStoreDB</code>, user estoreuser</td></tr>
+ <tr><td>Database dialect for SQL</td><td><code>web.xml</code> env-entry <code>param/CatalogDAODatabase</code> and PopulateServlet <code>Database</code></td><td>derby (or oracle)</td></tr>
+ <tr><td>Catalog SQL</td><td><code>CatalogDAOSQL.xml</code></td><td>GET_CATEGORY, GET_CATEGORIES, GET_PRODUCT, GET_PRODUCTS, GET_ITEM, GET_ITEMS, SEARCH_ITEMS</td></tr>
+ <tr><td>Protected pages</td><td><code>WEB-INF/signon-config.xml</code></td><td>account.screen, signon_welcome.screen, populate_admin.screen (ADMIN)</td></tr>
+ <tr><td>Screens</td><td><code>WEB-INF/screendefinitions_en_US.xml</code></td><td>15 screens on one template</td></tr>
+ <tr><td>Session timeout</td><td><code>web.xml</code></td><td>15 minutes</td></tr>
+ <tr><td>Batch settings</td><td><code>conf/petstore.properties</code>, <code>conf/env.sh</code></td><td>See the Operations Runbook</td></tr>
+</table>
+</body></html>

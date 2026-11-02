@@ -1,0 +1,22 @@
+@page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #111; line-height: 1.45; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; border-left: 8px solid #336666; padding-left: 14mm; }
+.cover h1 { font-size: 28pt; margin: 0 0 4mm; color: #336666; }
+.cover .sub { font-size: 14pt; margin-bottom: 18mm; }
+.cover table td { padding: 1mm 6mm 1mm 0; font-size: 10pt; }
+h1 { font-size: 18pt; color: #336666; border-bottom: 2px solid #336666; padding-bottom: 2mm; page-break-before: always; }
+h1.first { page-break-before: auto; }
+h2 { font-size: 13pt; color: #224444; margin-top: 7mm; }
+h3 { font-size: 11pt; margin-top: 5mm; }
+table.grid { border-collapse: collapse; width: 100%; margin: 3mm 0; font-size: 9.5pt; }
+table.grid th { background: #336666; color: #fff; text-align: left; padding: 1.5mm 2mm; }
+table.grid td { border: 1px solid #bbb; padding: 1.5mm 2mm; vertical-align: top; }
+figure { margin: 4mm 0; page-break-inside: avoid; }
+figure img { width: 100%; border: 1px solid #999; }
+figcaption { font-size: 9pt; color: #444; margin-top: 1mm; }
+.note { border-left: 4px solid #336666; background: #eef5f5; padding: 2mm 4mm; margin: 3mm 0; }
+.warn { border-left: 4px solid #cc0000; background: #fbeeee; padding: 2mm 4mm; margin: 3mm 0; }
+code, pre { font-family: Courier, monospace; font-size: 9pt; }
+pre { background: #f4f4f4; padding: 3mm; border: 1px solid #ddd; white-space: pre-wrap; }
+ol li, ul li { margin-bottom: 1mm; }
+.toc a { color: #111; text-decoration: none; }

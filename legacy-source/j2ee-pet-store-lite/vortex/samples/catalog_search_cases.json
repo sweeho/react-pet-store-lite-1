@@ -1,0 +1,277 @@
+{
+  "capability": "catalog-search",
+  "captured_from": "Petstore Lite 1.3.2-lite-1, search.screen",
+  "cases": [
+    {
+      "input": {
+        "keywords": "fish",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 7,
+        "itemIds": [
+          "EST-1",
+          "EST-2",
+          "EST-3",
+          "EST-4",
+          "EST-5",
+          "EST-20",
+          "EST-21"
+        ],
+        "message": null,
+        "pages": 4
+      }
+    },
+    {
+      "input": {
+        "keywords": "dog",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 13,
+        "itemIds": [
+          "EST-6",
+          "EST-7",
+          "EST-8",
+          "EST-9",
+          "EST-10",
+          "EST-12",
+          "EST-22",
+          "EST-23",
+          "EST-24",
+          "EST-25",
+          "EST-26",
+          "EST-27",
+          "EST-28"
+        ],
+        "message": null,
+        "pages": 7
+      }
+    },
+    {
+      "input": {
+        "keywords": "Bulldog",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 0,
+        "itemIds": [],
+        "message": "No results were found for your search.",
+        "pages": 0
+      }
+    },
+    {
+      "input": {
+        "keywords": "cat",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 4,
+        "itemIds": [
+          "EST-14",
+          "EST-15",
+          "EST-16",
+          "EST-17"
+        ],
+        "message": null,
+        "pages": 2
+      }
+    },
+    {
+      "input": {
+        "keywords": "bird",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 2,
+        "itemIds": [
+          "EST-18",
+          "EST-19"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "reptiles",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 3,
+        "itemIds": [
+          "EST-11",
+          "EST-12",
+          "EST-13"
+        ],
+        "message": null,
+        "pages": 2
+      }
+    },
+    {
+      "input": {
+        "keywords": "snake",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 2,
+        "itemIds": [
+          "EST-11",
+          "EST-12"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "iguana",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 1,
+        "itemIds": [
+          "EST-13"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "large",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 0,
+        "itemIds": [],
+        "message": "No results were found for your search.",
+        "pages": 0
+      }
+    },
+    {
+      "input": {
+        "keywords": "adult male",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 0,
+        "itemIds": [],
+        "message": "No results were found for your search.",
+        "pages": 0
+      }
+    },
+    {
+      "input": {
+        "keywords": "poodle",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 1,
+        "itemIds": [
+          "EST-8"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "koi",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 2,
+        "itemIds": [
+          "EST-4",
+          "EST-5"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "finch",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 1,
+        "itemIds": [
+          "EST-19"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "parrot",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 1,
+        "itemIds": [
+          "EST-18"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "golden",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 1,
+        "itemIds": [
+          "EST-28"
+        ],
+        "message": null,
+        "pages": 1
+      }
+    },
+    {
+      "input": {
+        "keywords": "zzz",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 0,
+        "itemIds": [],
+        "message": "No results were found for your search.",
+        "pages": 0
+      }
+    },
+    {
+      "input": {
+        "keywords": "",
+        "locale": "en_US",
+        "pageSize": 2
+      },
+      "output": {
+        "resultCount": 0,
+        "itemIds": [],
+        "message": "No results were found for your search.",
+        "pages": 0
+      }
+    }
+  ]
+}
