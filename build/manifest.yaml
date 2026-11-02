@@ -624,12 +624,12 @@ capabilities:
         - "access-control"
     canvas:
       problem: "Who may open which page is decided by a role stored with each account (CUSTOMER or ADMIN), a declarative list of protected pages, a filter on every request, a separate check on the forced sample-data reload and a banner that shows the Admin link by role. None of it is written down as one specification."
-      solution: "Build the role model and the page access matrix: catalog pages open to everyone, My Account for any signed-in user, Catalog Administration for ADMIN only; sign-in interception with return to the requested page; the per-page role check and the Access Denied page; the ADMIN-only forced reload and the open first load; and the banner Admin and Account links, as specified in the access-control delta spec."
+      solution: "Build the two approved access-control requirements in the access-control delta spec: the account role domain (exactly one role per account, CUSTOMER or ADMIN, CUSTOMER by default, any other value refused) and the page access matrix (catalog, search, sign-in and create-account pages open to everyone, My Account for any signed-in user, Catalog Administration for ADMIN only with Access Denied shown to a signed-in CUSTOMER). The remaining legacy rules are pending SME approval and are not specified yet."
       userStories:
         - "As a visitor, I want to browse the catalog without signing in, so that I can look before creating an account."
-        - "As a signed-out visitor who opens My Account, I want to be asked to sign in and then taken to the page I asked for, so that I do not have to find it again."
+        - "As a signed-in customer, I want to open My Account, so that I can see my account and recent activity."
         - "As a store administrator, I want Catalog Administration open only to administrators, so that customers cannot reload the store's data."
-        - "As a customer who opens an administrator page, I want an Access Denied page with a way back to the catalog, so that I know the page is not for me."
+        - "As a customer who opens Catalog Administration, I want to see Access Denied instead, so that I know the page is not for me."
       acceptanceCriteria:
         - "Account role domain (SWHR5-R-0001) — Account created without a role: The account's role is CUSTOMER"
         - "Account role domain (SWHR5-R-0001) — Account stored with an ADMIN role: The account is saved with role ADMIN"
@@ -638,34 +638,13 @@ capabilities:
         - "Page access by role (SWHR5-R-0002) — Signed-in customer opens My Account: The My Account page is served"
         - "Page access by role (SWHR5-R-0002) — Signed-in customer opens Catalog Administration: The Access Denied page is shown instead of Catalog Administration"
         - "Page access by role (SWHR5-R-0002) — Signed-in administrator opens Catalog Administration: The Catalog Administration page is served"
-        - "Protected page set — Anonymous visitor opens the sign-in welcome page: The Sign In page is shown in its place"
-        - "Protected page set — Signed-in user opens the sign-in welcome page: The sign-in welcome page is served"
-        - "Sign-in interception and return — Anonymous visitor is returned after sign-in: The Sign In page is shown first and, after the sign-in, the visitor is sent to My Account"
-        - "Sign-in interception and return — Anonymous visitor is returned after creating an account: The visitor is signed in and sent to My Account"
-        - "Sign-in interception and return — Direct sign-in with nothing remembered: The visitor is sent to the catalog home page"
-        - "Role check on a protected page — Protected page with no role restriction: The page is served"
-        - "Role check on a protected page — Role not among the required roles: The Access Denied page is shown and the requested page is not served"
-        - "Role held for the session — Role changed during a session: The Access Denied page is shown"
-        - "Role held for the session — Role change seen at next sign-in: The Catalog Administration page is served"
-        - "Self-registered accounts are customers — Visitor creates an account: The new account's role is CUSTOMER and the visitor is signed in with role CUSTOMER"
-        - "Forced sample-data reload restricted to administrators — Customer requests a forced reload: No data is reloaded and the Access Denied page is shown"
-        - "Forced sample-data reload restricted to administrators — Anonymous visitor requests a forced reload: No data is reloaded and the Access Denied page is shown"
-        - "Forced sample-data reload restricted to administrators — Administrator requests a forced reload: The reload proceeds"
-        - "First sample-data load open to everyone — Anonymous first load on an empty store: The load proceeds without a sign-in and without showing the Access Denied page"
-        - "Store is the only exposed web application — Request for a path outside the store: No administration console is served"
-        - "Access Denied page display — Access Denied page is displayed: It shows the title \"Access Denied\", the message \"You do not have permission to view this page.\", the statement that the page is for store administrators only, and a catalog link, inside the shared layout"
-        - "Access Denied page display — Catalog link is followed: The catalog home page is shown"
-        - "Banner Admin link — Administrator sees the Admin link: The banner shows an \"Admin\" link, and selecting it opens Catalog Administration"
-        - "Banner Admin link — Customer does not see the Admin link: The banner shows no \"Admin\" link"
-        - "Banner Admin link — Anonymous visitor does not see the Admin link: The banner shows no \"Admin\" link"
-        - "Banner Account link — Anonymous visitor selects Account: The Sign In page is shown, and after a successful sign-in the visitor is sent to My Account"
-        - "Banner Account link — Signed-in user selects Account: The My Account page is shown"
       outOfScope:
         - "The credential check and sign-out (sign-on)."
         - "What a sample-data reload does (sample-data-population)."
         - "Role management screens: roles are set only in the data."
+        - "Legacy access rules still pending SME approval and therefore not specified: the exhaustive protected-page set, sign-in interception with return to the requested page, the per-page role check, the role held for the session, self-registered accounts as CUSTOMER, the ADMIN-only forced reload, the open first load and single-application deployment (see legacy-analysis/ir/_recommendations/access-control.yaml)."
       risksAssumptions:
-        - "The protected-page set is assumed exhaustive as declared: My Account, the sign-in Welcome page and Catalog Administration."
+        - "Only SWHR5-R-0001 and SWHR5-R-0002 are approved; the screens listed below are extracted records whose requirements are pending approval, so their exact copy and behaviour may change at review."
       techStack: []
       affectedCode: []
       screens:

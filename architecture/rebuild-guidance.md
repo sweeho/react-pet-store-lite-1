@@ -33,7 +33,7 @@ The manifest's `order` and `dependsOn` encode this sequence:
 3. **sign-on**: the account record, the session and the banner sign-in status.
 4. **account-lockout**: extends the credential check with the failure counter and lock.
 5. **account-registration**: creates accounts in the store that sign-on reads.
-6. **access-control**: the protected-page matrix, sign-in interception and the Access Denied page.
+6. **access-control**: the role domain and the page access matrix (SWHR5-R-0001, SWHR5-R-0002). Sign-in interception, the forced-reload check and the banner links are pending SME approval and not yet specified.
 7. **sign-on-audit**: the audit log written by 3 to 6, the My Account page (protected by 6) and the extract, report and purge.
 8. **sample-data-population**: first load and the ADMIN-only forced reload; needs the catalog and account tables and the ADMIN check.
 9. **batch-operations**: the job schedule over the jobs of 4, 7 and 8.
