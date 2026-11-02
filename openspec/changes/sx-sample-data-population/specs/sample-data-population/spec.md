@@ -2,31 +2,27 @@
 
 ### Requirement: Store entry page
 
+ID: SWHR5-R-0092
 Recovered from: SDP-SCR-0001
-The store entry page SHALL be the first page a visitor sees. It SHALL describe the store and offer an "enter the store" link. It SHALL state that the database is populated automatically on first use and that administrators can reload the sample data after signing in.
+The system SHALL show an entry page describing the store with an "enter the store" link, stating that the database is populated automatically on first use and that administrators can reload the sample data after signing in.
 
 #### Scenario: Entry page is displayed
 
 - **GIVEN** a visitor who opens the store's root address
 - **WHEN** the entry page is displayed
-- **THEN** it shows the store description, an "enter the store" link, a note that the database is populated automatically on first use, and a note that administrators can reload the sample data from the Admin page after signing in
-
-#### Scenario: Visitor follows the enter-the-store link
-
-- **GIVEN** the entry page is displayed
-- **WHEN** the visitor follows the "enter the store" link
-- **THEN** the message "Please wait while the Java Pet Store Application is being populated..." is shown, a first-load (non-forced) population is requested, and the home page is shown once it completes
+- **THEN** it shows the store description, an "enter the store" link, a note that the database is populated automatically on first use, and a note that administrators can reload the sample data after signing in
 
 ### Requirement: Catalog Administration page
 
-Recovered from: POP-SCR-0002, SDP-SCR-0004, POP-SCR-0001
-The system SHALL provide a page titled "Catalog Administration", shown within the store's shared layout to a signed-in ADMIN. The page SHALL warn that reloading the sample data drops and recreates every catalog and sign-on table, deletes all accounts created in the store and all sign-in history, and signs the administrator out. It SHALL offer a "Reload Sample Data" button that requests a forced reload and then shows the home page.
+ID: SWHR5-R-0129
+Recovered from: POP-SCR-0002
+The system SHALL show administrators a Catalog Administration page that warns that reloading drops and recreates every catalog and sign-on table, deletes all accounts created in the store and all sign-in history, and signs the administrator out, and that offers a "Reload Sample Data" button which requests a forced reload followed by the home page.
 
 #### Scenario: Administrator opens the page
 
 - **GIVEN** a user signed in with the ADMIN role
 - **WHEN** the Catalog Administration page is displayed
-- **THEN** it shows the title "Catalog Administration", the warning that every catalog and sign-on table is dropped and recreated, that all accounts created in the store and all sign-in history are deleted and that the administrator will be signed out, and a "Reload Sample Data" button
+- **THEN** it shows the warning that every catalog and sign-on table is dropped and recreated, that all accounts created in the store and all sign-in history are deleted and that the administrator will be signed out, and a "Reload Sample Data" button
 
 #### Scenario: Administrator presses Reload Sample Data
 
@@ -34,27 +30,113 @@ The system SHALL provide a page titled "Catalog Administration", shown within th
 - **WHEN** the administrator presses "Reload Sample Data"
 - **THEN** a forced reload of the sample data is requested and, on success, the home page is shown with the administrator signed out
 
-### Requirement: First load on entering the store
+### Requirement: Entering the store requests a first load
 
-Recovered from: SDP-WF-0002, POP-SCR-0001, SDP-REQ-0001, POP-WF-0001, POP-REQ-0001
-WHEN a visitor enters the store, the system SHALL request a first-load (non-forced) population without requiring sign-in. The system SHALL change no data when the store is already populated, and SHALL drop, recreate and load every catalog and sign-on table from the sample data when it is not.
+ID: SWHR5-R-0128
+Recovered from: POP-SCR-0001
+The system SHALL show an entry page with an "enter the store" link; WHEN the link is followed THEN the system SHALL show "Please wait while the Java Pet Store Application is being populated..." and immediately request a first load (not a forced reload) of the sample data, then show the home page. Any visitor SHALL be able to do this without signing in.
 
-#### Scenario: Anonymous visitor enters an empty store
+#### Scenario: Anonymous visitor follows the link
 
-- **GIVEN** a freshly installed store with no tables and no signed-in user
-- **WHEN** the visitor enters the store
-- **THEN** the sample data is loaded and the home page is shown, without any sign-in prompt
+- **GIVEN** the entry page displayed to a visitor who is not signed in
+- **WHEN** the visitor follows the "enter the store" link
+- **THEN** the "Please wait while the Java Pet Store Application is being populated..." message is shown, a first-load population is requested, and the home page is shown without any sign-in prompt
 
-#### Scenario: Visitor enters an already populated store
+### Requirement: Daily catalog check triggers first load
 
-- **GIVEN** a store whose catalog and account tables already hold data
-- **WHEN** a visitor enters the store
+ID: SWHR5-R-0207
+Recovered from: POP-REQ-0001
+GIVEN the daily 06:00 catalog check finds the catalog empty WHEN it runs THEN the system SHALL perform a first load of the sample data (not a forced reload) and SHALL then check the catalog again.
+
+#### Scenario: Catalog empty at 06:00
+
+- **GIVEN** a store whose catalog is empty
+- **WHEN** the daily 06:00 catalog check runs
+- **THEN** a first load of the sample data is requested and the catalog is checked again afterwards
+
+### Requirement: Non-forced population check
+
+ID: SWHR5-R-0306
+Recovered from: POP-WF-0001
+WHEN a population request arrives that is not a forced reload, the system SHALL check whether the catalog (categories, category texts, products, product texts, items, item texts) and the sign-on accounts each hold at least one row. GIVEN all of them hold data, THEN the system SHALL change nothing. GIVEN any of them is empty or cannot be read, THEN the system SHALL drop, recreate and reload every catalog and sign-on table from the sample data file, exactly as for a forced reload.
+
+#### Scenario: Store already populated
+
+- **GIVEN** a store whose catalog and sign-on account tables all hold rows
+- **WHEN** a non-forced population request arrives
 - **THEN** no catalog, account or sign-on history data is changed
+
+#### Scenario: One catalog table empty
+
+- **GIVEN** a store whose item texts table is empty and whose other checked tables hold rows
+- **WHEN** a non-forced population request arrives
+- **THEN** every catalog and sign-on table is dropped, recreated and reloaded from the sample data file
+
+### Requirement: Failed check counts as not populated
+
+ID: SWHR5-R-0295
+Recovered from: POP-BR-0001
+GIVEN a non-forced population request, WHEN any one of the seven checked tables has no rows, OR the check itself fails for any reason (for example a table is missing or the database returns an error), THEN the system SHALL treat the store as not yet populated and SHALL perform the full drop-and-reload, which also deletes every sign-on account and all sign-on history. The sign-on history table SHALL NOT be part of the check.
+
+#### Scenario: Missing table
+
+- **GIVEN** a database in which the product table does not exist
+- **WHEN** a non-forced population request arrives
+- **THEN** the full drop-and-reload runs and deletes every existing sign-on account and all sign-on history
+
+#### Scenario: Empty sign-on history only
+
+- **GIVEN** a store whose seven checked tables all hold rows and whose sign-on history table is empty
+- **WHEN** a non-forced population request arrives
+- **THEN** no data is changed
+
+### Requirement: Sample catalog invariants
+
+ID: SWHR5-R-0088
+Recovered from: SDP-BR-0002
+The system SHALL load a sample catalog of five categories (FISH, DOGS, REPTILES, CATS, BIRDS), sixteen products and twenty-eight items, with US English text only, in which every category has at least one product, every product has at least one item, and every item's list price is at least its unit cost.
+
+#### Scenario: Catalog invariants after load
+
+- **GIVEN** an empty database
+- **WHEN** the sample data is loaded
+- **THEN** the catalog holds the categories FISH, DOGS, REPTILES, CATS and BIRDS, 16 products and 28 items, every category has a product, every product has an item, and no item's list price is below its unit cost
+
+### Requirement: Forced-mode flag interpretation
+
+ID: SWHR5-R-0084
+Recovered from: POP-BR-0002
+The system SHALL treat a population request as a forced reload only when its "forcefully" parameter is the word true (in any letter case). GIVEN the parameter is absent, empty or any other value, THEN the request SHALL be handled as a first-load request.
+
+#### Scenario: Parameter absent
+
+- **GIVEN** any caller
+- **WHEN** a population request carries no "forcefully" parameter
+- **THEN** the request is handled as a first-load request
+
+### Requirement: Forced value matched case-insensitively
+
+ID: SWHR5-R-0089
+Recovered from: SDP-BR-0013
+The system SHALL treat a population request as forced only when its "forcefully" value is "true" (in any letter case); any other or absent value SHALL be handled as a first-load request.
+
+#### Scenario: Mixed-case true
+
+- **GIVEN** a signed-in ADMIN
+- **WHEN** a population request carries the "forcefully" value "TRUE"
+- **THEN** the request is handled as a forced reload
+
+#### Scenario: Unrecognised value
+
+- **GIVEN** any caller
+- **WHEN** a population request carries the "forcefully" value "yes"
+- **THEN** the request is handled as a first-load request
 
 ### Requirement: First-load requests open to any caller
 
-Recovered from: SDP-BR-0004, POP-INT-0001
-The system SHALL accept a first-load (non-forced) population request from any caller, signed on or not.
+ID: SWHR5-R-0302
+Recovered from: SDP-BR-0004
+The system SHALL allow a first-load (non-forced) population request from any caller, signed on or not.
 
 #### Scenario: Customer requests a first load
 
@@ -86,215 +168,131 @@ The system SHALL allow a forced reload of the sample data only to a user signed 
 - **WHEN** the user requests a forced reload of the sample data
 - **THEN** the reload is performed
 
-### Requirement: Refused forced reload leaves the session intact
+### Requirement: Forced reload rule
 
-Recovered from: SDP-BR-0003
-WHEN a forced reload is refused because the requester is not a signed-in ADMIN, the system SHALL NOT end the requester's session.
+ID: SWHR5-R-0208
+Recovered from: POP-RUL-0001
+WHEN a forced reload of the sample data is requested THEN the system SHALL perform it only for a signed-in user with role ADMIN, SHALL show Access Denied to anyone else, and on success SHALL delete and recreate all catalog, account and sign-on history data from the sample file and SHALL end the requester's session.
 
-#### Scenario: Customer stays signed in after a refused reload
-
-- **GIVEN** a user signed in with the CUSTOMER role
-- **WHEN** the user requests a forced reload and is shown Access Denied
-- **THEN** the user is still signed in
-
-### Requirement: Forced reload replaces all store data
-
-Recovered from: POP-REQ-0004, POP-WF-0002, SDP-REQ-0002, POP-RUL-0001
-WHEN a signed-in ADMIN performs a forced reload, the system SHALL drop and recreate the category, category details, product, product details, item, item details, sign-on and sign-on audit tables, SHALL load the sample data, SHALL end the administrator's session and SHALL show the home page.
-
-#### Scenario: Forced reload on a store with customer data
+#### Scenario: Successful forced reload
 
 - **GIVEN** a populated store holding a self-registered customer account and sign-on history
-- **WHEN** an ADMIN performs a forced reload
-- **THEN** the self-registered account and all sign-on history are gone, the sample catalog and sample accounts are present, the administrator is signed out and the home page is shown
+- **WHEN** a signed-in ADMIN performs a forced reload
+- **THEN** the self-registered account and all sign-on history are gone, the sample catalog and sample accounts are present, and the administrator is signed out
 
-### Requirement: Forced-mode flag interpretation
+### Requirement: Reload Sample Data replaces all store tables
 
-Recovered from: SDP-BR-0013, POP-BR-0002
-The system SHALL treat a population request as forced only when its forced-mode value is the word "true" in any letter case. An absent, empty or other value SHALL be handled as a first-load request.
+ID: SWHR5-R-0087
+Recovered from: POP-REQ-0004
+WHEN an ADMIN chooses Reload Sample Data on the Catalog Administration page THEN the system SHALL drop and recreate the CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT data, load the sample data, end the administrator's session and show the home page.
 
-#### Scenario: Mixed-case true
+#### Scenario: Administrator reloads
 
-- **GIVEN** a signed-in ADMIN
-- **WHEN** a population request carries the forced-mode value "TRUE"
-- **THEN** the request is handled as a forced reload
-
-#### Scenario: Unrecognised value
-
-- **GIVEN** any caller
-- **WHEN** a population request carries the forced-mode value "yes"
-- **THEN** the request is handled as a first-load request
-
-### Requirement: Already-populated check
-
-Recovered from: SDP-WF-0001, POP-WF-0001, SDP-WF-0005
-On a first-load request the system SHALL treat the store as already populated only when the category, category details, product, product details, item, item details and sign-on account tables each hold at least one row. The sign-on audit table SHALL NOT be part of the check. WHEN the store is already populated, the system SHALL change nothing. Otherwise it SHALL perform the full drop, recreate and reload.
-
-#### Scenario: One catalog table empty
-
-- **GIVEN** a store whose item details table is empty and whose other checked tables hold rows
-- **WHEN** a first-load request arrives
-- **THEN** every catalog and sign-on table is dropped, recreated and reloaded
-
-#### Scenario: Empty sign-on audit table
-
-- **GIVEN** a store whose seven checked tables all hold rows and whose sign-on audit table is empty
-- **WHEN** a first-load request arrives
-- **THEN** no data is changed
-
-### Requirement: Failed check counts as not populated
-
-Recovered from: SDP-BR-0002, POP-BR-0001
-GIVEN a first-load request, WHEN the already-populated check itself fails (for example because a table is missing or the database returns an error), the system SHALL treat the store as not populated and SHALL perform the full drop, recreate and reload.
-
-#### Scenario: Missing table
-
-- **GIVEN** a database in which the product table does not exist
-- **WHEN** a first-load request arrives
-- **THEN** the full drop, recreate and reload runs and deletes every existing sign-on account and all sign-on history
-
-### Requirement: Population removes all accounts and history
-
-Recovered from: SDP-BR-0005
-WHEN a population runs (a forced reload, or a first load that finds the store not populated), the system SHALL delete every user account and the whole sign-on audit history, and SHALL recreate only the accounts listed in the sample data.
-
-#### Scenario: Self-registered account after population
-
-- **GIVEN** a store holding the sample accounts plus a self-registered account "alice"
-- **WHEN** a population runs
-- **THEN** only the accounts listed in the sample data exist and "alice" does not
+- **GIVEN** a signed-in ADMIN on the Catalog Administration page
+- **WHEN** the administrator chooses Reload Sample Data
+- **THEN** all eight tables are dropped, recreated and loaded from the sample data, the administrator is signed out and the home page is shown
 
 ### Requirement: Session ended on every accepted population request
 
-Recovered from: SDP-BR-0006, POP-BR-0003, SDP-BR-0003
-The system SHALL end the requester's session on every accepted population request, before any data is checked or loaded, and whether or not a reload then takes place. No sign-off audit event SHALL be recorded for this session end. (Disputed: the administration guide says nothing happens on an already populated store.)
+ID: SWHR5-R-0296
+Recovered from: POP-BR-0003
+WHEN a population request passes the access check, the system SHALL end the requester's session before checking or loading any data, whether or not a reload then takes place. GIVEN a signed-in user enters the store through the first-load page on an already populated store, THEN that user SHALL be signed out.
 
 #### Scenario: Signed-in customer enters a populated store
 
 - **GIVEN** a user signed in with the CUSTOMER role and a populated store
-- **WHEN** the user enters the store through the entry page
-- **THEN** no data changes, the user is signed out, and no sign-off event is recorded
+- **WHEN** the user enters the store through the first-load page
+- **THEN** no data changes and the user is signed out
 
 ### Requirement: Population step order
 
-Recovered from: SDP-WF-0007, POP-WF-0002
-A population SHALL drop item details, items, product details, products, category details, categories, sign-on audit and sign-on, in that order. It SHALL then create categories, category details, products, product details, items, item details, sign-on and sign-on audit, in that order, and SHALL then load the sample data. A failure to drop a table SHALL be ignored. A failure to create a table SHALL stop the population and report a failure.
+ID: SWHR5-R-0299
+Recovered from: POP-WF-0002
+WHEN a reload is performed (forced, or first load on an empty store), the system SHALL (1) drop the item texts, items, product texts, products, category texts and categories, then the sign-on history and the sign-on accounts, ignoring any table that cannot be dropped; (2) create categories, category texts, products, product texts, items, item texts, then sign-on accounts and sign-on history, stopping with an error if any table cannot be created; (3) load users and catalog from the sample data file.
 
 #### Scenario: Table absent at drop time
 
-- **GIVEN** a database in which the sign-on audit table does not exist
-- **WHEN** a population runs
-- **THEN** the missing table is ignored at the drop step, and all eight tables are created and loaded
+- **GIVEN** a database in which the sign-on history table does not exist
+- **WHEN** a reload runs
+- **THEN** the missing table is ignored at the drop step, and all tables are created and loaded
+
+#### Scenario: Table cannot be created
+
+- **GIVEN** a database in which the item table cannot be created
+- **WHEN** a reload runs
+- **THEN** the reload stops with an error and the sample data file is not loaded
+
+### Requirement: Eight-table populated check and recreation
+
+ID: SWHR5-R-0294
+Recovered from: SDP-WF-0005
+The system SHALL treat the store as already populated only when every one of the eight store tables (category, category details, product, product details, item, item details, sign-on accounts, sign-on audit) can be read; WHEN it (re)populates THEN it SHALL drop and recreate all eight tables, including all sign-on accounts and the whole sign-on audit history, before loading the sample data.
+
+#### Scenario: Sign-on audit table unreadable
+
+- **GIVEN** a store whose sign-on audit table does not exist
+- **WHEN** a first-load population request arrives
+- **THEN** all eight tables are dropped and recreated and the sample data is loaded
 
 ### Requirement: No rollback on partial failure
 
+ID: SWHR5-R-0209
 Recovered from: POP-BR-0004
-GIVEN a population fails part-way (a table cannot be created, a row cannot be inserted or the data file cannot be read), the system SHALL leave the tables in the state the failure reached. Tables already dropped SHALL stay dropped and rows already inserted SHALL stay inserted.
+GIVEN a reload fails part-way (a table cannot be created, a row cannot be inserted, or the data file cannot be read), THEN the system SHALL leave the tables in whatever state the failure reached: tables already dropped stay dropped and rows already inserted stay inserted. No step of the reload SHALL be undone.
 
 #### Scenario: Insert fails mid-load
 
-- **GIVEN** a population whose sample data contains a row that violates a table constraint
+- **GIVEN** a reload whose sample data contains a row that violates a table constraint
 - **WHEN** the insert of that row fails
-- **THEN** the population reports failure and the rows inserted before it remain in the database
-
-### Requirement: Sample accounts
-
-Recovered from: SDP-REQ-0003, SDP-BR-0001, POP-ENT-0005, POP-BR-0001
-The sample data SHALL create exactly three accounts: "j2ee" (CUSTOMER, password "j2ee"), "shopper" (CUSTOMER, password "j2ee") and "admin" (ADMIN, password "admin"). They SHALL be created through population and not through self-registration, so they carry no account-created audit event.
-
-#### Scenario: Accounts after first load
-
-- **GIVEN** an empty database
-- **WHEN** the first load completes
-- **THEN** exactly the accounts j2ee, shopper and admin exist with the roles CUSTOMER, CUSTOMER and ADMIN, and the sign-on audit history holds no account-created event for them
-
-### Requirement: Loaded account attributes
-
-Recovered from: POP-ENT-0001
-WHEN population loads users, the system SHALL create one sign-on account per user in the sample data. The user name SHALL be the user's id, the password SHALL be stored exactly as written in the data, and the role SHALL be the one given there. All other attributes SHALL take their defaults: zero failed sign-ins, not locked, no lock time, no last sign-on, and a creation time of now.
-
-#### Scenario: Loaded account defaults
-
-- **GIVEN** a sample data file listing user "shopper" with role CUSTOMER
-- **WHEN** population loads it
-- **THEN** the account "shopper" has zero failed sign-ins, is not locked, has no last sign-on time, and has the population time as its creation time
-
-### Requirement: Sample catalog content
-
-Recovered from: SDP-REQ-0002, SDP-BR-0002, POP-ENT-0002, SDP-ENT-0001, POP-ENT-0001, SDP-BR-0001
-The sample data SHALL contain five categories (FISH, DOGS, REPTILES, CATS, BIRDS), sixteen products and twenty-eight items (EST-1 to EST-28), with US English text only. Every category SHALL have at least one product, every product at least one item, and every item's list price SHALL be at least its unit cost. The loaded catalog SHALL be identical to the sample data in every price, cost, attribute, image and description.
-
-#### Scenario: Catalog after first load
-
-- **GIVEN** an empty database
-- **WHEN** the first load completes
-- **THEN** the catalog holds 5 categories, 16 products and 28 items, all text has language en_US, and no item's list price is below its unit cost
-
-### Requirement: Catalog record structure on load
-
-Recovered from: SDP-ENT-0008, POP-ENT-0002
-WHEN population loads the catalog, the system SHALL create each category with its id and one text row per language (name, image, description). It SHALL create each product with its id and owning category, plus one text row per language (name, image, description). It SHALL create each item with its id and owning product, plus one detail row per language (list price, unit cost, up to five attributes, image, description). Each category, product and item SHALL be created before its text or detail rows, and each text or detail row SHALL take its id from the enclosing record. A field missing from the data SHALL be stored as empty.
-
-#### Scenario: Item without optional attributes
-
-- **GIVEN** a sample item that declares only one attribute
-- **WHEN** population loads it
-- **THEN** the item detail row holds that attribute and its other four attributes are empty
+- **THEN** the reload reports failure and the rows inserted before it remain in the database
 
 ### Requirement: Language code normalisation
 
-Recovered from: SDP-BR-0009, POP-BR-0005, SDP-BR-0004
-WHEN the system loads a language code from the sample data, it SHALL replace every hyphen with an underscore before storing it.
+ID: SWHR5-R-0085
+Recovered from: POP-BR-0005
+WHEN the system loads a language code from the sample data file, it SHALL replace every hyphen with an underscore before storing it (for example en-US is stored as en_US).
 
 #### Scenario: en-US in the data file
 
 - **GIVEN** a sample data text entry with language "en-US"
-- **WHEN** population loads it
+- **WHEN** the reload loads it
 - **THEN** the stored language code is "en_US"
 
-### Requirement: Sample data validation
+### Requirement: Sample data file validation on read
 
-Recovered from: SDP-BR-0015, POP-BR-0006, SDP-BR-0001, SDP-BR-0003
-The system SHALL validate the sample data against its declared structure while loading: accounts before the catalog, categories before products before items, every product naming a declared category, every item naming a declared product, and every category, product and item carrying at least one text entry with a language code. GIVEN the data is not well-formed, the load SHALL stop and report a population failure. GIVEN well-formed data that breaks the declared structure, the system SHALL log the problem and SHOULD continue loading. (Pass disagreement: one pass says the data is rejected and nothing is loaded.)
+ID: SWHR5-R-0297
+Recovered from: POP-BR-0006
+WHEN the sample data file is read, the system SHALL validate it against its declared document type. GIVEN the file contains a validity error that is not fatal, THEN the system SHALL report it in the server log and continue loading. GIVEN the file is not well-formed (a fatal error), THEN the system SHALL stop the load and report a population failure.
 
 #### Scenario: Malformed file
 
 - **GIVEN** a sample data file with an unclosed element
-- **WHEN** population reads it
-- **THEN** the population fails and reports a failure
+- **WHEN** the reload reads it
+- **THEN** the load stops and a population failure is reported
 
-#### Scenario: Structural violation in a well-formed file
+#### Scenario: Non-fatal validity error
 
-- **GIVEN** a well-formed sample data file in which an item element omits a required child
-- **WHEN** population reads it
-- **THEN** the violation is written to the server log and loading continues
+- **GIVEN** a well-formed sample data file in which an item omits a required child
+- **WHEN** the reload reads it
+- **THEN** the error is written to the server log and loading continues
 
-### Requirement: Configured data source and dialect
+### Requirement: Sample data referential validation
 
-Recovered from: SDP-BR-0014, POP-INT-0001, SDP-INT-0006, SDP-BR-0004
-The system SHALL take the location of the sample data, the location of the table statements and the database dialect from deployment configuration. The dialect SHALL default to "derby", with "oracle" as the alternative. The system SHALL use only the statements declared for the configured dialect, and the two dialects SHALL describe the same tables, columns and constraints. GIVEN a statement needed for a table and operation is not defined for the dialect, the population SHALL fail with an error naming the missing statement.
+ID: SWHR5-R-0301
+Recovered from: SDP-BR-0001
+The system SHALL validate the sample data before loading it, and SHALL require that every category, product and item in it has at least one localized text entry carrying a language code, that every product names a category defined in the same data, and that every item names a product defined in the same data.
 
-#### Scenario: Missing dialect statement
+#### Scenario: Product names an undefined category
 
-- **GIVEN** a configured dialect that lacks the create statement for the item table
-- **WHEN** a population runs
-- **THEN** the population fails with an error naming the missing statement
-
-### Requirement: Sign-on audit identifier
-
-Recovered from: SAUD-BR-0002
-The system SHALL give every sign-on audit event a unique identifier generated automatically when the event is recorded. (Disputed: the legacy Oracle population definitions do not generate it.)
-
-#### Scenario: Audit event after population
-
-- **GIVEN** a freshly populated store
-- **WHEN** a sign-on event is recorded
-- **THEN** it is stored with a new, unique identifier that the caller did not supply
+- **GIVEN** sample data in which a product names a category that is not defined in the same data
+- **WHEN** the sample data is validated
+- **THEN** the validation reports the product as invalid
 
 ### Requirement: Population result redirection
 
-Recovered from: SDP-REQ-0010, SDP-REQ-0011, POP-BR-0007
-WHEN a population request completes without error, the system SHALL send the requester to the success page named in the request. If none is named, it SHALL send the requester to the referring page. If neither is available, it SHALL return an empty successful response. WHEN a population fails, the system SHALL log the underlying cause and SHALL send the requester to the error page named in the request, or otherwise SHALL fail the request with a server error. A page name starting with two slashes SHALL be resolved against the current request address, and any other page name SHALL be resolved inside the store.
+ID: SWHR5-R-0298
+Recovered from: POP-BR-0007
+WHEN a population request completes, the system SHALL send the requester to the success page named in the request; GIVEN none is named, to the page the request came from; GIVEN neither is known, it SHALL return an empty successful response. WHEN population fails, GIVEN an error page is named in the request, THEN the system SHALL send the requester there; otherwise it SHALL return a server error. A page name beginning with a single slash or no slash SHALL be resolved inside the store; one beginning with two slashes SHALL be resolved against the current request address.
 
 #### Scenario: Success with a named page
 
@@ -306,52 +304,133 @@ WHEN a population request completes without error, the system SHALL send the req
 
 - **GIVEN** a population request that names no error page
 - **WHEN** the population fails
-- **THEN** the cause is logged and the request fails with a server error
+- **THEN** the request fails with a server error
+
+### Requirement: Loaded account attributes
+
+ID: SWHR5-R-0127
+Recovered from: POP-ENT-0001
+WHEN a reload loads users, the system SHALL create one sign-on account per user in the data file with the user's id as the user name, the password exactly as written in the file, and the role given in the file. Every other account attribute SHALL take its default: zero failed sign-ins, not locked, no lock time, no last sign-on, created now.
+
+#### Scenario: Loaded account defaults
+
+- **GIVEN** a sample data file listing user "shopper" with role CUSTOMER
+- **WHEN** the reload loads it
+- **THEN** the account "shopper" has the role CUSTOMER, zero failed sign-ins, is not locked, has no lock time and no last sign-on time, and has the load time as its creation time
+
+### Requirement: Catalog record structure on load
+
+ID: SWHR5-R-0307
+Recovered from: POP-ENT-0002
+WHEN a reload loads the catalog, the system SHALL create, for each category in the data file, a category with its id and one text row per language (name, image, description, language); for each product, a product with its id and category plus one text row per language (language, name, image, description); and for each item, an item with its id and product plus one detail row per language (list price, unit cost, language, up to five attributes, image, description). Each category, product and item SHALL be created before its text or detail rows. A field missing from the file SHALL be stored as empty (null).
+
+#### Scenario: Item without optional attributes
+
+- **GIVEN** a sample item that declares only one attribute
+- **WHEN** the reload loads it
+- **THEN** the item row is created before its detail row, and the detail row holds that attribute with its other four attributes empty
+
+### Requirement: Sample account passwords
+
+ID: SWHR5-R-0292
+Recovered from: POP-ENT-0005
+The system SHALL provide, from the sample data, the accounts j2ee (CUSTOMER, password j2ee), shopper (CUSTOMER, password j2ee) and admin (ADMIN, password admin).
+
+#### Scenario: Sign in with a sample account
+
+- **GIVEN** a store freshly loaded from the sample data
+- **WHEN** a user signs in as admin with password admin
+- **THEN** the sign-in succeeds with the ADMIN role
+
+### Requirement: Sample accounts created on load
+
+ID: SWHR5-R-0293
+Recovered from: SDP-REQ-0003
+The system SHALL create three sample sign-on accounts when it loads sample data: "j2ee" and "shopper" with the CUSTOMER role, and "admin" with the ADMIN role, each with a fixed password supplied in the sample data.
+
+#### Scenario: Accounts after first load
+
+- **GIVEN** an empty database
+- **WHEN** the first load completes
+- **THEN** exactly the accounts j2ee, shopper and admin exist with the roles CUSTOMER, CUSTOMER and ADMIN
+
+### Requirement: Sample data content
+
+ID: SWHR5-R-0090
+Recovered from: SDP-ENT-0001
+The sample data SHALL contain 5 categories (Birds, Cats, Dogs, Fish, Reptiles), 16 products and 28 items, and three accounts: j2ee (CUSTOMER), shopper (CUSTOMER) and admin (ADMIN), each with the documented sample password.
+
+#### Scenario: Counts after first load
+
+- **GIVEN** an empty database
+- **WHEN** the first load completes
+- **THEN** the store holds 5 categories, 16 products, 28 items and the three sample accounts
+
+### Requirement: Sample item identifiers and prices
+
+ID: SWHR5-R-0091
+Recovered from: SDP-REQ-0002
+The system SHALL load a fixed sample catalog of 5 categories (Fish, Dogs, Reptiles, Cats, Birds), 16 products and 28 items (EST-1 to EST-28), each with English (United States) text and, for items, the list price and unit cost given in the sample data.
+
+#### Scenario: Item identifiers after load
+
+- **GIVEN** an empty database
+- **WHEN** the first load completes
+- **THEN** the items are EST-1 to EST-28, all text has language en_US, and each item's list price and unit cost equal the values in the sample data
+
+### Requirement: Configured data file, statements and dialect
+
+ID: SWHR5-R-0086
+Recovered from: POP-INT-0001
+The system SHALL load the sample data from a configured data file (by default the store's bundled UTF-8 sample file) and SHALL take the table statements from a configured statements file, using only the statement set for the configured database dialect (by default derby). GIVEN a statement needed for a table and operation is not defined for that dialect, THEN the population SHALL fail with an error naming the missing statement.
+
+#### Scenario: Missing dialect statement
+
+- **GIVEN** a configured dialect that lacks the create statement for the item table
+- **WHEN** a reload runs
+- **THEN** the population fails with an error naming the missing statement
+
+### Requirement: Two database dialects
+
+ID: SWHR5-R-0303
+Recovered from: SDP-INT-0006
+The system SHALL provide the store table definitions for two database products (Derby and Oracle) and SHALL use the set selected by configuration, Derby by default.
+
+#### Scenario: No dialect configured
+
+- **GIVEN** a deployment that sets no database dialect
+- **WHEN** a reload runs
+- **THEN** the Derby table definitions are used
 
 ### Requirement: First load callable by the catalog check job
 
-Recovered from: SDP-INT-0012, POP-INT-0002, POP-INT-0001
-The system SHALL expose the first-load population at a fixed address that the daily catalog check job can call over HTTP without signing in. The call SHALL report success when the load succeeds or is not needed, and SHALL report failure when the load fails.
+ID: SWHR5-R-0305
+Recovered from: POP-INT-0002
+The system SHALL expose the first-load population as an address that the daily catalog check job can call without signing in. GIVEN the call succeeds or there was nothing to load, THEN the call SHALL report success; GIVEN population fails, THEN the call SHALL report failure, so the job can end with its population-failed exit code.
+
+#### Scenario: Nothing to load
+
+- **GIVEN** a populated store
+- **WHEN** the job calls the first-load address without signing in
+- **THEN** the call reports success
 
 #### Scenario: Load fails during a job call
 
-- **GIVEN** the job calls the first-load address and the population fails
-- **WHEN** the response is returned
-- **THEN** the response carries a failure status that the job can detect
+- **GIVEN** an empty store whose load fails
+- **WHEN** the job calls the first-load address
+- **THEN** the call reports failure that the job can detect
 
-### Requirement: Daily catalog check triggers first load
+### Requirement: Repeatable sign-on history seed
 
-Recovered from: POP-WF-0001, SDP-WF-0001, POP-REQ-0001
-GIVEN the catalog tables do not exist when the daily 06:00 catalog check runs, the system SHALL request a first (non-forced) load of the sample data and SHALL then run the catalog checks again on the loaded data. IF the load request fails, the run SHALL end with the technical-failure outcome (exit code 8). A catalog whose tables exist but hold no rows SHALL NOT trigger a load from the job.
-
-#### Scenario: Missing tables at 06:00
-
-- **GIVEN** the catalog tables do not exist
-- **WHEN** the daily catalog check runs
-- **THEN** a first load is requested and the catalog checks run again on the loaded data
-
-#### Scenario: Load request fails
-
-- **GIVEN** the catalog tables do not exist and the store cannot complete the load
-- **WHEN** the daily catalog check runs
-- **THEN** the job ends with exit code 8
-
-### Requirement: Sign-on history seed
-
-Recovered from: POP-WF-0001, SDP-WF-0001, SAMP-WF-0001, SAMPLE-WF-0001, SEED-REQ-0001
-The system SHALL provide an optional sign-on history seed, loaded as a separate step after the first sample-data population, and applied in a single transaction so that either all of it is stored or none of it is. The seed SHALL add 40 CUSTOMER accounts with user names of 3 to 25 characters and 90 days of sign-on audit events ending on a chosen end date (default 2026-10-30). It SHALL set the creation time of the three sample accounts to the start of the period and give them a last sign-on time. The seed SHALL be identical every time it is produced for the same end date.
+ID: SWHR5-R-0300
+Recovered from: SAMPLE-WF-0001
+The system SHALL provide an optional, repeatable sign-on history data set, loaded only after the first catalog/account load, that adds 40 extra CUSTOMER accounts and 90 days of sign-on audit events ending on a chosen end date (default 2026-10-30), and SHALL produce the identical data set every time for the same end date.
 
 #### Scenario: Seed loaded after first population
 
 - **GIVEN** a store populated with the sample data
 - **WHEN** the default seed is loaded
-- **THEN** 40 additional CUSTOMER accounts and the audit events from 2026-08-01 to 2026-10-30 exist, and the accounts j2ee, shopper and admin have creation time 2026-08-01 00:00:00
-
-#### Scenario: Seed loaded before first population
-
-- **GIVEN** a store that has not been populated
-- **WHEN** the seed is loaded
-- **THEN** the updates to the three sample accounts affect no rows
+- **THEN** 40 additional CUSTOMER accounts and 90 days of sign-on audit events ending 2026-10-30 exist
 
 #### Scenario: Regenerated for the same end date
 
@@ -359,74 +438,20 @@ The system SHALL provide an optional sign-on history seed, loaded as a separate 
 - **WHEN** the two outputs are compared
 - **THEN** they are identical
 
-#### Scenario: Locked accounts at period end
-
-- **GIVEN** the default seed has been loaded
-- **WHEN** the account states at the end of the period are examined
-- **THEN** exactly two customer accounts are locked, each with a lock less than 30 minutes old
-
 ### Requirement: Seed account roles
 
+ID: SWHR5-R-0304
 Recovered from: SDP-RULE-0001
-The sign-on history seed SHALL update but never create the three sample accounts, and every account it creates SHALL have the CUSTOMER role.
+The system SHALL keep the three built-in accounts (j2ee, shopper, admin) as rows the sign-on history seed updates but never creates, and every account the seed creates SHALL have the CUSTOMER role.
 
 #### Scenario: Roles after seeding
 
-- **GIVEN** the seed has been loaded
+- **GIVEN** the seed has been loaded after the first population
 - **WHEN** accounts are listed by role
-- **THEN** admin is the only ADMIN account
+- **THEN** admin is the only ADMIN account and every account added by the seed has the CUSTOMER role
 
-### Requirement: Store database location and connection limits
+#### Scenario: Seed loaded before first population
 
-Recovered from: BO-INT-0001
-The system SHALL keep its catalog, accounts and sign-on history in a single database at /var/petstore/db/PetStoreDB, created if missing. Connections SHALL come from a pool of at most 20 that waits at most 10 seconds for a free connection.
-
-#### Scenario: First start on a new host
-
-- **GIVEN** no database exists at /var/petstore/db/PetStoreDB
-- **WHEN** the store first connects
-- **THEN** the database is created at that location
-
-### Requirement: Daily online backup
-
-Recovered from: BAT-BR-0001
-The system SHALL take an online backup of the whole store database every day at 01:00 without stopping the store. It SHALL keep the backup in a folder named PetStoreDB_YYYYMMDD, replacing any backup already taken that day, and SHALL delete dated backups older than 7 whole days.
-
-#### Scenario: Backup retention
-
-- **GIVEN** dated backups from the previous 9 days
-- **WHEN** the 01:00 backup completes
-- **THEN** today's backup exists and every backup older than 7 whole days is deleted
-
-### Requirement: Batch retries
-
-Recovered from: BAT-BR-0005
-GIVEN the nightly backup fails, the system SHALL retry it automatically up to 2 more times, 10 minutes apart. GIVEN the audit extract fails, the system SHALL retry it automatically once. Other batch jobs SHALL NOT be retried automatically.
-
-#### Scenario: Catalog check failure
-
-- **GIVEN** the daily catalog check ends with a failure
-- **WHEN** the scheduler evaluates it
-- **THEN** the job is not rerun automatically
-
-### Requirement: Batch job log lines
-
-Recovered from: BATCH-REQ-0006
-The system SHALL write one line to the batch job log for each job start and each job end.
-
-#### Scenario: Job run is logged
-
-- **GIVEN** any batch job
-- **WHEN** it starts and then ends
-- **THEN** the batch job log gains exactly two lines for that run, one for the start and one for the end
-
-### Requirement: Restore from a dated backup
-
-Recovered from: BAT-REQ-0001, BO-REQ-0002
-Operations SHALL be able to restore the store database from a dated backup by stopping the application, moving the current database aside, copying the backup into its place and restarting the application.
-
-#### Scenario: Restore after an unwanted reload
-
-- **GIVEN** a forced reload that deleted customer accounts and a backup taken before it
-- **WHEN** operations follow the restore procedure with that backup
-- **THEN** the store restarts with the accounts and history as they were at backup time
+- **GIVEN** a store that has not been populated
+- **WHEN** the seed is loaded
+- **THEN** no j2ee, shopper or admin account is created by the seed

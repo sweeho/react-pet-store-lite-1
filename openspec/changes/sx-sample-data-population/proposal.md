@@ -6,14 +6,10 @@ The legacy store fills its own database from a bundled sample data set. A visito
 
 ## What Changes
 
-- ADDED capability `sample-data-population`: 32 requirements recovered from the legacy code, configuration, batch scripts, seed data and guides.
-- Two screens: the store entry page and the Catalog Administration page.
-- One approved requirement: forced reload restricted to ADMIN (`SWHR5-R-0022`, from `POP-REQ-0003`). The other requirements are drafts awaiting SME review. Recommendations are in `legacy-analysis/ir/_recommendations/sample-data-population.yaml`.
-- Disputed items carried as drafts for the Business Owner:
-  - the session ends on every store entry, against the guide's "nothing happens";
-  - the Oracle definitions do not generate the audit identifier;
-  - the passes disagree on whether a structurally invalid data file is rejected or loaded with a log entry.
-- Records whose content belongs to batch or operations were tagged to this capability by the extraction and are kept here as drafts: daily backup, batch retries, job log lines, restore procedure, and database location. The SME may re-home them.
+- ADDED capability `sample-data-population`: 32 requirements, one per SME-approved record, recovered from the legacy code, configuration, batch scripts, seed data and guides. Each carries its approved requirement key.
+- Two screens: the store entry page (`SDP-SCR-0001`) and the Catalog Administration page (`POP-SCR-0002`).
+- Records not yet approved are left out of the spec. Recommendations for them are in `legacy-analysis/ir/_recommendations/sample-data-population.yaml`.
+- Behaviour that contradicts the guide is carried as approved, with the conflict noted in `design.md` for the Business Owner: the session ends on every accepted population request, against the guide's "nothing happens" (`POP-BR-0003`).
 
 ## Impact
 

@@ -24,17 +24,17 @@ These notes record how Java Pet Store Lite implements the capability. They descr
 
 - `forcefully` is parsed with `Boolean.valueOf`, so only a case-insensitive "true" means forced.
 - The language code transform (`-` to `_`) happens in the populators, not in the data file.
-- The Oracle `signon_audit` create statement in `PopulateSQL.xml` lacks the identity clause that the Derby statement and the Oracle schema script both have (dispute on `SAUD-BR-0002`).
+- The Oracle `signon_audit` create statement in `PopulateSQL.xml` lacks the identity clause that the Derby statement and the Oracle schema script both have.
 - No transaction wraps the reload, so a failure leaves partially dropped or loaded tables (`POP-BR-0004`).
 
 ## Suspected legacy defects (recorded, not judged)
 
 - **Double redirect on failure.** In `PopulateServlet.doPost`, when population fails and an `error_page` is given, the servlet redirects to it and then falls through to the success or referer redirect. The second `sendRedirect` on a committed response would throw `IllegalStateException`. No legacy caller passes `error_page`: `populating.jsp` and the admin form send only `success_page`. So the live failure path is the `ServletException` (HTTP 500). Confirm on a running instance before carrying either behaviour forward.
-- **Session ended even when nothing loads.** The guide says nothing happens. The code always invalidates the session (`SDP-BR-0003`, dispute `contradicts-docs`). This goes to the Business Owner via Intent.
+- **Session ended even when nothing loads.** The guide says nothing happens. The code always invalidates the session (`POP-BR-0003`; dispute `contradicts-docs` on `POP-REQ-0001`). This goes to the Business Owner via Intent.
 - **Sign-on audit not part of the populated check.** A store with accounts but an empty audit table counts as populated. This looks intentional, but it is not documented.
 
 ## Open questions for the SME
 
 - Q1 Is the history seed a supported procedure or a developer convenience? No caller loads it.
-- Q2 Should the backup, retry, job-log, restore and database-location records stay in this capability or move to a batch/operations capability?
-- Q3 Is the Oracle dialect deployed anywhere? This decides `SAUD-BR-0002`.
+- Q2 The approved texts differ on the populated check: `POP-BR-0001` checks seven tables and excludes sign-on audit, while `SDP-WF-0005` names all eight. The code (`CatalogPopulator.check`, `UserPopulator.check`) checks seven.
+- Q3 Is the Oracle dialect deployed anywhere? The Oracle `signon_audit` create statement lacks the identity clause.
