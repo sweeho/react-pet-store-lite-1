@@ -4,8 +4,8 @@ Spec extraction SX-0001 is recovering the behaviour of the legacy J2EE Pet Store
 
 ## What Changes
 
-- Adds the `catalog-browsing` capability: the three-level catalog (category, product, item) and its stored records, the category, product and item listings, single-item lookup, paging and its Next/Previous links, language and currency rules, error behaviour, and the ten user-facing surfaces (shared layout, banner, Admin link, Pets side bar, named pages and titles, home, category, product, item and General Error pages).
-- Two requirements carry approved keys: category product paging (SWHR5-R-0018, from BROWSE-REQ-0002) and the en_US / US-dollar presentation rule (SWHR5-R-0008, from BROWSE-REQ-0006). Every other requirement is a draft awaiting SME decision. The recommendations are in `legacy-analysis/ir/_recommendations/catalog-browsing.yaml`.
+- Adds the `catalog-browsing` capability: the three-level catalog (category, product, item) and its stored records, the category, product and item listings, single-item lookup, paging and its Next/Previous links, language and currency rules, error behaviour, and the user-facing surfaces (page frame and layout, banner Admin link, named pages and titles, home, category, product, item and General Error pages).
+- Every requirement carries an approved key: the 51 approved records of this capability, one requirement each, including 10 screen requirements. Records not approved (pending, deferred or rejected) are left out of the spec; the recommendations for them are in `legacy-analysis/ir/_recommendations/catalog-browsing.yaml`.
 - Records open disputes instead of resolving them: whether "Your Price" (the unit cost) is a customer price or a member price, and whether several code paths with no caller (PREVIOUS page, locale-suffixed tables, single category/product lookup, the combined catalog view) are live.
 
 ## Capabilities

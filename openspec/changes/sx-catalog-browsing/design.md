@@ -58,10 +58,20 @@ All paths below are relative to `legacy-source/j2ee-pet-store-lite/`.
 
 ## Decisions
 
-- D1. Screen records from different passes that describe the same page were merged into one screen requirement each, giving ten: shared layout, banner, Admin link, Pets side bar, named pages and titles, home, category, product, item and General Error. The footer is stated within the shared-layout requirement.
-- D2. `BROWSE-REQ-0006` exists under two modules: the user-guide pass ("en_US and US dollars") and the catalog-module pass ("single item lookup"). The approved key SWHR5-R-0008 is attached to the en_US / US-dollar record. That record is high confidence and corroborated by BROW-REQ-0002, CB-REQ-0003 and `petstore.properties` line 26, which fits the "both passes agree plus a second source" acceptance rule. The single-item lookup is written as a draft. If the server's approval was for the other record, the ID line moves to "Single item lookup".
+- D1. Each approved record key is written as exactly one requirement. Several records describe the same behaviour (for example the page frame, the category list order, the default page size of 2), so the spec states some behaviours more than once under different keys. They were not merged, because each key must stay traceable to its own record.
+- D2. Some record keys are reused across modules with different text. For each such key the requirement is written from one variant, chosen as code-derived over document-derived over inventory-derived, and otherwise the variant not already stated under another key:
+  - `BROW-SCR-0001` and `BROW-SCR-0002`: the `src/main/webapp` pass (category page, product page). The user-guide variants (page frame, item page) are covered by `BROW-SCR-0005` and `BROW-SCR-0003`.
+  - `CB-SCR-0001`: the `src/main/webapp` pass (home page). The user-guide variant (page frame) is covered by `BROW-SCR-0005` and `BROWSE-SCR-0007`.
+  - `CATB-SCR-0001`: the `waf/b` pass (named catalog pages and titles). The `waf/c` variant (shared layout) is covered by `CATALOG-BROWSING-SCREEN-0001`.
+  - `CATB-REQ-0001`, `CATB-REQ-0002`, `CATB-REQ-0003`: the `catalog/a` pass (category, product and item listings). The `waf` variants (named screens, single language, undefined page) are covered by `CATB-SCR-0001`, `CATB-BR-0001` and `CATALOG-BROWSING-REQ-0001`. The inventory variants (`v_catalog_item`, parent-code lookup) are noted under R5 and `CB-REQ-0001`.
+  - `CATB-ENT-0001`, `CATB-ENT-0002`: the `catalog/a` pass (category and product records). The DDL variants (10-character unique code, per-locale category text) are listed under Schema above.
+  - `CATB-BR-0001`: the `waf/c` pass (display language selection). The DDL variant (categories without locale text are hidden) is covered by `BROWSE-REQ-0001` and `CATB-REQ-0001`, which list in the requested locale.
+  - `CATALOG-BROWSING-BR-0001`: the `conf/b` pass (page size 2, overridable). The `waf/a` variant (language selection) is covered by `CATB-BR-0001`.
+  - `CB-REQ-0001`: the DDL inventory pass (parent-code lookup). The user-guide variant (three levels, Your Price is unit cost) is covered by `BROW-REQ-0001`, `BROW-SCR-0003` and `CB-RULE-0001`.
+  - `BROWSE-REQ-0001`, `BROWSE-REQ-0003`, `BROWSE-REQ-0004`, `BROWSE-REQ-0006`: the `catalog/b` pass. The user-guide variants are covered by `BROW-REQ-0001`, `CB-RULE-0002`, `BROW-SCR-0002`, `BROW-SCR-0003` and `CB-REQ-0003`.
+    If the server holds a different variant under one of these keys, the requirement text under that `ID:` must be replaced with it.
 - D3. The item page requirement states what is shown today: "Your Price" is the unit cost and is shown to everyone. Whether that is intended stays open as a dispute (below). The requirement is not rewritten to match the user guide.
-- D4. Requirements recovered from code with no established caller are written with MAY and listed under Risks for confirmation, not dropped.
+- D4. Approved records recovered from code with no established caller (`CATALOG-BROWSING-WF-0001`) are written as approved, and their reachability doubt is kept under Risks.
 
 ## Risks / Trade-offs
 
