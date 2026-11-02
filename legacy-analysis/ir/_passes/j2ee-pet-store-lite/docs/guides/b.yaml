@@ -1,0 +1,1320 @@
+# Spec extraction SX-0001, pass B, shard j2ee-pet-store-lite/docs/guides
+# Sources: the three HTML guides in this shard (user guide PSL-UG-01,
+# administrator guide PSL-AG-01, operations runbook PSL-RB-01). No
+# legacy-analysis/sources/**/extracted.md existed in the tree, so the guides
+# are cited directly as document traces (kind: document, with an anchor naming
+# the section heading) and also carry line ranges in the HTML file.
+# Confidence grades are about the document evidence; where a claim was
+# spot-checked against code/config in this pass, the basis says so.
+records:
+  # ---------------------------------------------------------------- browsing
+  - record_key: BROW-SCR-0001
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >
+      Every page SHALL show a banner with the store logo linking to the home page, a
+      keyword search box, an Account link and a Sign in link (Sign out when signed in,
+      with the text "Signed in as <user name>"), a Pets side bar listing one link per
+      category in alphabetical order, the requested page body, and a footer.
+    plain_text: >
+      Every page has the same frame: logo, search box, account and sign-in/out links at
+      the top, the list of pet categories in alphabetical order on the left, and a footer.
+    technical_note: >
+      Documented in the user guide section 1.1. The admin guide states 15 screens share
+      one template (screen definitions file). Not verified against templates in this pass.
+    confidence: medium
+    confidence_basis: >
+      One clear documentary statement; the shared-template claim in the admin guide is
+      consistent with it, but I did not read the template JSP in this pass.
+    risk_class: presentational
+    interface: false
+    basis: User guide 1.1 "Page layout" lists the four parts of every page.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "1.1 Page layout"
+        line_start: 27
+        line_end: 36
+        excerpt: |2
+          <h2>1.1 Page layout</h2>
+          <p>Every page has the same four parts:</p>
+           <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>
+    stack_metadata:
+      framework: j2ee-web-template
+
+  - record_key: BROW-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The catalog SHALL be organised in three levels (category, product, item); a
+      category page SHALL list its products with name and description, and a product
+      page SHALL list its items with attribute, name, description and list price.
+    plain_text: >
+      Shoppers drill down from a category (e.g. Dogs) to a product (e.g. Bulldog) to an
+      individual item (e.g. Male Adult Bulldog).
+    technical_note: >
+      User guide sections 3, 3.1, 3.2. Catalog SQL statements GET_CATEGORY..GET_ITEMS
+      are named in the admin guide configuration table (CatalogDAOSQL.xml).
+    confidence: medium
+    confidence_basis: Stated in one document section with examples; not traced to the page code in this pass.
+    risk_class: presentational
+    interface: false
+    basis: User guide section 3 table of catalog levels and sections 3.1-3.2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "3. Browsing the catalog"
+        line_start: 48
+        line_end: 56
+        excerpt: |2
+           <tr><td>Category</td><td>Dogs</td><td>Lists the products in the category</td></tr>
+           <tr><td>Product</td><td>Bulldog (K9-BD-01)</td><td>Lists the items of the product with their list price</td></tr>
+           <tr><td>Item</td><td>Male Adult Bulldog (EST-6)</td><td>Shows the picture, List Price, Your Price, description and Item ID</td></tr>
+
+  - record_key: BROW-BR-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >
+      Category product lists and product item lists SHALL be paged two entries at a
+      time; a Next link SHALL appear only when a later page exists and a Previous link
+      only when an earlier page exists.
+    plain_text: >
+      Lists show two entries per page, with Next/Previous links only when there is more
+      to see in that direction.
+    technical_note: >
+      User guide 3.1 and 3.2. conf/petstore.properties catalog.pageSize=2 agrees
+      (spot-checked).
+    confidence: high
+    confidence_basis: >
+      The page size of two is stated in the guide and matches the catalog.pageSize=2
+      setting read in this pass (document + config).
+    risk_class: presentational
+    interface: false
+    basis: User guide 3.1 step 2-3 and 3.2 step 2; petstore.properties line 27.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "3.1 Browse a category"
+        line_start: 61
+        line_end: 62
+        excerpt: |2
+           <li>The page <i>Products for this Category</i> lists two products at a time, each with its name and description.</li>
+           <li>Click <b>Next</b> to see the next two products, or <b>Previous</b> to go back. A link only appears when there is a page in that direction.</li>
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 27
+        line_end: 27
+        excerpt: |2
+          catalog.pageSize=2
+
+  - record_key: BROW-SCR-0002
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >
+      The item page SHALL show the item picture, the List Price (catalog price), Your
+      Price (the discounted member price), the description and the Item ID.
+    plain_text: >
+      An item page shows the picture, the normal price, the member price, a description
+      and the item number customers quote when contacting the store.
+    technical_note: >
+      User guide 3.3. The guide does not state how Your Price is derived (no discount
+      rate or rule is documented); see finding.
+    confidence: medium
+    confidence_basis: One documentary statement with a screenshot reference; the derivation of Your Price is not stated anywhere I read.
+    risk_class: financial
+    interface: false
+    basis: User guide 3.3 lists the fields of the item page.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "3.3 View an item"
+        line_start: 73
+        line_end: 79
+        excerpt: |2
+           <li><b>List Price</b>: the catalog price.</li>
+           <li><b>Your Price</b>: the discounted price for members.</li>
+           <li>The description and the <b>Item ID</b> (for example EST-6). Quote the Item ID when you contact the store.</li>
+
+  - record_key: BROW-REQ-0002
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The store SHALL present its content in English (en_US) and show prices in US
+      dollars.
+    plain_text: The store is in English and prices are in US dollars.
+    technical_note: User guide section 1; petstore.properties catalog.locale=en_US agrees.
+    confidence: high
+    confidence_basis: Document statement plus the catalog.locale=en_US setting read in this pass.
+    risk_class: presentational
+    interface: false
+    basis: User guide section 1 closing sentence.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "1. About the store"
+        line_start: 25
+        line_end: 25
+        excerpt: |2
+          <p>The store is in English (en_US) and shows prices in US dollars.</p>
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 26
+        line_end: 26
+        excerpt: |2
+          catalog.locale=en_US
+
+  # ------------------------------------------------------------------ search
+  - record_key: SRCH-BR-0001
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      Keyword search SHALL match an item when a search word appears anywhere (substring)
+      in the product name, the category code or the item description, ignoring case;
+      when several space-separated words are given, items matching ANY word SHALL be
+      returned.
+    plain_text: >
+      Search finds items whose product name, category code or description contains any
+      of the typed words, even partially, regardless of upper/lower case.
+    technical_note: >
+      User guide section 4. CatalogDAOSQL.xml SEARCH_ITEMS (derby and oracle variants)
+      applies lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?, with a
+      VARIABLE fragment per extra word (spot-checked).
+    confidence: high
+    confidence_basis: >
+      The guide's matching rules agree with the SEARCH_ITEMS SQL read in this pass
+      (lower() on all three columns, LIKE predicates) — document plus code.
+    risk_class: operational
+    interface: false
+    basis: User guide 4 "How search matches" bullets 1-3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "4. Searching"
+        line_start: 90
+        line_end: 93
+        excerpt: |2
+           <li>A word matches when it appears anywhere in the product name, the category code (for example DOGS) or the item description.
+           Part of a word is enough: <i>dog</i> finds Bulldog and every item in the DOGS category.</li>
+           <li>When you type several words separated by spaces, items that match <b>any</b> of the words are listed.</li>
+           <li>Search is not case-sensitive.</li>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml
+        line_start: 119
+        line_end: 119
+        excerpt: |2
+                              where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+    stack_metadata:
+      db.object: CatalogDAOSQL.xml#SEARCH_ITEMS
+
+  - record_key: SRCH-BR-0002
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      GIVEN a search WHEN the query is empty or no item matches THEN the results page
+      SHALL show "No results were found for your search."; otherwise results SHALL be
+      listed two at a time with Next and Previous links.
+    plain_text: >
+      An empty search or one with no matches shows a "no results" message; matches are
+      shown two per page.
+    technical_note: User guide section 4 steps 2 and bullet 4; section 6 messages table.
+    confidence: medium
+    confidence_basis: Stated twice in the same document (sections 4 and 6) but not verified against the search code's empty-query branch in this pass.
+    risk_class: presentational
+    interface: false
+    basis: User guide 4 bullet 4 and step 2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "4. Searching"
+        line_start: 85
+        line_end: 94
+        excerpt: |2
+           <li>The page <i>Search Results</i> lists the matching items, two at a time, with <b>Next</b> and <b>Previous</b> links.</li>
+           <li>If nothing matches, or the box is empty, the page shows <i>No results were found for your search.</i></li>
+
+  # ------------------------------------------------------ catalog data rules
+  - record_key: CDI-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The catalog SHALL satisfy: (C1) every category has at least one product; (C2)
+      every product has at least one item; (C3) an item's list price is never below its
+      unit cost; (C4) every item has an en_US description.
+    plain_text: >
+      No empty categories, no products without items, no item priced below its cost,
+      and every item has an English description.
+    technical_note: >
+      Administrator guide 3.3 rules C1-C4; C3 is stated to be a database check
+      constraint. The other three are only checked by the daily batch (see CDI-WF-0001).
+    confidence: medium
+    confidence_basis: >
+      Stated in one document table (and referenced by the runbook). I did not read the
+      DDL check constraint for C3 or catalog_check.sql in this pass.
+    risk_class: financial
+    interface: false
+    basis: Admin guide 3.3 rule table.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules"
+        line_start: 91
+        line_end: 98
+        excerpt: |2
+           <tr><td>C1</td><td>Every category has at least one product.</td></tr>
+           <tr><td>C2</td><td>Every product has at least one item.</td></tr>
+           <tr><td>C3</td><td>An item's list price is never below its unit cost (database check constraint).</td></tr>
+           <tr><td>C4</td><td>Every item has an en_US description.</td></tr>
+
+  - record_key: CDI-WF-0001
+    kind: workflow
+    capability_key: catalog-data-integrity
+    requirement: >
+      A catalog check SHALL run daily at 06:00 and evaluate rules C1-C4. GIVEN the
+      catalog tables do not exist WHEN the check runs THEN it SHALL trigger a first load
+      of the sample data and check again. WHEN any rule finds violating rows THEN the
+      job SHALL end with exit code 4 and the catalog team SHALL be alerted by mail, with
+      details written to the catalog check log.
+    plain_text: >
+      Every morning at 6 the catalog is checked against its data rules; any breach ends
+      the job with a warning code and emails the catalog team. If the catalog is missing
+      entirely, it is loaded first.
+    technical_note: >
+      Runbook 2 (schedule), 3.5 and 4; admin guide 3.3 last paragraph. Job
+      PSL_CATALOG_CHECK, psl_catalog_check.sh, calls
+      http://localhost:8080/petstore/Populate?forcefully=false when tables are missing.
+      Control-M mails psl-catalog. Log /var/petstore/log/catalog_check.log.
+    confidence: high
+    confidence_basis: >
+      Stated consistently in two independent documents (admin guide 3.3 and runbook
+      3.5/4). Not traced into the shell script in this pass.
+    risk_class: operational
+    interface: true
+    basis: Runbook 3.5 and exit-code table; admin guide 3.3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.5 PSL_CATALOG_CHECK"
+        line_start: 66
+        line_end: 69
+        excerpt: |2
+          <h2>3.5 PSL_CATALOG_CHECK</h2>
+          <p>Runs catalog checks C1 to C4 (see the Administrator Guide). If the catalog tables do not exist it calls
+          <code>http://localhost:8080/petstore/Populate?forcefully=false</code> to load the sample data, then checks again.
+          Exit code 4 means a check found rows; Control-M mails psl-catalog. Details are in <code>/var/petstore/log/catalog_check.log</code>.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.3 Catalog data rules"
+        line_start: 99
+        line_end: 99
+        excerpt: |2
+          <p>Job PSL_CATALOG_CHECK checks C1 to C4 every morning at 06:00 and alerts the catalog team when one fails.</p>
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_DAILY 06:00"
+
+  # ---------------------------------------------------------- sample data
+  - record_key: POP-WF-0001
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      WHEN a visitor enters the store THEN the system SHALL request a non-forced
+      population; GIVEN the catalog and account tables already hold data THEN nothing
+      SHALL change; OTHERWISE every store table SHALL be dropped, created and loaded from
+      the sample data file, without requiring sign-in, while a "Please wait while the
+      Java Pet Store Application is being populated..." message is shown.
+    plain_text: >
+      The first visit to a freshly installed store loads the sample catalog and accounts
+      automatically; later visits change nothing.
+    technical_note: >
+      User guide 2 step 2; admin guide 3.1 (Populate?forcefully=false). PopulateServlet
+      populate(): alreadyPopulated = catalogPopulator.check && userPopulator.check;
+      population runs when forcefully || !alreadyPopulated (spot-checked).
+    confidence: high
+    confidence_basis: >
+      Two documents agree and the PopulateServlet check-then-load logic read in this
+      pass matches.
+    risk_class: operational
+    interface: false
+    basis: Admin guide 3.1 and user guide 2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.1 First load"
+        line_start: 75
+        line_end: 77
+        excerpt: |2
+          <p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables
+          already hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "2. Entering the store"
+        line_start: 41
+        line_end: 42
+        excerpt: |2
+           <li>Click <b>enter the store</b>. If this is the first visit after installation, the store loads its catalog first.
+           A red message <i>Please wait while the Java Pet Store Application is being populated...</i> shows while it loads.</li>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 162
+        line_end: 168
+    stack_metadata:
+      framework: servlet
+
+  - record_key: POP-WF-0002
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      An ADMIN user SHALL be able to force a reload of the sample data from the Catalog
+      Administration page; the reload SHALL drop and recreate all catalog tables, the
+      account table and the sign-on audit table, load the sample file, end the
+      administrator's session and show the home page. Users without the ADMIN role
+      (anonymous or CUSTOMER) SHALL receive Access Denied for a forced reload.
+    plain_text: >
+      Only an administrator can reload the sample data; doing so wipes all customer
+      accounts and all sign-in history, recreates the sample catalog and signs the
+      administrator out.
+    technical_note: >
+      Admin guide 3.2 and access matrix 1.1. PopulateServlet refuses force when the
+      session role attribute is not "ADMIN" (spot-checked line 122). Tables: CATEGORY,
+      CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON,
+      SIGNON_AUDIT.
+    confidence: high
+    confidence_basis: >
+      Admin guide 3.2 and the access matrix agree, and the ADMIN check in PopulateServlet
+      was read in this pass.
+    risk_class: operational
+    interface: false
+    basis: Admin guide 3.2 steps and warning; access matrix row "Forced reload".
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.2 Reload the sample data"
+        line_start: 79
+        line_end: 87
+        excerpt: |2
+           <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,
+           loads the file, ends your session and shows the home page.</li>
+          <div class="warn">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.1 Access matrix"
+        line_start: 31
+        line_end: 31
+        excerpt: |2
+           <tr><td>Forced reload of sample data</td><td>Access Denied</td><td>Access Denied</td><td>Yes</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 121
+        line_end: 122
+        excerpt: |2
+              boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();
+              if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {
+
+  - record_key: POP-ENT-0001
+    kind: entity
+    capability_key: sample-data-population
+    requirement: >
+      The sample data SHALL contain 5 categories (Birds, Cats, Dogs, Fish, Reptiles), 16
+      products and 28 items, and the accounts j2ee (CUSTOMER), shopper (CUSTOMER) and
+      admin (ADMIN).
+    plain_text: >
+      The demo store ships with five pet categories, 16 products, 28 items, two customer
+      accounts and one administrator account.
+    technical_note: >
+      Admin guide 1.2 and 3 (Populate-UTF8.xml content); user guide 3 category list.
+      petstore.properties catalog.minCategories=5 and catalog.minItems=28 agree.
+      Sample passwords are documented in the admin guide and deliberately not repeated here.
+    confidence: high
+    confidence_basis: Counts stated in the admin guide, category names in the user guide, and min counts in petstore.properties agree.
+    risk_class: operational
+    interface: false
+    basis: Admin guide 3 file table and 1.2 sample accounts; user guide 3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3. Catalog administration"
+        line_start: 71
+        line_end: 71
+        excerpt: |2
+           <tr><td><code>populate/Populate-UTF8.xml</code></td><td>Users (id, password, role) and the catalog: 5 categories, 16 products, 28 items</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "3. Browsing the catalog"
+        line_start: 56
+        line_end: 56
+        excerpt: |2
+          <p>The store has five categories: Birds, Cats, Dogs, Fish and Reptiles.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.2 Sample accounts"
+        line_start: 38
+        line_end: 44
+
+  # ------------------------------------------------------ registration
+  - record_key: REG-BR-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      Account creation SHALL require a user name of 3 to 25 characters containing only
+      letters, digits, '-' and '_', a password of 4 to 25 characters, and a repeated
+      password equal to the password; each broken rule SHALL be reported with its own
+      message on a "Could Not Create Your Account" page.
+    plain_text: >
+      New user names are 3-25 letters, digits, hyphens or underscores; passwords are 4-25
+      characters and must be typed twice identically.
+    technical_note: >
+      User guide 5.1 rule table; petstore.properties signon.username.minLength=3 /
+      maxLength=25 agree (password lengths are redacted in the properties file, so the
+      4-25 value was confirmed from the guide only). Properties comment says these must
+      match UserDAO and CreateUserServlet.
+    confidence: high
+    confidence_basis: >
+      Guide rule table plus the username length settings in petstore.properties read in
+      this pass; the password length bounds are from the document only because the
+      config values are redacted.
+    risk_class: operational
+    interface: false
+    basis: User guide 5.1 rule table with messages.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.1 Create an account"
+        line_start: 106
+        line_end: 113
+        excerpt: |2
+           <tr><td>User Name</td><td>3 to 25 characters</td><td>The user name must be 3 to 25 characters.</td></tr>
+           <tr><td>User Name</td><td>Letters, digits, '-' and '_' only</td><td>The user name can only contain letters, digits, '-' and '_'.</td></tr>
+           <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>
+           <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>
+           <tr><td>Password (Repeat)</td><td>Must equal Password</td><td>The password and the confirmation do not match.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 17
+        line_end: 18
+        excerpt: |2
+          signon.username.minLength=3
+          signon.username.maxLength=25
+
+  - record_key: REG-BR-0002
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      User names SHALL be unique and case-sensitive; GIVEN a user name that already
+      exists WHEN an account is requested THEN creation SHALL be refused with "The user
+      name <name> is already taken. Choose another user name."
+    plain_text: >
+      A user name can only be used once; "J2EE" and "j2ee" count as different names.
+    technical_note: User guide 5.1 rule table row 3 and the paragraph after it.
+    confidence: medium
+    confidence_basis: One document source; the uniqueness enforcement (DDL primary key or code) was not read in this pass.
+    risk_class: operational
+    interface: false
+    basis: User guide 5.1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.1 Create an account"
+        line_start: 110
+        line_end: 114
+        excerpt: |2
+           <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>
+          <p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>
+
+  - record_key: REG-WF-0001
+    kind: workflow
+    capability_key: account-registration
+    requirement: >
+      WHEN an account is created successfully THEN it SHALL be given the CUSTOMER role,
+      the user SHALL be signed in immediately, and SHALL be taken to the page originally
+      requested or to the home page. There SHALL be no self-service way to create an
+      ADMIN account.
+    plain_text: >
+      A new account is always a customer account and the person is signed in straight
+      away. Administrator accounts cannot be created through the store.
+    technical_note: >
+      User guide 5.1 step 3 and paragraph; admin guide section 1 role table (ADMIN only
+      from sample data). UserDAO inserts new signon rows with failed_attempts 0,
+      locked 'N' and audits USER_CREATED.
+    confidence: high
+    confidence_basis: User guide and admin guide agree independently.
+    risk_class: operational
+    interface: false
+    basis: User guide 5.1; admin guide 1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.1 Create an account"
+        line_start: 104
+        line_end: 104
+        excerpt: |2
+           <li>Click <b>Create New Account</b>. You are signed in at once and taken to the page you asked for, or to the home page.</li>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1. Roles and access control"
+        line_start: 19
+        line_end: 20
+        excerpt: |2
+           <tr><td>CUSTOMER</td><td>Store customers</td><td>Self sign-up on the Sign In page, or the sample data</td></tr>
+           <tr><td>ADMIN</td><td>Store administrators</td><td>Sample data only (user <code>admin</code>). There is no screen to create an administrator.</td></tr>
+
+  # ------------------------------------------------------------- sign-on
+  - record_key: SIGN-BR-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      A sign-in SHALL succeed only when the user exists, is not locked and the password
+      matches exactly; on success the user SHALL be returned to the page they were trying
+      to open, or to the home page; on failure a "Sign-in Error" page with a try-again
+      link SHALL be shown.
+    plain_text: >
+      Signing in needs an existing, unlocked account and the exact password; afterwards
+      you go back to where you were heading.
+    technical_note: >
+      Admin guide rule R1; user guide 5.2. UserDAO returns SIGNON_OK, SIGNON_INVALID or
+      SIGNON_LOCKED (spot-checked).
+    confidence: high
+    confidence_basis: Two documents agree and the three outcomes are visible in UserDAO.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide R1; user guide 5.2 steps 3 and error paragraph.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 50
+        line_end: 50
+        excerpt: |2
+           <tr><td>R1</td><td>A sign-in succeeds when the user exists, is not locked and the password matches exactly.</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.2 Sign in"
+        line_start: 122
+        line_end: 124
+        excerpt: |2
+           <li>Click <b>Sign In</b>. You return to the page you were trying to open, or to the home page.</li>
+          <p>If the user name or password is wrong the page <i>Sign-in Error</i> appears. Click <b>try again</b>.</p>
+
+  - record_key: SIGN-BR-0002
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      WHEN the user ticks "Remember My User Name" at sign-in THEN the store SHALL keep the
+      user name in a browser cookie for 31 days and pre-fill it next time; WHEN unticked
+      THEN the stored name SHALL be forgotten.
+    plain_text: >
+      Customers can ask the store to remember their user name for 31 days.
+    technical_note: >
+      User guide 5.2 step 2. petstore.properties signon.rememberUsernameCookie=bp_signon,
+      maxAgeSeconds=2678400 (= 31 days) agree.
+    confidence: high
+    confidence_basis: Guide statement plus matching cookie max-age in petstore.properties (2678400 s = 31 days).
+    risk_class: presentational
+    interface: false
+    basis: User guide 5.2 step 2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.2 Sign in"
+        line_start: 121
+        line_end: 121
+        excerpt: |2
+           <li>Tick <b>Remember My User Name</b> if you want the store to fill in your user name next time. The store keeps it in a browser cookie for 31 days. Untick it to forget the name.</li>
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 22
+        line_end: 23
+        excerpt: |2
+          signon.rememberUsernameCookie=bp_signon
+          signon.rememberUsernameCookie.maxAgeSeconds=2678400
+
+  - record_key: SIGN-BR-0003
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      A session SHALL end after 15 minutes without activity; WHEN the user clicks Sign out
+      THEN the session SHALL end and a "You are signed out" page SHALL be shown.
+    plain_text: >
+      You are signed out after 15 idle minutes, or immediately when you click Sign out.
+    technical_note: >
+      User guide 5.5; admin guide R8 and configuration table. web.xml session-timeout 15
+      and petstore.properties signon.session.timeoutMinutes=15 agree (spot-checked).
+    confidence: high
+    confidence_basis: Two documents plus web.xml session-timeout=15 read in this pass.
+    risk_class: regulated
+    interface: false
+    basis: User guide 5.5; admin guide R8.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.5 Sign out"
+        line_start: 151
+        line_end: 152
+        excerpt: |2
+          <p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,
+          your session ends after 15 minutes without activity.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 57
+        line_end: 57
+        excerpt: |2
+           <tr><td>R8</td><td>Sessions time out after 15 minutes without activity.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 124
+        line_end: 124
+        excerpt: |2
+              <session-timeout>15</session-timeout>
+
+  - record_key: SIGN-ENT-0001
+    kind: entity
+    capability_key: sign-on
+    requirement: >
+      Account passwords SHALL be stored in the account table exactly as entered (no
+      hashing), and the sign-in check SHALL compare them exactly.
+    plain_text: >
+      Today the store keeps passwords as typed, not scrambled; see the suspected defect.
+    technical_note: >
+      Admin guide 1.2 warning: "Passwords are stored as entered in table SIGNON". UserDAO
+      selects the password column from signon for comparison.
+    confidence: medium
+    confidence_basis: Explicit document statement; the select of the raw password column in UserDAO is consistent but I did not read the comparison line itself.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide 1.2 warning box.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.2 Sample accounts"
+        line_start: 45
+        line_end: 45
+        excerpt: |2
+          <div class="warn">Change these passwords before the store is used outside a test environment. Passwords are stored as entered in table SIGNON.</div>
+    stack_metadata:
+      db.object: SIGNON
+
+  # ------------------------------------------------------------ lockout
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      Each failed sign-in SHALL add 1 to the account's consecutive failed-attempt count
+      and a successful sign-in SHALL reset it to 0; the 3rd consecutive failure SHALL
+      lock the account and record the time of the lock.
+    plain_text: >
+      Three wrong passwords in a row lock the account; a successful sign-in resets the
+      counter.
+    technical_note: >
+      Admin guide R2/R3; user guide 5.3. petstore.properties signon.maxFailedAttempts=3;
+      UserDAO increments failedAttempts and locks when >= MAX_FAILED_ATTEMPTS (spot-checked).
+    confidence: high
+    confidence_basis: Two documents, a config value and the UserDAO increment/lock logic agree.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide R2, R3; user guide 5.3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 51
+        line_end: 52
+        excerpt: |2
+           <tr><td>R2</td><td>Each failed sign-in adds 1 to the account's failed attempts. A successful sign-in sets it back to 0.</td></tr>
+           <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.3 Locked account"
+        line_start: 128
+        line_end: 131
+        excerpt: |2
+          <div class="warn">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 142
+        excerpt: |2
+                      failedAttempts++;
+                      boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN a locked account WHEN anyone tries to sign in, even with the correct password,
+      THEN the sign-in SHALL be refused, an "Account Locked" page SHALL be shown, the
+      attempt SHALL be recorded as SIGNON_LOCKED, and the failed-attempt count SHALL NOT
+      change. Catalog browsing SHALL remain available.
+    plain_text: >
+      A locked account cannot sign in at all until the lock is cleared, but the person can
+      still browse the catalog.
+    technical_note: >
+      Admin guide R4; user guide 5.3. UserDAO audits EVENT_SIGNON_LOCKED and returns
+      before the increment (lines 128-129 precede 141).
+    confidence: high
+    confidence_basis: Two documents plus the early return in UserDAO read in this pass.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide R4; user guide 5.3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 53
+        line_end: 53
+        excerpt: |2
+           <tr><td>R4</td><td>A locked account cannot sign in, even with the right password. The attempt is recorded as SIGNON_LOCKED and the failed count does not change.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 128
+        line_end: 129
+        excerpt: |2
+                          audit(connection, userName, EVENT_SIGNON_LOCKED, remoteAddr);
+                          return SIGNON_LOCKED;
+
+  - record_key: LOCK-WF-0001
+    kind: workflow
+    capability_key: account-lockout
+    requirement: >
+      An unlock job SHALL run every 15 minutes, around the clock, and SHALL unlock every
+      account locked more than 30 minutes ago, reset its failed-attempt count to 0, clear
+      its lock time and record an ACCOUNT_UNLOCKED event attributed to the batch job;
+      hence a lock SHALL clear between 30 and 45 minutes after it was set.
+    plain_text: >
+      Locked accounts unlock themselves automatically 30 to 45 minutes after locking.
+    technical_note: >
+      Admin guide R5; user guide 5.3; runbook 2 and 3.6. db/batch/acct_unlock.sql inserts
+      ACCOUNT_UNLOCKED with remote_addr 'batch:PSL_ACCT_UNLOCK' then updates signon where
+      locked_ts < now - 30 min (spot-checked). Script exits 8 on SQL failure.
+    confidence: high
+    confidence_basis: Three documents and the unlock SQL read in this pass agree.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide R5; runbook 3.6; user guide 5.3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 54
+        line_end: 54
+        excerpt: |2
+           <tr><td>R5</td><td>Batch job PSL_ACCT_UNLOCK runs every 15 minutes and unlocks accounts locked more than 30 minutes ago. It sets failed attempts to 0 and records ACCOUNT_UNLOCKED.</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.6 PSL_ACCT_UNLOCK"
+        line_start: 71
+        line_end: 72
+        excerpt: |2
+          <h2>3.6 PSL_ACCT_UNLOCK</h2>
+          <p>Every 15 minutes. Unlocks accounts locked more than 30 minutes ago, resets their failed attempts and writes ACCOUNT_UNLOCKED to the audit.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.3 Locked account"
+        line_start: 129
+        line_end: 130
+        excerpt: |2
+          <p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set
+          (the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 15
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_CYCLIC every 15 min"
+
+  - record_key: LOCK-REQ-0001
+    kind: requirement
+    capability_key: account-lockout
+    requirement: >
+      There SHALL be no screen to unlock an account; an immediate unlock SHALL be done by
+      operations, either by running the unlock job on demand (which only clears locks
+      older than 30 minutes) or by a manual database update that clears the lock, resets
+      the failed count and records an ACCOUNT_UNLOCKED event.
+    plain_text: >
+      Administrators cannot unlock an account from the store; operations must do it
+      directly in the database.
+    technical_note: >
+      Admin guide 2.1 gives the manual SQL (UPDATE signon ... ; INSERT INTO signon_audit
+      ... remote_addr 'admin').
+    confidence: medium
+    confidence_basis: One document section; absence of an unlock screen is a negative claim I did not verify against the screen definitions.
+    risk_class: operational
+    interface: false
+    basis: Admin guide 2.1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2.1 Unlock an account at once"
+        line_start: 60
+        line_end: 65
+        excerpt: |2
+          <p>There is no unlock screen. To unlock before the batch job runs, ask operations to run PSL_ACCT_UNLOCK on demand (it only unlocks
+          locks older than 30 minutes) or to run this SQL as the store schema owner:</p>
+
+  # ------------------------------------------------------- access control
+  - record_key: ACC-BR-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      Every account SHALL have exactly one role, CUSTOMER or ADMIN, stored with the
+      account and read at sign-in. Catalog pages, search, Sign In and account creation
+      SHALL be open to everyone; My Account SHALL require any signed-in user; Catalog
+      Administration SHALL require the ADMIN role. GIVEN an anonymous user WHEN a
+      protected page is opened THEN the Sign In page SHALL be shown and after a successful
+      sign-in the user SHALL be sent to the page first asked for. GIVEN a signed-in user
+      without the required role THEN an Access Denied page SHALL be shown.
+    plain_text: >
+      Anyone can browse and search; you must sign in for My Account; only administrators
+      may open Catalog Administration. Others see an access-denied page.
+    technical_note: >
+      Admin guide 1 and 1.1 access matrix. Protected pages declared in
+      WEB-INF/signon-config.xml: account.screen, signon_welcome.screen,
+      populate_admin.screen (auth-constraint ADMIN). SignOnFilter enforces them.
+    confidence: high
+    confidence_basis: >
+      Access matrix and the configuration table in the admin guide, plus the user guide
+      messages table, all agree. signon-config.xml was not opened in this pass.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide 1.1 matrix and paragraph; admin guide 4 protected pages row.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.1 Access matrix"
+        line_start: 23
+        line_end: 35
+        excerpt: |2
+           <tr><td>My Account (<code>account.screen</code>)</td><td>Sign In page shown</td><td>Yes</td><td>Yes</td></tr>
+           <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "4. Configuration"
+        line_start: 107
+        line_end: 107
+        excerpt: |2
+           <tr><td>Protected pages</td><td><code>WEB-INF/signon-config.xml</code></td><td>account.screen, signon_welcome.screen, populate_admin.screen (ADMIN)</td></tr>
+    stack_metadata:
+      framework: servlet-filter
+
+  - record_key: ACC-SCR-0001
+    kind: screen
+    capability_key: access-control
+    requirement: >
+      WHEN the signed-in user has the ADMIN role THEN the banner SHALL show an extra Admin
+      link leading to Catalog Administration.
+    plain_text: Administrators see an extra "Admin" link at the top of every page.
+    technical_note: Admin guide 1.1 last sentence and 3.2 step 2.
+    confidence: medium
+    confidence_basis: Stated in one document (twice); banner template not read.
+    risk_class: presentational
+    interface: false
+    basis: Admin guide 1.1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.1 Access matrix"
+        line_start: 36
+        line_end: 36
+        excerpt: |2
+          <p>When signed in as ADMIN the banner shows an extra <b>Admin</b> link.</p>
+
+  # ------------------------------------------------------- sign-on audit
+  - record_key: AUD-BR-0001
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      Every successful sign-in, failed sign-in, lock, sign-in attempt on a locked account,
+      unlock, sign-out and new account SHALL be recorded with the user name, event type
+      (SIGNON_OK, SIGNON_FAIL, ACCOUNT_LOCKED, SIGNON_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF,
+      USER_CREATED), time and client address. GIVEN an unknown user name WHEN sign-in is
+      attempted THEN a SIGNON_FAIL event SHALL be recorded against the name as typed.
+    plain_text: >
+      All sign-in related events are logged with who, what, when and from where, including
+      attempts with user names that do not exist.
+    technical_note: >
+      Admin guide R6/R7; user guide 5.4 event table; runbook 3.2 column list. UserDAO
+      defines the EVENT_* constants and audits SIGNON_FAIL for an unknown user before
+      returning SIGNON_INVALID (lines 118-119). Table SIGNON_AUDIT.
+    confidence: high
+    confidence_basis: Three documents list the same event set and UserDAO constants match.
+    risk_class: regulated
+    interface: false
+    basis: Admin guide R6, R7; user guide 5.4.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2. Sign-on rules"
+        line_start: 55
+        line_end: 56
+        excerpt: |2
+           <tr><td>R6</td><td>A sign-in with an unknown user name is recorded as SIGNON_FAIL against the name typed.</td></tr>
+           <tr><td>R7</td><td>Every sign-in, failure, lock, sign-out and new account is written to SIGNON_AUDIT with the time and the client address.</td></tr>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.4 My Account"
+        line_start: 137
+        line_end: 146
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 84
+        line_end: 89
+    stack_metadata:
+      db.object: SIGNON_AUDIT
+
+  - record_key: AUD-SCR-0001
+    kind: screen
+    capability_key: sign-on-audit
+    requirement: >
+      My Account SHALL show the signed-in user's name, role and their 10 most recent
+      sign-on events, newest first.
+    plain_text: >
+      My Account shows who you are, your role and your last ten sign-in events.
+    technical_note: User guide 5.4.
+    confidence: medium
+    confidence_basis: One document; the limit of 10 and the ordering were not checked in code.
+    risk_class: presentational
+    interface: false
+    basis: User guide 5.4 first paragraph.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        anchor: "5.4 My Account"
+        line_start: 135
+        line_end: 136
+        excerpt: |2
+          <p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,
+          your role and your 10 most recent sign-in events, newest first.</p>
+
+  - record_key: AUD-INT-0001
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      Daily at 01:30, after a successful database backup, the system SHALL export the
+      previous calendar day's (00:00 to 24:00) sign-on audit events, ordered by event
+      number, to a comma-separated file named signon_audit_YYYYMMDD.csv for the security
+      team, with columns audit_id, username, event_type, event_ts, remote_addr, no header
+      row, and a final trailer line "TRAILER,YYYYMMDD,<row count>" whose count excludes
+      the trailer. The extract SHALL always cover the day before the run date.
+    plain_text: >
+      Every night yesterday's sign-in events are sent to the security team as a CSV file
+      with a trailer line giving the date and number of rows.
+    technical_note: >
+      Runbook 2, 3.2 and 4.2. db/batch/audit_extract.sql uses SYSCS_EXPORT_QUERY with
+      event_ts >= CURRENT_DATE-1 and < CURRENT_DATE, ORDER BY audit_id; the script renames
+      the output to signon_audit_YYYYMMDD.csv in /var/petstore/extract. Trailer creation
+      not verified in the script.
+    confidence: high
+    confidence_basis: >
+      Runbook file layout plus the extract SQL read in this pass agree on window, columns
+      and order; trailer format is from the document only.
+    risk_class: regulated
+    interface: true
+    basis: Runbook 3.2 column table and trailer sentence; 4.2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.2 PSL_AUDIT_EXTRACT"
+        line_start: 46
+        line_end: 57
+        excerpt: |2
+          <p>Exports yesterday's rows of SIGNON_AUDIT (00:00 to 24:00) to <code>/var/petstore/extract/signon_audit_YYYYMMDD.csv</code>
+          for the security team (<code>db/batch/audit_extract.sql</code>).</p>
+          <p>No header row. The last line is a trailer <code>TRAILER,YYYYMMDD,&lt;row count&gt;</code>; the count excludes the trailer.</p>
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "4.2 Rerunning the extract"
+        line_start: 88
+        line_end: 90
+        excerpt: |2
+          <p>The extract always covers the day before the run date. To re-extract an older day, run the export query in
+          <code>db/batch/audit_extract.sql</code> by hand with the dates changed.</p>
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 4
+        line_end: 10
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_DAILY 01:30, waits PSL_DB_BACKUP-OK"
+
+  - record_key: AUD-INT-0002
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      Daily at 01:45, after a successful audit extract, the system SHALL write a report
+      signon_report_YYYYMMDD.txt containing the previous day's count per event type, the
+      number of locked accounts and the number of accounts per role.
+    plain_text: >
+      Every night a short report summarises yesterday's sign-in events, how many accounts
+      are locked and how many accounts each role has.
+    technical_note: Runbook 2 and 3.3; job PSL_SIGNON_REPORT, psl_signon_report.sh, /var/petstore/extract.
+    confidence: medium
+    confidence_basis: One document section (plus the schedule table); report SQL not read.
+    risk_class: operational
+    interface: true
+    basis: Runbook 3.3.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.3 PSL_SIGNON_REPORT"
+        line_start: 59
+        line_end: 61
+        excerpt: |2
+          <p>Writes yesterday's counts per event type, the number of locked accounts and accounts per role to
+          <code>/var/petstore/extract/signon_report_YYYYMMDD.txt</code>.</p>
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_DAILY 01:45, waits PSL_AUDIT_EXTRACT-OK"
+
+  - record_key: AUD-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      On Sundays at 02:00, and only after that day's audit extract has succeeded, the
+      system SHALL delete sign-on audit events older than 90 days, so that no event is
+      deleted before it has been extracted.
+    plain_text: >
+      Sign-in history is kept for 90 days; older entries are purged weekly on Sunday, only
+      after that night's export has completed.
+    technical_note: >
+      Runbook 2, 3.4 and settings table. db/batch/audit_purge.sql deletes where event_ts <
+      CURRENT_DATE - 90 days; env.sh PSL_AUDIT_RETENTION_DAYS=90 and
+      batch.audit.retentionDays=90 (spot-checked; the SQL hard-codes -90 rather than
+      reading the setting).
+    confidence: high
+    confidence_basis: Runbook statement plus the purge SQL and two configuration values read in this pass.
+    risk_class: regulated
+    interface: false
+    basis: Runbook 3.4; settings table "Audit retention 90 days".
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.4 PSL_AUDIT_PURGE"
+        line_start: 63
+        line_end: 64
+        excerpt: |2
+          <h2>3.4 PSL_AUDIT_PURGE</h2>
+          <p>Sundays only. Deletes SIGNON_AUDIT rows older than 90 days. It waits for that day's extract so no row is deleted before it is extracted.</p>
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 5
+        line_end: 6
+        excerpt: |2
+          DELETE FROM signon_audit
+           WHERE event_ts < {fn TIMESTAMPADD(SQL_TSI_DAY, -90, CAST(CURRENT_DATE AS TIMESTAMP))};
+    stack_metadata:
+      batch.trigger: "Control-M PSL_PETSTORE_DAILY Sunday 02:00, waits PSL_AUDIT_EXTRACT-OK"
+
+  # ------------------------------------------------------ batch operations
+  - record_key: BAT-WF-0001
+    kind: workflow
+    capability_key: batch-operations
+    requirement: >
+      The nightly chain SHALL run in this order: database backup at 01:00; audit extract
+      at 01:30 only after the backup succeeded; sign-on report at 01:45 and (Sundays) audit
+      purge at 02:00, each only after the extract succeeded. The catalog check (06:00
+      daily) and the unlock job (every 15 minutes) SHALL run independently of the chain.
+    plain_text: >
+      Each night the store backs up its database, then exports sign-in history, then
+      produces a report and (on Sundays) purges old history; each step waits for the one
+      before it to succeed.
+    technical_note: >
+      Runbook 2 schedule table and diagram; Control-M definitions in
+      scheduler/control-m/PSL_PETSTORE.xml (folders PSL_PETSTORE_DAILY and
+      PSL_PETSTORE_CYCLIC, data center DC_PSL_PRD, node psl-app01).
+    confidence: medium
+    confidence_basis: One document (table and diagram agree internally); the Control-M XML was not read in this pass.
+    risk_class: operational
+    interface: true
+    basis: Runbook 2.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "2. Batch schedule"
+        line_start: 25
+        line_end: 38
+        excerpt: |2
+           <tr><td>PSL_DB_BACKUP</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:00</td><td>-</td><td>psl_db_backup.sh</td></tr>
+           <tr><td>PSL_AUDIT_EXTRACT</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:30</td><td>PSL_DB_BACKUP-OK</td><td>psl_audit_extract.sh</td></tr>
+           <tr><td>PSL_SIGNON_REPORT</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:45</td><td>PSL_AUDIT_EXTRACT-OK</td><td>psl_signon_report.sh</td></tr>
+           <tr><td>PSL_AUDIT_PURGE</td><td>PSL_PETSTORE_DAILY</td><td>Sunday 02:00</td><td>PSL_AUDIT_EXTRACT-OK</td><td>psl_audit_purge.sh</td></tr>
+    stack_metadata:
+      batch.trigger: Control-M
+
+  - record_key: BAT-BR-0001
+    kind: business-rule
+    capability_key: batch-operations
+    requirement: >
+      The database SHALL be backed up online daily into a dated backup folder
+      (PetStoreDB_YYYYMMDD); backups older than 7 days SHALL be deleted. GIVEN the backup
+      fails THEN it SHALL be retried up to 2 times, 10 minutes apart; on final failure
+      operations SHALL be mailed and the audit extract SHALL not run.
+    plain_text: >
+      The database is backed up every night and a week of backups is kept; a failed backup
+      is retried twice, then operations are alerted and the rest of the night's chain
+      waits.
+    technical_note: >
+      Runbook 3.1 and settings table. batch/psl_db_backup.sh deletes with find -mtime
+      +$PSL_BACKUP_KEEP_DAYS (7); SYSCS_UTIL.SYSCS_BACKUP_DATABASE via db_backup.sql.
+      Reruns/mail are Control-M settings (mail psl-ops).
+    confidence: high
+    confidence_basis: Runbook statement plus the 7-day keep setting and deletion command in the backup script read in this pass; rerun policy is document only.
+    risk_class: operational
+    interface: false
+    basis: Runbook 3.1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.1 PSL_DB_BACKUP"
+        line_start: 41
+        line_end: 44
+        excerpt: |2
+          <p>Online backup of PetStoreDB with <code>SYSCS_UTIL.SYSCS_BACKUP_DATABASE</code> (<code>db/batch/db_backup.sql</code>).
+          The backup is moved to <code>/var/petstore/backup/PetStoreDB_YYYYMMDD</code>. Backups older than 7 days are deleted.
+          Critical job: up to 2 reruns 10 minutes apart; on failure Control-M mails psl-ops and PSL_AUDIT_EXTRACT stays waiting.</p>
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |2
+          find "$PSL_BACKUP_DIR" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf {} \;
+
+  - record_key: BAT-BR-0002
+    kind: business-rule
+    capability_key: batch-operations
+    requirement: >
+      Batch jobs SHALL end with exit code 0 on success, 4 when the catalog check finds bad
+      catalog data, and 8 on a SQL or file error; each job SHALL write one line at start
+      and end to the shared batch log.
+    plain_text: >
+      Batch jobs report success, "bad catalog data" or "technical error" through a fixed
+      set of codes that the scheduler acts on.
+    technical_note: >
+      Runbook 1 (job log) and 4 (exit codes). psl_acct_unlock.sh exits 8 on psl_ij failure
+      and logs start/end via psl_log to /var/petstore/log/batch.log (spot-checked).
+    confidence: high
+    confidence_basis: Runbook table plus the exit-8 and psl_log behaviour seen in a batch script and env.sh.
+    risk_class: operational
+    interface: true
+    basis: Runbook 4 exit-code table.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "4. Exit codes and recovery"
+        line_start: 74
+        line_end: 80
+        excerpt: |2
+           <tr><td>0</td><td>OK</td><td>None</td></tr>
+           <tr><td>4</td><td>PSL_CATALOG_CHECK found bad catalog data</td><td>Catalog team fixes the data or an administrator reloads the sample data. Rerun the job.</td></tr>
+           <tr><td>8</td><td>SQL or file error</td><td>Read <code>batch.log</code> and the job log. Check that Tomcat is up (the Derby network server runs inside it) and that port 1527 answers. Rerun.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_acct_unlock.sh
+        line_start: 5
+        line_end: 7
+
+  - record_key: BAT-REQ-0001
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      Restoring the store SHALL be possible by stopping the application, setting the
+      current database aside, copying a dated backup in its place and restarting.
+    plain_text: Any of the kept nightly backups can be restored by operations.
+    technical_note: Runbook 4.1 restore procedure (Tomcat stop, move /var/petstore/db/PetStoreDB, copy backup, start).
+    confidence: medium
+    confidence_basis: One documented procedure; not exercised or cross-checked.
+    risk_class: operational
+    interface: false
+    basis: Runbook 4.1.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "4.1 Restore from backup"
+        line_start: 81
+        line_end: 86
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+    description: >
+      User guide 3.3 says Your Price is "the discounted price for members", but no guide
+      states the discount rule, whether it depends on being signed in, or how it is
+      rounded. A human must confirm where Your Price comes from (stored value or
+      calculation) before this is specified; see BROW-SCR-0002.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+    description: >
+      Admin guide 4 lists signon_welcome.screen as a protected page, but no guide
+      describes what that screen is or who sees it. Needs confirmation from the screen
+      definitions.
+
+suspected_defects:
+  - capability_key: sign-on
+    record_keys: [SIGN-ENT-0001]
+    severity: high
+    category: other
+    title: Passwords are stored in plain text
+    description: >
+      The administrator guide states passwords are stored as entered in the account
+      table, and the sample accounts use passwords equal to or derived from the user
+      name. Anyone with database or backup access can read every customer's password.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "1.2 Sample accounts"
+        line_start: 45
+        line_end: 45
+  - capability_key: sample-data-population
+    record_keys: [POP-WF-0002]
+    severity: medium
+    category: data-corruption
+    title: Forced reload deletes all real accounts and sign-in history with only a warning
+    description: >
+      The administrator reload drops the account and audit tables along with the catalog,
+      erasing every self-registered customer and all audit history (which the security
+      team relies on for 90 days). The only safeguard is a documented advice to take a
+      backup first; the backup is not taken automatically.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "3.2 Reload the sample data"
+        line_start: 84
+        line_end: 87
+  - capability_key: sign-on-audit
+    record_keys: [AUD-INT-0001, LOCK-REQ-0001]
+    severity: low
+    category: contradicts-document
+    title: Manual unlock writes a client address value the extract layout does not list
+    description: >
+      The documented manual unlock inserts an audit row with client address 'admin',
+      while the extract file layout says column 5 holds either a client address or
+      batch:PSL_ACCT_UNLOCK. A consumer of the extract can receive a third, undocumented
+      value.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        anchor: "2.1 Unlock an account at once"
+        line_start: 63
+        line_end: 65
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.2 PSL_AUDIT_EXTRACT"
+        line_start: 55
+        line_end: 55
+  - capability_key: sign-on-audit
+    record_keys: [AUD-INT-0001, BAT-WF-0001]
+    severity: medium
+    category: other
+    title: A missed extract day is not recovered automatically
+    description: >
+      The extract always covers the day before the run date. If the backup fails after
+      its reruns, the extract waits; when it is later released or the next night runs,
+      the missed day is not exported unless someone hand-edits the query. The security
+      team's feed can silently miss a day.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "4.2 Rerunning the extract"
+        line_start: 88
+        line_end: 90
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.1 PSL_DB_BACKUP"
+        line_start: 44
+        line_end: 44
+  - capability_key: batch-operations
+    record_keys: [BAT-BR-0001]
+    severity: low
+    category: contradicts-document
+    title: Backup retention keeps about 8 days, not 7
+    description: >
+      The runbook says backups older than 7 days are deleted. The script uses find
+      -mtime +7, which only matches files whose age, rounded down to whole days, exceeds
+      7, so a backup survives until it is at least 8 full days old.
+    traces:
+      - kind: document
+        path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        anchor: "3.1 PSL_DB_BACKUP"
+        line_start: 43
+        line_end: 43
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
