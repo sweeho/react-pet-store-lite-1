@@ -1,0 +1,792 @@
+# SX-0001 extract-b, shard j2ee-pet-store-lite/vortex/samples
+# Source module: three captured behaviour samples (catalog search cases, sign-on
+# decision table, anonymised sign-on audit event log). Code, DDL and user-guide
+# lines are cited only to corroborate what the samples show.
+# No legacy-analysis/sources/**/extracted.md exists in this tree; the user guide is
+# cited directly from legacy-source/ with line ranges plus a heading anchor.
+records:
+  - record_key: CATSEARCH-BR-0001
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL return an item for a keyword when the keyword appears as a
+      substring of the item's product name, its category code or its item description
+      in the search locale, and SHALL NOT match on item attributes.
+    plain_text: >
+      A search word finds a pet when the word appears anywhere in the product name,
+      the category code or the item description. Part of a word is enough. Details such
+      as size or "Adult Male" are not searched.
+    technical_note: >
+      SEARCH_ITEMS in CatalogDAOSQL.xml applies `like '%kw%'` to lower(name),
+      lower(catid) and lower(b.descn); attr1..attr5 are selected but not filtered.
+      Sample: "dog" returns EST-12 only because its description is "Doubles as a watch
+      dog"; "large" and "adult male" (both attr1 values in item_details) return no results.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The captured cases match the SQL statement and the user guide. Three sources agree:
+      the substring behaviour ("dog" matches a description), the fields searched, and that
+      attribute values are not searched.
+    risk_class: operational
+    basis: >
+      Captured search cases for dog (13 items incl. description-only match EST-12),
+      large and adult male (0 results); SQL filters only name/catid/descn.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 26
+        line_end: 52
+        excerpt: |
+          {
+            "input": {
+              "keywords": "dog",
+              "locale": "en_US",
+              "pageSize": 2
+            },
+            "output": {
+              "resultCount": 13,
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 148
+        line_end: 174
+        excerpt: |
+              "keywords": "large",
+              ...
+              "resultCount": 0,
+              ...
+              "keywords": "adult male",
+              ...
+              "resultCount": 0,
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml
+        line_start: 119
+        line_end: 122
+        excerpt: |
+          where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+          </SQLFragment>
+          <SQLFragment parameterNb="3" occurrence="VARIABLE">
+              or (lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching / How search matches"
+        line_start: 90
+        line_end: 91
+        excerpt: |
+          <li>A word matches when it appears anywhere in the product name, the category code (for example DOGS) or the item description.
+          Part of a word is enough: <i>dog</i> finds Bulldog and every item in the DOGS category.</li>
+    stack_metadata:
+      jsp.page: search.screen
+      db.object: item, item_details, product, product_details
+
+  - record_key: CATSEARCH-BR-0002
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      GIVEN a search keyword that contains one or more upper-case letters
+      WHEN the search runs
+      THEN the system SHALL match it against lower-cased product name, category code and
+      description text without lower-casing the keyword, so that such a keyword matches
+      no item (today "Bulldog" returns no results while "dog" returns Bulldog items).
+    plain_text: >
+      Today a search word typed with a capital letter finds nothing. "Bulldog" gives
+      "No results", and "bulldog" or "dog" finds the bulldogs. The user guide says
+      search ignores case.
+    technical_note: >
+      GenericCatalogDAO.searchItems binds "%" + keyword + "%" without lowering it, and the
+      SQL compares it to lower(column). The upper-case pattern can never match lower-case
+      text. Captured case "Bulldog" -> resultCount 0.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The captured sample shows the observed result and the code shows the cause: the
+      keyword is bound unchanged while the columns are lower-cased. The user guide states
+      the opposite. The live behaviour is clear. Whether it is intended is not.
+    dispute:
+      reason: contradicts-docs
+      detail: >
+        User guide says "Search is not case-sensitive" and that "dog" finds Bulldog;
+        captured sample and code show any keyword containing a capital letter returns zero
+        results. An SME must decide whether the rebuild preserves the observed behaviour
+        or the documented one.
+    risk_class: operational
+    basis: >
+      Captured "Bulldog" case returns 0 results and the "No results" message; code binds
+      the raw keyword against lower() columns.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 53
+        line_end: 65
+        excerpt: |
+          {
+            "input": {
+              "keywords": "Bulldog",
+              "locale": "en_US",
+              "pageSize": 2
+            },
+            "output": {
+              "resultCount": 0,
+              "itemIds": [],
+              "message": "No results were found for your search.",
+              "pages": 0
+            }
+          },
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java
+        line_start: 363
+        line_end: 365
+        excerpt: |
+          parameterValues[(i * 3) + 1] = "%" + keywords[i] + "%";
+          parameterValues[(i * 3) + 2] = "%" + keywords[i] + "%";
+          parameterValues[(i * 3) + 3] = "%" + keywords[i] + "%";
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching / How search matches"
+        line_start: 93
+        line_end: 93
+        excerpt: |
+          <li>Search is not case-sensitive.</li>
+    stack_metadata:
+      jsp.page: search.screen
+
+  - record_key: CATSEARCH-BR-0003
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL split the search text on whitespace into keywords, ignore duplicate
+      keywords, and return every item that matches at least one keyword.
+    plain_text: >
+      When several words are typed, a pet is listed if it matches any one of them.
+    technical_note: >
+      StringTokenizer on the query into a HashSet. Each keyword adds an OR'd fragment
+      (occurrence="VARIABLE") to SEARCH_ITEMS. The only multi-word sample ("adult male")
+      returns 0 because neither word occurs in any searched field, so the sample neither
+      confirms nor contradicts the OR rule.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The code and the user guide agree. The single multi-word sample cannot tell OR
+      from AND because both words miss, so the samples add no independent evidence.
+    risk_class: operational
+    basis: >
+      Tokenizer and VARIABLE OR fragment in the DAO/SQL; user guide states "any".
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 161
+        line_end: 174
+        excerpt: |
+          {
+            "input": {
+              "keywords": "adult male",
+              "locale": "en_US",
+              "pageSize": 2
+            },
+            "output": {
+              "resultCount": 0,
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java
+        line_start: 346
+        line_end: 350
+        excerpt: |
+          Collection keywordSet = new HashSet();
+          StringTokenizer tokenizer = new StringTokenizer(searchQuery);
+          while (tokenizer.hasMoreTokens()) {
+            keywordSet.add(tokenizer.nextToken());
+          }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching / How search matches"
+        line_start: 92
+        line_end: 92
+        excerpt: |
+          <li>When you type several words separated by spaces, items that match <b>any</b> of the words are listed.</li>
+
+  - record_key: CATSEARCH-BR-0004
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      GIVEN an empty search text, or a search that matches no item
+      WHEN the search runs
+      THEN the system SHALL show zero results, zero pages and the message
+      "No results were found for your search."
+    plain_text: >
+      An empty search box, or a search that finds nothing, shows "No results were found
+      for your search."
+    technical_note: >
+      An empty keyword set returns Page.EMPTY_PAGE before any query runs. Samples "" and
+      "zzz" both produce resultCount 0, pages 0 and the message.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The two captured cases, the early return in the DAO and the user guide all agree.
+    risk_class: presentational
+    basis: >
+      Captured cases for "" and "zzz"; DAO short-circuits an empty keyword set.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 250
+        line_end: 276
+        excerpt: |
+              "keywords": "zzz",
+              ...
+              "message": "No results were found for your search.",
+              ...
+              "keywords": "",
+              ...
+              "resultCount": 0,
+              "itemIds": [],
+              "message": "No results were found for your search.",
+              "pages": 0
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java
+        line_start: 351
+        line_end: 353
+        excerpt: |
+          if (keywordSet.isEmpty()) {
+            return Page.EMPTY_PAGE;
+          }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching / How search matches"
+        line_start: 94
+        line_end: 94
+        excerpt: |
+          <li>If nothing matches, or the box is empty, the page shows <i>No results were found for your search.</i></li>
+
+  - record_key: CATSEARCH-REQ-0005
+    kind: requirement
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL page search results two items per page, and SHALL report the
+      number of pages as the result count divided by two, rounded up.
+    plain_text: >
+      Search results are shown two at a time with Next and Previous links. Seven results
+      make four pages.
+    technical_note: >
+      Every captured case uses pageSize 2. pages = ceil(resultCount/2) holds for all 17
+      cases (7->4, 13->7, 4->2, 3->2, 2->1, 1->1, 0->0). Paging is by
+      ResultSet.absolute(start+1) with a count in GenericCatalogDAO.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      All 17 samples are consistent with the formula, and the user guide states "two at a
+      time". The page size of 2 is not visible as a constant in this shard.
+    risk_class: presentational
+    basis: >
+      Captured resultCount/pages pairs; user guide paging statement.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 6
+        line_end: 24
+        excerpt: |
+          "input": {
+            "keywords": "fish",
+            "locale": "en_US",
+            "pageSize": 2
+          },
+          "output": {
+            "resultCount": 7,
+            ...
+            "pages": 4
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching"
+        line_start: 85
+        line_end: 85
+        excerpt: |
+          <li>The page <i>Search Results</i> lists the matching items, two at a time, with <b>Next</b> and <b>Previous</b> links.</li>
+    stack_metadata:
+      jsp.page: search.screen
+
+  - record_key: CATSEARCH-BR-0006
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >
+      The system SHALL restrict search to item and product text held in the shopper's
+      locale.
+    plain_text: >
+      Search only looks at catalog text in the shopper's language.
+    technical_note: >
+      Each sample carries locale en_US. SEARCH_ITEMS binds the locale as its first parameter
+      (b.locale = ?) and joins item_details to product_details on equal locale.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The SQL is clear. Every sample uses en_US, so the samples never show a different
+      locale's behaviour.
+    risk_class: presentational
+    basis: >
+      Locale is an input of every captured case and the first bound SQL parameter.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 7
+        line_end: 8
+        excerpt: |
+          "keywords": "fish",
+          "locale": "en_US",
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml
+        line_start: 118
+        line_end: 119
+        excerpt: |
+          join product d on d.productid=c.productid and b.locale = c.locale)
+          where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+
+  - record_key: LOCKOUT-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN an existing, unlocked account with two consecutive failed sign-ons
+      WHEN a third consecutive sign-on fails
+      THEN the system SHALL lock the account, record a failed sign-on followed by an
+      account-locked event, and show the Account Locked page rather than the sign-in
+      error page.
+    plain_text: >
+      Three wrong passwords in a row lock the account. On the third failure the shopper
+      sees "Account Locked", not the usual sign-in error.
+    technical_note: >
+      UserDAO.authenticate: failedAttempts++ and lock when >= MAX_FAILED_ATTEMPTS (3).
+      locked_ts is set, then SIGNON_FAIL and ACCOUNT_LOCKED are audited, and the call
+      returns SIGNON_LOCKED (screen signon_locked). Decision cases S02-S04. In the 1686-event
+      audit sample, all 23 ACCOUNT_LOCKED events follow exactly three consecutive
+      SIGNON_FAIL events for the same user.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The decision table, the audit sample (23 of 23 locks), the code constant and the
+      user guide all agree.
+    risk_class: regulated
+    basis: >
+      Decision cases S02-S04; audit sample lock sequences; MAX_FAILED_ATTEMPTS = 3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 1
+        line_end: 5
+        excerpt: |
+          case_id,prior_failed_attempts,prior_locked,attempt,result_screen,failed_attempts_after,locked_after,audit_events_written
+          S01,0,N,correct,main.screen,0,N,SIGNON_OK
+          S02,0,N,wrong,signon_error.screen,1,N,SIGNON_FAIL
+          S03,1,N,wrong,signon_error.screen,2,N,SIGNON_FAIL
+          S04,2,N,wrong,signon_locked.screen,3,Y,SIGNON_FAIL+ACCOUNT_LOCKED
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 81
+        line_end: 84
+        excerpt: |
+          80,U-afa7ef,SIGNON_FAIL,2026-08-14,14,web
+          81,U-afa7ef,SIGNON_FAIL,2026-08-14,14,web
+          82,U-afa7ef,SIGNON_FAIL,2026-08-14,14,web
+          83,U-afa7ef,ACCOUNT_LOCKED,2026-08-14,14,web
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 142
+        excerpt: |
+          failedAttempts++;
+          boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "5.3 Locked account"
+        line_start: 128
+        line_end: 128
+        excerpt: |
+          <div class="warn">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>
+    stack_metadata:
+      db.object: signon.failed_attempts, signon.locked, signon.locked_ts
+
+  - record_key: LOCKOUT-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN a locked account
+      WHEN a sign-on is attempted with either the correct or a wrong password
+      THEN the system SHALL refuse it, show the Account Locked page, record only a
+      sign-on-while-locked event, and leave the failure count and lock unchanged.
+    plain_text: >
+      A locked account cannot sign in, even with the right password. Further tries do
+      not add to the failure count.
+    technical_note: >
+      The locked check runs before the password comparison in UserDAO.authenticate. It
+      audits SIGNON_LOCKED and returns. Decision cases S05 (correct) and S10 (wrong): no
+      counter change. The audit sample has no SIGNON_FAIL or SIGNON_OK for a user between
+      ACCOUNT_LOCKED and ACCOUNT_UNLOCKED. All 11 SIGNON_LOCKED events fall in that window.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The decision table, the audit sample check over all events, the code and the user
+      guide agree.
+    risk_class: regulated
+    basis: >
+      Decision cases S05, S10; code order; audit sample.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 6
+        line_end: 6
+        excerpt: |
+          S05,0,Y,correct,signon_locked.screen,0,Y,SIGNON_LOCKED
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          S10,3,Y,wrong,signon_locked.screen,3,Y,SIGNON_LOCKED
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 280
+        line_end: 282
+        excerpt: |
+          279,U-ec8654,ACCOUNT_LOCKED,2026-08-29,11,web
+          280,U-ec8654,SIGNON_LOCKED,2026-08-29,11,web
+          281,U-ec8654,ACCOUNT_UNLOCKED,2026-08-29,12,batch
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 127
+        line_end: 130
+        excerpt: |
+          if (locked) {
+              audit(connection, userName, EVENT_SIGNON_LOCKED, remoteAddr);
+              return SIGNON_LOCKED;
+          }
+
+  - record_key: SIGNON-BR-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      WHEN an unlocked account signs on with the correct password
+      THEN the system SHALL reset its consecutive-failure count to zero, record a
+      successful sign-on, and take the user to the main page.
+    plain_text: >
+      A successful sign-in clears any earlier failed attempts and opens the home page.
+    technical_note: >
+      UPDATE_SUCCESS in UserDAO.authenticate. Decision cases S01, S06 (2 prior failures
+      -> 0) and S11 (1 -> 0). result_screen main.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Three decision cases, the code and the user guide ("A successful sign-in resets the
+      count") agree.
+    risk_class: regulated
+    basis: >
+      Decision cases S01, S06, S11; user guide 5.3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 7
+        line_end: 7
+        excerpt: |
+          S06,2,N,correct,main.screen,0,N,SIGNON_OK
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 12
+        line_end: 12
+        excerpt: |
+          S11,1,N,correct,main.screen,0,N,SIGNON_OK
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "5.3 Locked account"
+        line_start: 131
+        line_end: 131
+        excerpt: |
+          A successful sign-in resets the count of failed attempts to zero.</p>
+
+  - record_key: SIGNON-BR-0002
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      GIVEN a sign-on with a user name that does not exist
+      WHEN it is submitted
+      THEN the system SHALL show the sign-in error page, record a failed sign-on event
+      against the user name as typed, and change no account's failure count.
+    plain_text: >
+      An unknown user name gets the normal sign-in error. The attempt is logged, but
+      nothing counts toward locking any account.
+    technical_note: >
+      UserDAO.authenticate: no SELECT_USER row -> audit(SIGNON_FAIL) and return
+      SIGNON_INVALID, with no update. Decision case S07. The audit row is keyed by a user
+      name that has no signon row.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The decision case and the code branch agree. The user guide event table also lists
+      "unknown user name" under SIGNON_FAIL.
+    risk_class: regulated
+    basis: >
+      Decision case S07; code branch on missing row; user guide event table.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 8
+        line_end: 8
+        excerpt: |
+          S07,0,N,unknown,signon_error.screen,0,N,SIGNON_FAIL
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 115
+        line_end: 120
+        excerpt: |
+          if (!rs.next()) {
+              rs.close();
+              select.close();
+              audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+              return SIGNON_INVALID;
+          }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "5.4 My Account / event table"
+        line_start: 141
+        line_end: 141
+        excerpt: |
+          <tr><td>SIGNON_FAIL</td><td>Wrong password (or unknown user name)</td></tr>
+
+  - record_key: SIGNON-BR-0003
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      GIVEN an existing user name typed in upper case
+      WHEN a sign-on is submitted
+      THEN the system SHALL treat the name as unknown: it SHALL show the sign-in error
+      page, record a failed sign-on, and leave the real account's failure count unchanged.
+    plain_text: >
+      User names are case-sensitive. Typing an existing name in capitals counts as an
+      unknown user, so it does not count toward locking the real account.
+    technical_note: >
+      Decision case S08 ("upper") produces SIGNON_FAIL with failed_attempts_after 0. That
+      fits the exact-match `where username = ?` lookup finding no row. The sample does not
+      define "upper". This reading assumes the user name, not the password, was upper-cased.
+      An upper-cased password would have raised the count to 1.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      The outcome is captured, but the meaning of the "upper" attempt value is inferred,
+      not stated. Only the count staying at 0 separates it from a wrong-password case.
+    risk_class: regulated
+    basis: >
+      Decision case S08 outcome compared with S02 (wrong password increments).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 9
+        line_end: 9
+        excerpt: |
+          S08,0,N,upper,signon_error.screen,0,N,SIGNON_FAIL
+
+  - record_key: LOCKOUT-BR-0003
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN an existing, unlocked account
+      WHEN a sign-on is submitted with a blank password
+      THEN the system SHALL treat it as a wrong password: it SHALL show the sign-in error
+      page, record a failed sign-on, and add one to the consecutive-failure count.
+    plain_text: >
+      Leaving the password empty counts as a wrong password and moves the account one
+      step closer to being locked.
+    technical_note: >
+      Decision case S09 ("blank") -> failed_attempts_after 1. In authenticate, an empty
+      password fails storedPassword.equals and takes the failure branch. No separate
+      required-field check stops it first.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear captured case, consistent with the code path. No validator or document
+      states this explicitly.
+    risk_class: regulated
+    basis: >
+      Decision case S09.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+        line_start: 10
+        line_end: 10
+        excerpt: |
+          S09,0,N,blank,signon_error.screen,1,N,SIGNON_FAIL
+
+  - record_key: LOCKOUT-BR-0004
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL automatically unlock an account once its lock is more than 30
+      minutes old, checking at least every 15 minutes. It SHALL reset the account's
+      failure count to zero and record an account-unlocked event attributed to the
+      scheduled process, not to the web.
+    plain_text: >
+      A locked account unlocks by itself about 30 minutes after it was locked. The check
+      runs every 15 minutes, so it can take up to 45 minutes. The unlock is logged as done
+      by the store.
+    technical_note: >
+      PSL_ACCT_UNLOCK (cyclic every 15 min) runs acct_unlock.sql: insert ACCOUNT_UNLOCKED
+      audit rows, then set locked='N', failed_attempts=0, locked_ts=NULL where
+      locked_ts < now-30min. Audit sample: 21 ACCOUNT_UNLOCKED rows, all source_kind
+      batch, each 0-1 clock-hours after the matching ACCOUNT_LOCKED (the sample has hour
+      granularity). The two locks with no unlock are the last events in the sample.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The audit sample timing, the batch SQL, the scheduler definition and the user guide
+      agree. The sample's hour granularity cannot confirm the exact 30 minutes, only
+      that it is under two hours.
+    risk_class: regulated
+    basis: >
+      Audit sample lock->unlock pairs; batch SQL with 30-minute threshold.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 84
+        line_end: 87
+        excerpt: |
+          83,U-afa7ef,ACCOUNT_LOCKED,2026-08-14,14,web
+          84,U-d5d780,SIGNON_OK,2026-08-14,15,web
+          85,U-d5d780,SIGNOFF,2026-08-14,15,web
+          86,U-afa7ef,ACCOUNT_UNLOCKED,2026-08-14,15,batch
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 1
+        line_end: 3
+        excerpt: |
+          -- PSL_ACCT_UNLOCK: unlock sign-on accounts locked for more than 30 minutes.
+          -- Business rule: 3 failed sign-ons in a row lock an account (UserDAO).
+          -- A lock is cleared automatically 30 minutes after it was set.
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "5.3 Locked account"
+        line_start: 129
+        line_end: 130
+        excerpt: |
+          <p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set
+          (the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.
+    stack_metadata:
+      batch.trigger: PSL_ACCT_UNLOCK every 15 minutes
+
+  - record_key: SIGNONAUDIT-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on audit event with the user name, an event type
+      from exactly USER_CREATED, SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED,
+      ACCOUNT_UNLOCKED and SIGNOFF, and a timestamp. Events SHALL be orderable in the
+      sequence they were written, and SHALL be distinguishable as raised by a web action
+      or by a scheduled process.
+    plain_text: >
+      Every sign-in related event is logged with who, what and when. There are seven kinds
+      of event: account created, signed in, failed sign-in, tried while locked, account
+      locked, account unlocked, signed out.
+    technical_note: >
+      The anonymised sample has columns event_seq (contiguous 1..1686), user_token,
+      event_type, event_day, event_hour and source_kind (web | batch). All seven types
+      occur. The DDL check constraint on signon_audit.event_type lists the same seven.
+      In the real table, source shows as remote_addr ('batch:PSL_ACCT_UNLOCK' for batch
+      rows). The anonymiser derives source_kind from it.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The sample's event-type set exactly matches the DDL check constraint and the user
+      guide event table.
+    risk_class: regulated
+    basis: >
+      Sample header and event values; DDL check constraint.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 1
+        line_end: 4
+        excerpt: |
+          event_seq,user_token,event_type,event_day,event_hour,source_kind
+          1,U-ec8654,USER_CREATED,2026-08-01,12,web
+          2,U-d5d780,SIGNON_OK,2026-08-02,15,web
+          3,U-d5d780,SIGNOFF,2026-08-02,15,web
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        line_start: 93
+        line_end: 93
+        excerpt: |
+          ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+    stack_metadata:
+      db.object: signon_audit
+
+  - record_key: SIGNONAUDIT-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL keep sign-on audit events for 90 days and remove older events.
+    plain_text: >
+      The sign-in history is kept for 90 days and older entries are removed.
+    technical_note: >
+      The sample covers exactly 90 calendar days (2026-08-01 to 2026-10-29), which fits a
+      90-day window. PSL_AUDIT_PURGE deletes rows older than CURRENT_DATE - 90 days
+      (PSL_AUDIT_RETENTION_DAYS=90 in conf/env.sh).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      The batch SQL states the rule. The sample's span only fits it and does not show a
+      purge happening, so the samples add weak support.
+    risk_class: regulated
+    basis: >
+      Purge SQL 90-day threshold; sample date span.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          1,U-ec8654,USER_CREATED,2026-08-01,12,web
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 1687
+        line_end: 1687
+        excerpt: |
+          1686,U-6cd21b,ACCOUNT_LOCKED,2026-10-29,23,web
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          -- PSL_AUDIT_PURGE: delete sign-on audit events older than 90 days.
+    stack_metadata:
+      batch.trigger: PSL_AUDIT_PURGE weekly Sunday 02:00
+
+  - record_key: SIGNON-BR-0004
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      The system SHALL record a sign-off event only for a user whose most recent sign-on
+      event was a successful sign-on.
+    plain_text: >
+      A "signed out" entry appears only after a successful sign-in.
+    technical_note: >
+      Across all 553 SIGNOFF rows in the audit sample, the user's previous event is
+      SIGNON_OK. This is an observed invariant of the sample. The sign-off code path is not
+      in this shard.
+    interface: false
+    confidence: low
+    confidence_basis: >
+      Inferred from the sample alone (553 of 553). The enforcing code was not read in this
+      pass.
+    risk_class: operational
+    basis: >
+      Audit sample ordering.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+        line_start: 3
+        line_end: 4
+        excerpt: |
+          2,U-d5d780,SIGNON_OK,2026-08-02,15,web
+          3,U-d5d780,SIGNOFF,2026-08-02,15,web
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+    description: >
+      Every captured result lists item ids in ascending numeric order (e.g. EST-1..EST-5,
+      EST-20, EST-21), but SEARCH_ITEMS in CatalogDAOSQL.xml has no ORDER BY, so the order
+      is whatever the database returns. A human must decide whether result order is a
+      requirement (and which order), since paging two at a time depends on it.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_decision_cases.csv
+    description: >
+      The "attempt" column values (correct, wrong, unknown, upper, blank) are not defined
+      anywhere in the shard. "upper" is read as an upper-cased user name (SIGNON-BR-0003);
+      the capture owner should confirm.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/vortex/samples/signon_audit_events_anonymised.csv
+    description: >
+      Several users (e.g. U-d5d780, U-6105b1, U-c26e58) have events with no prior
+      USER_CREATED. Presumably these are seeded accounts or accounts created before the
+      90-day window. This is not treated as a defect. No document in legacy-analysis/sources
+      exists for this module, so document traces cite the user guide in legacy-source directly.
+
+suspected_defects:
+  - capability_key: catalog-search
+    record_keys: [CATSEARCH-BR-0002]
+    severity: medium
+    category: contradicts-document
+    title: Search words containing a capital letter never match
+    description: >
+      The user guide says search is not case-sensitive. The captured search for "Bulldog"
+      returns "No results were found for your search", although "dog" returns the bulldog
+      items. The keyword is compared, unchanged, with text that has been lower-cased.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json
+        line_start: 53
+        line_end: 65
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java
+        line_start: 363
+        line_end: 365
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html
+        kind: document
+        anchor: "4. Searching / How search matches"
+        line_start: 93
+        line_end: 93
