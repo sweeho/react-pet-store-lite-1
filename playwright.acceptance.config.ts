@@ -15,7 +15,9 @@ export default defineConfig({
   // A flow that signs in and checks out takes several seconds on a CI runner;
   // shorter waits failed working flows by timeout. Keep these floors.
   timeout: 15000,
-  expect: { timeout: 5000 },
+  expect: {
+    timeout: 5000,
+  },
   // Under CI the merge gate reads this JUnit report (testEvidence.acceptance).
   reporter: process.env.CI
     ? [["list"], ["junit", { outputFile: ".vortex-results/acceptance/e2e-junit.xml" }]]
