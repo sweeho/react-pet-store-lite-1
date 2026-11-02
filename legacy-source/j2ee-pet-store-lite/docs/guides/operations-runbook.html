@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Java Pet Store Lite - Operations Runbook</title><link rel="stylesheet" href="guide.css"></head>
+<body>
+<div class="cover">
+ <h1>Java&trade; Pet Store Lite</h1>
+ <div class="sub">Operations Runbook</div>
+ <table>
+  <tr><td>Document</td><td>PSL-RB-01</td></tr>
+  <tr><td>Version</td><td>1.3.2-lite-1</td></tr>
+  <tr><td>Audience</td><td>Operations and Control-M schedulers</td></tr>
+  <tr><td>Scheduler</td><td>Control-M, data center DC_PSL_PRD, node psl-app01</td></tr>
+ </table>
+</div>
+
+<h1 class="first">1. System overview</h1>
+<table class="grid">
+ <tr><th>Component</th><th>Detail</th></tr>
+ <tr><td>Application server</td><td>Apache Tomcat 9 on Java 8, web application <code>petstore.war</code> at context <code>/petstore</code>, port 8080</td></tr>
+ <tr><td>Database</td><td>Apache Derby 10.14 (formerly Cloudscape), database <code>PetStoreDB</code> in <code>/var/petstore/db</code>, schema ESTOREUSER. Runs inside Tomcat; batch jobs connect through the Derby network server on port 1527.</td></tr>
+ <tr><td>Batch home</td><td><code>/opt/petstore</code>: <code>batch/</code> scripts, <code>db/batch/</code> SQL, <code>conf/</code> settings</td></tr>
+ <tr><td>Output folders</td><td><code>/var/petstore/backup</code>, <code>/var/petstore/extract</code>, <code>/var/petstore/log</code></td></tr>
+ <tr><td>Job log</td><td><code>/var/petstore/log/batch.log</code>, one line per job start and end</td></tr>
+</table>
+
+<h1>2. Batch schedule</h1>
+<p>The schedule is defined in <code>scheduler/control-m/PSL_PETSTORE.xml</code> (two folders).</p>
+<table class="grid">
+ <tr><th>Job</th><th>Folder</th><th>When</th><th>Waits for</th><th>Script</th></tr>
+ <tr><td>PSL_DB_BACKUP</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:00</td><td>-</td><td>psl_db_backup.sh</td></tr>
+ <tr><td>PSL_AUDIT_EXTRACT</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:30</td><td>PSL_DB_BACKUP-OK</td><td>psl_audit_extract.sh</td></tr>
+ <tr><td>PSL_SIGNON_REPORT</td><td>PSL_PETSTORE_DAILY</td><td>Daily 01:45</td><td>PSL_AUDIT_EXTRACT-OK</td><td>psl_signon_report.sh</td></tr>
+ <tr><td>PSL_AUDIT_PURGE</td><td>PSL_PETSTORE_DAILY</td><td>Sunday 02:00</td><td>PSL_AUDIT_EXTRACT-OK</td><td>psl_audit_purge.sh</td></tr>
+ <tr><td>PSL_CATALOG_CHECK</td><td>PSL_PETSTORE_DAILY</td><td>Daily 06:00</td><td>-</td><td>psl_catalog_check.sh</td></tr>
+ <tr><td>PSL_ACCT_UNLOCK</td><td>PSL_PETSTORE_CYCLIC</td><td>Every 15 minutes, 00:00-23:59</td><td>-</td><td>psl_acct_unlock.sh</td></tr>
+</table>
+<pre>01:00 PSL_DB_BACKUP --> 01:30 PSL_AUDIT_EXTRACT --+--> 01:45 PSL_SIGNON_REPORT
+                                                  +--> 02:00 PSL_AUDIT_PURGE (Sundays)
+06:00 PSL_CATALOG_CHECK            every 15 min  PSL_ACCT_UNLOCK</pre>
+
+<h1>3. Job details</h1>
+<h2>3.1 PSL_DB_BACKUP</h2>
+<p>Online backup of PetStoreDB with <code>SYSCS_UTIL.SYSCS_BACKUP_DATABASE</code> (<code>db/batch/db_backup.sql</code>).
+The backup is moved to <code>/var/petstore/backup/PetStoreDB_YYYYMMDD</code>. Backups older than 7 days are deleted.
+Critical job: up to 2 reruns 10 minutes apart; on failure Control-M mails psl-ops and PSL_AUDIT_EXTRACT stays waiting.</p>
+
+<h2>3.2 PSL_AUDIT_EXTRACT</h2>
+<p>Exports yesterday's rows of SIGNON_AUDIT (00:00 to 24:00) to <code>/var/petstore/extract/signon_audit_YYYYMMDD.csv</code>
+for the security team (<code>db/batch/audit_extract.sql</code>).</p>
+<table class="grid">
+ <tr><th>Column</th><th>Content</th></tr>
+ <tr><td>1 audit_id</td><td>Event number</td></tr>
+ <tr><td>2 username</td><td>User name as typed</td></tr>
+ <tr><td>3 event_type</td><td>SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF, USER_CREATED</td></tr>
+ <tr><td>4 event_ts</td><td>Time of the event</td></tr>
+ <tr><td>5 remote_addr</td><td>Client address, or <code>batch:PSL_ACCT_UNLOCK</code></td></tr>
+</table>
+<p>No header row. The last line is a trailer <code>TRAILER,YYYYMMDD,&lt;row count&gt;</code>; the count excludes the trailer.</p>
+
+<h2>3.3 PSL_SIGNON_REPORT</h2>
+<p>Writes yesterday's counts per event type, the number of locked accounts and accounts per role to
+<code>/var/petstore/extract/signon_report_YYYYMMDD.txt</code>.</p>
+
+<h2>3.4 PSL_AUDIT_PURGE</h2>
+<p>Sundays only. Deletes SIGNON_AUDIT rows older than 90 days. It waits for that day's extract so no row is deleted before it is extracted.</p>
+
+<h2>3.5 PSL_CATALOG_CHECK</h2>
+<p>Runs catalog checks C1 to C4 (see the Administrator Guide). If the catalog tables do not exist it calls
+<code>http://localhost:8080/petstore/Populate?forcefully=false</code> to load the sample data, then checks again.
+Exit code 4 means a check found rows; Control-M mails psl-catalog. Details are in <code>/var/petstore/log/catalog_check.log</code>.</p>
+
+<h2>3.6 PSL_ACCT_UNLOCK</h2>
+<p>Every 15 minutes. Unlocks accounts locked more than 30 minutes ago, resets their failed attempts and writes ACCOUNT_UNLOCKED to the audit.</p>
+
+<h1>4. Exit codes and recovery</h1>
+<table class="grid">
+ <tr><th>Code</th><th>Meaning</th><th>Action</th></tr>
+ <tr><td>0</td><td>OK</td><td>None</td></tr>
+ <tr><td>4</td><td>PSL_CATALOG_CHECK found bad catalog data</td><td>Catalog team fixes the data or an administrator reloads the sample data. Rerun the job.</td></tr>
+ <tr><td>8</td><td>SQL or file error</td><td>Read <code>batch.log</code> and the job log. Check that Tomcat is up (the Derby network server runs inside it) and that port 1527 answers. Rerun.</td></tr>
+</table>
+<h2>4.1 Restore from backup</h2>
+<ol>
+ <li>Stop Tomcat.</li>
+ <li>Move <code>/var/petstore/db/PetStoreDB</code> aside.</li>
+ <li>Copy <code>/var/petstore/backup/PetStoreDB_YYYYMMDD</code> to <code>/var/petstore/db/PetStoreDB</code>.</li>
+ <li>Start Tomcat and open the store home page.</li>
+</ol>
+<h2>4.2 Rerunning the extract</h2>
+<p>The extract always covers the day before the run date. To re-extract an older day, run the export query in
+<code>db/batch/audit_extract.sql</code> by hand with the dates changed.</p>
+
+<h1>5. Settings</h1>
+<pre>conf/env.sh              PSL_HOME, folders, PSL_DB_URL, retention days, psl_ij and psl_log helpers
+conf/petstore.properties database, sign-on rules, catalog and batch settings</pre>
+<table class="grid">
+ <tr><th>Setting</th><th>Value</th></tr>
+ <tr><td>Audit retention</td><td>90 days</td></tr>
+ <tr><td>Backup retention</td><td>7 days</td></tr>
+ <tr><td>Unlock after</td><td>30 minutes</td></tr>
+ <tr><td>Database URL for batch</td><td><code>jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB</code></td></tr>
+</table>
+</body></html>

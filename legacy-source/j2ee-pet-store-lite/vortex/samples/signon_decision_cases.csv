@@ -1,0 +1,12 @@
+case_id,prior_failed_attempts,prior_locked,attempt,result_screen,failed_attempts_after,locked_after,audit_events_written
+S01,0,N,correct,main.screen,0,N,SIGNON_OK
+S02,0,N,wrong,signon_error.screen,1,N,SIGNON_FAIL
+S03,1,N,wrong,signon_error.screen,2,N,SIGNON_FAIL
+S04,2,N,wrong,signon_locked.screen,3,Y,SIGNON_FAIL+ACCOUNT_LOCKED
+S05,0,Y,correct,signon_locked.screen,0,Y,SIGNON_LOCKED
+S06,2,N,correct,main.screen,0,N,SIGNON_OK
+S07,0,N,unknown,signon_error.screen,0,N,SIGNON_FAIL
+S08,0,N,upper,signon_error.screen,0,N,SIGNON_FAIL
+S09,0,N,blank,signon_error.screen,1,N,SIGNON_FAIL
+S10,3,Y,wrong,signon_locked.screen,3,Y,SIGNON_LOCKED
+S11,1,N,correct,main.screen,0,N,SIGNON_OK

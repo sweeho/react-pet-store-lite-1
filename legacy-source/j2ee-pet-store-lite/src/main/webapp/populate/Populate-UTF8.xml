@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ Copyright 2002 Sun Microsystems, Inc. All rights reserved.
+ 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 
+ - Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+ 
+ - Redistribution in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in
+   the documentation and/or other materials provided with the
+   distribution.
+ 
+ Neither the name of Sun Microsystems, Inc. or the names of
+ contributors may be used to endorse or promote products derived
+ from this software without specific prior written permission.
+ 
+ This software is provided "AS IS," without a warranty of any
+ kind. ALL EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS AND
+ WARRANTIES, INCLUDING ANY IMPLIED WARRANTY OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT, ARE HEREBY
+ EXCLUDED. SUN AND ITS LICENSORS SHALL NOT BE LIABLE FOR ANY DAMAGES
+ SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR
+ DISTRIBUTING THE SOFTWARE OR ITS DERIVATIVES. IN NO EVENT WILL SUN
+ OR ITS LICENSORS BE LIABLE FOR ANY LOST REVENUE, PROFIT OR DATA, OR
+ FOR DIRECT, INDIRECT, SPECIAL, CONSEQUENTIAL, INCIDENTAL OR
+ PUNITIVE DAMAGES, HOWEVER CAUSED AND REGARDLESS OF THE THEORY OF
+ LIABILITY, ARISING OUT OF THE USE OF OR INABILITY TO USE SOFTWARE,
+ EVEN IF SUN HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ 
+ You acknowledge that Software is not designed, licensed or intended
+ for use in the design, construction, operation or maintenance of
+ any nuclear facility.
+-->
+
+
+<!DOCTYPE Populate [
+
+	<!ELEMENT Populate (Users, Catalog)>
+ 
+	<!ELEMENT Catalog (Categories, Products, Items)>
+
+	<!ELEMENT Users (User+)>
+	<!ENTITY % User SYSTEM "dtds/User.dtd">
+	%User;
+
+
+	<!ELEMENT Categories (Category+)>
+	<!ENTITY % Category SYSTEM "dtds/Category.dtd">
+	%Category;
+
+	<!ELEMENT Products (Product+)>
+	<!ENTITY % Product SYSTEM "dtds/Product.dtd">
+	%Product;
+
+	<!ELEMENT Items (Item+)>
+	<!ENTITY % Item SYSTEM "dtds/Item.dtd">
+	%Item;
+
+    <!ENTITY % CommonElements SYSTEM "dtds/CommonElements.dtd">
+    %CommonElements;
+]>
+
+<Populate>
+  <Users>
+    <User id="j2ee">
+      <Password>«REDACTED:secret-finding-22»</Password>
+      <Role>CUSTOMER</Role>
+    </User>
+    <User id="shopper">
+      <Password>«REDACTED:secret-finding-23»</Password>
+      <Role>CUSTOMER</Role>
+    </User>
+    <User id="admin">
+      <Password>«REDACTED:secret-finding-24»</Password>
+      <Role>ADMIN</Role>
+    </User>
+  </Users>
+  <Catalog>
+    <Categories>
+    	<Category id="FISH">
+	  <CategoryDetails xml:lang="en-US">
+	    <Name>Fish</Name>
+	    <Image>fish_icon.gif</Image>
+	  </CategoryDetails>
+	</Category>
+	<Category id="DOGS">
+	  <CategoryDetails xml:lang="en-US">
+	    <Name>Dogs</Name>
+	    <Image>dogs_icon.gif</Image>
+	  </CategoryDetails>
+	</Category>
+	<Category id="REPTILES">
+	  <CategoryDetails xml:lang="en-US">
+	    <Name>Reptiles</Name>
+	    <Image>reptiles_icon.gif</Image>
+	  </CategoryDetails>
+	</Category>
+	<Category id="CATS">
+	  <CategoryDetails xml:lang="en-US">
+	    <Name>Cats</Name>
+	    <Image>cats_icon.gif</Image>
+	  </CategoryDetails>
+	</Category>
+        <Category id="BIRDS">
+	  <CategoryDetails xml:lang="en-US">
+	    <Name>Birds</Name>
+	    <Image>birds_icon.gif</Image>
+	  </CategoryDetails>
+	</Category>
+      </Categories>
+    <Products>
+	<Product id="FI-SW-01" category="FISH">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Angelfish</Name>
+	    <Image>fish1.jpg</Image>
+	    <Description>Salt Water fish from Australia</Description>
+	  </ProductDetails>
+          </Product>
+	<Product id="FI-SW-02" category="FISH">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Tiger Shark</Name>
+	    <Image>fish4.gif</Image>
+	    <Description>Salt Water fish from Australia</Description>
+	  </ProductDetails> 	
+	</Product>
+	<Product id="FI-FW-01" category="FISH">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Koi</Name>
+	    <Image>fish3.gif</Image>
+	    <Description>Fresh Water fish from Japan</Description>
+	  </ProductDetails>	
+	</Product>
+	<Product id="FI-FW-02" category="FISH">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Goldfish</Name>
+	    <Image>fish2.gif</Image>
+	    <Description>Fresh Water fish from China</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-BD-01" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Bulldog</Name>
+	    <Image>dog2.gif</Image>
+	    <Description>Friendly dog from England</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-PO-02" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Poodle</Name>
+	    <Image>dog6.gif</Image>
+	    <Description>Cute dog from France</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-DL-01" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Dalmation</Name>
+	    <Image>dog5.gif</Image>
+	    <Description>Great dog for a Fire Station</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-RT-01" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Golden Retriever</Name>
+	    <Image>dog1.gif</Image>
+	    <Description>Great family dog</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-RT-02" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Labrador Retriever</Name>
+	    <Image>dog5.gif</Image>
+	    <Description>Great hunting dog</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="K9-CW-01" category="DOGS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Chihuahua</Name>
+	    <Image>dog4.gif</Image>
+	    <Description>Great companion dog</Description>
+	  </ProductDetails>	
+	</Product>
+	<Product id="RP-SN-01" category="REPTILES">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Rattlesnake</Name>
+	    <Image>lizard3.gif</Image>
+	    <Description>Doubles as a watch dog</Description>
+	  </ProductDetails> 
+	</Product>
+	<Product id="RP-LI-02" category="REPTILES">
+       	  <ProductDetails xml:lang="en-US">
+	    <Name>Iguana</Name>
+	    <Image>lizard2.gif</Image>
+	    <Description>Friendly green friend</Description>
+	  </ProductDetails> 
+	</Product>
+	<Product id="FL-DSH-01" category="CATS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Manx</Name>
+	    <Image>cat3.gif</Image>
+	    <Description>Great for reducing mouse populations</Description>
+	  </ProductDetails>	
+	</Product>
+	<Product id="FL-DLH-02" category="CATS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Persian</Name>
+	    <Image>cat1.gif</Image>
+	    <Description>Friendly house cat, doubles as a princess</Description>
+	  </ProductDetails>	   
+	</Product>
+	<Product id="AV-CB-01" category="BIRDS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Amazon Parrot</Name>
+	    <Image>bird4.gif</Image>
+	    <Description>Great companion for up to 75 years</Description>
+	  </ProductDetails>
+	</Product>
+	<Product id="AV-SB-02" category="BIRDS">
+	  <ProductDetails xml:lang="en-US">
+	    <Name>Finch</Name>
+	    <Image>bird1.gif</Image>
+	    <Description>Great stress reliever</Description>
+	  </ProductDetails>	
+	</Product>
+      </Products>
+    <Items>
+	<Item id="EST-1" product="FI-SW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>16.50</ListPrice>
+	    <UnitCost>10.00</UnitCost>
+	    <Attribute>Large</Attribute>
+	    <Attribute>Cuddly</Attribute>
+	    <Image>fish3.gif</Image>
+	    <Description>Fresh Water fish from Japan</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-2" product="FI-SW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>16.50</ListPrice>
+	    <UnitCost>10.00</UnitCost>
+	    <Attribute>Small</Attribute>
+	    <Image>fish3.gif</Image>
+	    <Description>Fresh Water fish from Japan</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-3" product="FI-SW-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Toothless</Attribute>
+	    <Attribute>Mean</Attribute>
+	    <Image>fish4.gif</Image>
+	    <Description>Salt Water fish from Australia</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-4" product="FI-FW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Spotted</Attribute>
+	    <Image>fish3.gif</Image>
+	    <Description>Fresh Water fish from Japan</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-5" product="FI-FW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Spotless</Attribute>
+	    <Image>fish3.gif</Image>
+	    <Description>Fresh Water fish from Japan</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-6" product="K9-BD-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Male Adult</Attribute>
+	    <Image>dog2.gif</Image>
+	    <Description>Friendly dog from England</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-7" product="K9-BD-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Female Puppy</Attribute>
+	    <Image>dog2.gif</Image>
+	    <Description>Friendly dog from England</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-8" product="K9-PO-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Male Puppy</Attribute>
+	    <Image>dog6.gif</Image>
+	    <Description>Cute dog from France</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-9" product="K9-DL-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Spotless Male Puppy</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great dog for a Fire Station</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-10" product="K9-DL-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Spotted Adult Female</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great dog for a Fire Station</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-11" product="RP-SN-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Venomless</Attribute>
+	    <Image>lizard3.gif</Image>
+	    <Description>More Bark than bite</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-12" product="RP-SN-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>18.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Rattleless</Attribute>
+	    <Image>lizard3.gif</Image>
+	    <Description>Doubles as a watch dog</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-13" product="RP-LI-02">
+       	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>12.50</ListPrice>
+	    <UnitCost>11.10</UnitCost>
+	    <Attribute>Green Adult</Attribute>
+	    <Image>lizard2.gif</Image>
+	    <Description>Friendly green friend</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-14" product="FL-DSH-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>58.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Tailless</Attribute>
+	    <Image>cat3.gif</Image>
+	    <Description>Great for reducing mouse populations</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-15" product="FL-DSH-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>23.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>With tail</Attribute>
+	    <Image>cat3.gif</Image>
+	    <Description>Great for reducing mouse populations</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-16" product="FL-DLH-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>93.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Adult Female</Attribute>
+	    <Image>cat1.gif</Image>
+	    <Description>Friendly house cat, doubles as a princess</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-17" product="FL-DLH-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>93.50</ListPrice>
+	    <UnitCost>12.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>cat1.gif</Image>
+	    <Description>Friendly house cat, doubles as a prince</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-18" product="AV-CB-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>193.50</ListPrice>
+	    <UnitCost>92.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>bird4.gif</Image>
+	    <Description>Great companion for up to 75 years</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-19" product="AV-SB-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>15.50</ListPrice>
+	    <UnitCost>2.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>bird1.gif</Image>
+	    <Description>Great stress reliever</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-20" product="FI-FW-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>5.50</ListPrice>
+	    <UnitCost>2.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>fish2.gif</Image>
+	    <Description>Fresh Water fish from China</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-21" product="FI-FW-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>5.29</ListPrice>
+	    <UnitCost>1.00</UnitCost>
+	    <Attribute>Adult Female</Attribute>
+	    <Image>fish2.gif</Image>
+	    <Description>Fresh Water fish from China</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-22" product="K9-RT-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>135.50</ListPrice>
+	    <UnitCost>100.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great hunting dog</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-23" product="K9-RT-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>145.49</ListPrice>
+	    <UnitCost>100.00</UnitCost>
+	    <Attribute>Adult Female</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great hunting dog</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-24" product="K9-RT-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>255.50</ListPrice>
+	    <UnitCost>92.00</UnitCost>
+	    <Attribute>Male Puppy</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great addition to a family</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-25" product="K9-RT-02">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>325.29</ListPrice>
+	    <UnitCost>90.00</UnitCost>
+	    <Attribute>Female Puppy</Attribute>
+	    <Image>dog5.gif</Image>
+	    <Description>Great hunting dog</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-26" product="K9-CW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>125.50</ListPrice>
+	    <UnitCost>92.00</UnitCost>
+	    <Attribute>Adult Male</Attribute>
+	    <Image>dog4.gif</Image>
+	    <Description>Little yapper</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-27" product="K9-CW-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>155.29</ListPrice>
+	    <UnitCost>90.00</UnitCost>
+	    <Attribute>Adult Female</Attribute>
+	    <Image>dog4.gif</Image>
+	    <Description>Great companion dog</Description>
+	  </ItemDetails>
+	</Item>
+	<Item id="EST-28" product="K9-RT-01">
+	  <ItemDetails xml:lang="en-US">
+	    <ListPrice>155.29</ListPrice>
+	    <UnitCost>90.00</UnitCost>
+	    <Attribute>Adult Female</Attribute>
+	    <Image>dog1.gif</Image>
+	    <Description>Great family dog</Description>
+	  </ItemDetails>
+	</Item>
+      </Items>
+  </Catalog>
+</Populate>

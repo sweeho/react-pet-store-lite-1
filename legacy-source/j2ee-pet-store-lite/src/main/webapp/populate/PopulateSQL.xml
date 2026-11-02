@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ Copyright 2002 Sun Microsystems, Inc. All rights reserved.
+ Redistribution and use subject to the license in LICENSE-SUN.txt.
+
+ Petstore Lite: statements for the tables the PopulateServlet creates and
+ loads. The cloudscape set became derby (Cloudscape is now Apache Derby).
+ The customer, account and profile tables are gone with the customer
+ component. SIGNON replaces the User CMP bean table and SIGNON_AUDIT is new.
+-->
+
+<!DOCTYPE PopulateSQL SYSTEM "dtds/PopulateSQL.dtd">
+
+<PopulateSQL>
+  <DatabaseStatements database="derby">
+    <TableStatements table="category">
+      <CheckStatement>
+        select * from category
+      </CheckStatement>
+      <CreateStatement>
+        create table category (catid char(10) not null,
+          constraint pk_category primary key (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into category values (?)
+      </InsertStatement>
+      <DropStatement>
+        drop table category
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="category_details">
+      <CheckStatement>
+        select * from category_details
+      </CheckStatement>
+      <CreateStatement>
+        create table category_details (catid char(10) not null,
+          name varchar(80) not null, image varchar(255),
+          descn varchar(255), locale char(10) not null,
+          constraint pk_category_details primary key (catid, locale),
+            constraint fk_category_details_1 foreign key (catid)
+            references category (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into category_details (catid, name, image, descn, locale) values (?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table category_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="product">
+      <CheckStatement>
+        select * from product
+      </CheckStatement>
+      <CreateStatement>
+        create table product (
+          productid char(10) not null,
+          catid char(10) not null,
+          constraint pk_product primary key (productid),
+            constraint fk_product_1 foreign key (catid)
+            references category (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into product values (?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table product
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="product_details">
+      <CheckStatement>
+        select * from product_details
+      </CheckStatement>
+      <CreateStatement>
+        create table product_details (
+          productid char(10) not null,
+          locale char(10) not null,
+          name varchar(80) not null,
+          image varchar(255),
+          descn varchar(255),
+          constraint pk_product_details primary key (productid, locale),
+            constraint fk_product_details_1 foreign key (productid)
+            references product (productid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into product_details values (?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table product_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="item">
+      <CheckStatement>
+        select * from item
+      </CheckStatement>
+      <CreateStatement>
+        create table item (
+          itemid char(10) not null,
+          productid char(10) not null,
+          constraint pk_item primary key (itemid),
+            constraint fk_item_1 foreign key (productid)
+            references product (productid)
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into item (itemid, productid) values (? , ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table item
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="item_details">
+      <CheckStatement>
+        select * from item_details
+      </CheckStatement>
+      <CreateStatement>
+        create table item_details (
+          itemid char(10) not null,
+          listprice decimal(10,2) not null,
+          unitcost decimal(10,2) not null,
+          locale char(10) not null,
+          image varchar(255) not null,
+          descn varchar(255) not null,
+          attr1 varchar(80),
+          attr2 varchar(80),
+          attr3 varchar(80),
+          attr4 varchar(80),
+          attr5 varchar(80),
+          constraint pk_item_details primary key (itemid, locale),
+              constraint fk_item_details_1 foreign key (itemid)
+              references item (itemid),
+              constraint ck_item_details_price check (listprice >= unitcost)
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into item_details
+          (itemid, listprice, unitcost, locale, attr1, attr2, attr3, attr4, attr5, image, descn)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table item_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="signon">
+      <CheckStatement>
+        select * from signon
+      </CheckStatement>
+      <CreateStatement>
+        create table signon (
+          username varchar(25) not null,
+          password varchar(25) not null,
+          role varchar(10) default 'CUSTOMER' not null,
+          failed_attempts integer default 0 not null,
+          locked char(1) default 'N' not null,
+          locked_ts timestamp,
+          last_signon timestamp,
+          created_ts timestamp default current_timestamp not null,
+          constraint pk_signon primary key (username),
+          constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+          constraint ck_signon_locked check (locked in ('Y', 'N'))
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into signon (username, password, role) values (?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table signon
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="signon_audit">
+      <CheckStatement>
+        select * from signon_audit
+      </CheckStatement>
+      <CreateStatement>
+        create table signon_audit (
+          audit_id bigint generated always as identity,
+          username varchar(25) not null,
+          event_type varchar(20) not null,
+          event_ts timestamp not null,
+          remote_addr varchar(45),
+          constraint pk_signon_audit primary key (audit_id),
+          constraint ck_signon_audit_event check (event_type in
+            ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into signon_audit (username, event_type, event_ts, remote_addr) values (?, ?, current_timestamp, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table signon_audit
+      </DropStatement>
+    </TableStatements>
+  </DatabaseStatements>
+  <DatabaseStatements database="oracle">
+    <TableStatements table="category">
+      <CheckStatement>
+        select * from category
+      </CheckStatement>
+      <CreateStatement>
+        create table category (catid varchar(10) not null,
+          constraint pk_category primary key (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into category values (?)
+      </InsertStatement>
+      <DropStatement>
+        drop table category
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="category_details">
+      <CheckStatement>
+        select * from category_details
+      </CheckStatement>
+      <CreateStatement>
+        create table category_details (catid varchar(10) not null,
+          name varchar2(80) not null, image varchar2(255),
+          descn varchar2(255), locale varchar(10) not null,
+          constraint pk_category_details primary key (catid, locale),
+            constraint fk_category_details_1 foreign key (catid)
+            references category (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into category_details (catid, name, image, descn, locale) values (?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table category_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="product">
+      <CheckStatement>
+        select * from product
+      </CheckStatement>
+      <CreateStatement>
+        create table product (
+          productid varchar(10) not null,
+          catid varchar(10) not null,
+          constraint pk_product primary key (productid),
+            constraint fk_product_1 foreign key (catid)
+            references category (catid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into product values (?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table product
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="product_details">
+      <CheckStatement>
+        select * from product_details
+      </CheckStatement>
+      <CreateStatement>
+        create table product_details (
+          productid varchar(10) not null,
+          locale varchar(10) not null,
+          name varchar2(80) not null,
+          image varchar2(255),
+          descn varchar2(255),
+          constraint pk_product_details primary key (productid, locale),
+            constraint fk_product_details_1 foreign key (productid)
+            references product (productid))
+      </CreateStatement>
+      <InsertStatement>
+        insert into product_details values (?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table product_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="item">
+      <CheckStatement>
+        select * from item
+      </CheckStatement>
+      <CreateStatement>
+        create table item (
+          itemid varchar(10) not null,
+          productid varchar(10) not null,
+          constraint pk_item primary key (itemid),
+            constraint fk_item_1 foreign key (productid)
+            references product (productid)
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into item (itemid, productid) values (? , ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table item
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="item_details">
+      <CheckStatement>
+        select * from item_details
+      </CheckStatement>
+      <CreateStatement>
+        create table item_details (
+          itemid varchar(10) not null,
+          listprice number(10,2) not null,
+          unitcost number(10,2) not null,
+          locale varchar(10) not null,
+          image varchar2(255) not null,
+          descn varchar2(255) not null,
+          attr1 varchar2(80),
+          attr2 varchar2(80),
+          attr3 varchar2(80),
+          attr4 varchar2(80),
+          attr5 varchar2(80),
+          constraint pk_item_details primary key (itemid, locale),
+              constraint fk_item_details_1 foreign key (itemid)
+              references item (itemid),
+              constraint ck_item_details_price check (listprice >= unitcost)
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into item_details
+          (itemid, listprice, unitcost, locale, attr1, attr2, attr3, attr4, attr5, image, descn)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table item_details
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="signon">
+      <CheckStatement>
+        select * from signon
+      </CheckStatement>
+      <CreateStatement>
+        create table signon (
+          username varchar2(25) not null,
+          password varchar2(25) not null,
+          role varchar2(10) default 'CUSTOMER' not null,
+          failed_attempts number(3) default 0 not null,
+          locked char(1) default 'N' not null,
+          locked_ts timestamp,
+          last_signon timestamp,
+          created_ts timestamp default current_timestamp not null,
+          constraint pk_signon primary key (username),
+          constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+          constraint ck_signon_locked check (locked in ('Y', 'N'))
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into signon (username, password, role) values (?, ?, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table signon
+      </DropStatement>
+    </TableStatements>
+    <TableStatements table="signon_audit">
+      <CheckStatement>
+        select * from signon_audit
+      </CheckStatement>
+      <CreateStatement>
+        create table signon_audit (
+          audit_id number(19) not null,
+          username varchar2(25) not null,
+          event_type varchar2(20) not null,
+          event_ts timestamp not null,
+          remote_addr varchar2(45),
+          constraint pk_signon_audit primary key (audit_id),
+          constraint ck_signon_audit_event check (event_type in
+            ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+        )
+      </CreateStatement>
+      <InsertStatement>
+        insert into signon_audit (username, event_type, event_ts, remote_addr) values (?, ?, current_timestamp, ?)
+      </InsertStatement>
+      <DropStatement>
+        drop table signon_audit
+      </DropStatement>
+    </TableStatements>
+  </DatabaseStatements>
+</PopulateSQL>

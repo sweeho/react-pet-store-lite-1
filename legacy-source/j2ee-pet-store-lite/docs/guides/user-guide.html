@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Java Pet Store Lite - User Guide</title><link rel="stylesheet" href="guide.css"></head>
+<body>
+<div class="cover">
+ <h1>Java&trade; Pet Store Lite</h1>
+ <div class="sub">User Guide for Customers</div>
+ <table>
+  <tr><td>Document</td><td>PSL-UG-01</td></tr>
+  <tr><td>Version</td><td>1.3.2-lite-1</td></tr>
+  <tr><td>Audience</td><td>Store customers</td></tr>
+  <tr><td>Application</td><td>Petstore Lite web store, <code>http://&lt;server&gt;:8080/petstore/</code></td></tr>
+  <tr><td>Related</td><td>PSL-AG-01 Administrator Guide, PSL-RB-01 Operations Runbook</td></tr>
+ </table>
+</div>
+
+<h1 class="first">1. About the store</h1>
+<p>Java Pet Store Lite is an online pet catalog. You can browse pets by category, search the catalog,
+create an account, sign in and review your recent sign-in activity. The store has three functions:</p>
+<table class="grid">
+ <tr><th>Function</th><th>What you can do</th><th>Sign-in needed</th></tr>
+ <tr><td>Catalog browsing and search</td><td>Browse categories, products and items. Search by keyword.</td><td>No</td></tr>
+ <tr><td>Sign-on and account</td><td>Create an account, sign in, view your account and sign-in history, sign out.</td><td>For My Account</td></tr>
+ <tr><td>Sample data</td><td>The catalog is loaded automatically the first time the store is opened.</td><td>No</td></tr>
+</table>
+<p>The store is in English (en_US) and shows prices in US dollars.</p>
+
+<h2>1.1 Page layout</h2>
+<p>Every page has the same four parts:</p>
+<ul>
+ <li><b>Banner</b> at the top: the Java Pet Store logo (returns to the home page), the <b>Search</b> box,
+ and the links <b>Account</b> and <b>Sign in</b> (or <b>Sign out</b> when you are signed in). When you are signed in
+ the banner shows <i>Signed in as &lt;user name&gt;</i>.</li>
+ <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>
+ <li><b>Body</b> in the middle: the page you asked for.</li>
+ <li><b>Footer</b> at the bottom.</li>
+</ul>
+
+<h1>2. Entering the store</h1>
+<ol>
+ <li>Open <code>http://&lt;server&gt;:8080/petstore/</code>. The entry page appears.</li>
+ <li>Click <b>enter the store</b>. If this is the first visit after installation, the store loads its catalog first.
+ A red message <i>Please wait while the Java Pet Store Application is being populated...</i> shows while it loads.</li>
+ <li>The home page opens with a picture of the pets. Click a pet in the picture, or a category in the side bar.</li>
+</ol>
+<figure><img src="../screenshots/01-store-entry.png"><figcaption>Figure 1. Store entry page (index.jsp)</figcaption></figure>
+<figure><img src="../screenshots/02-catalog-home.png"><figcaption>Figure 2. Home page (main.screen)</figcaption></figure>
+
+<h1>3. Browsing the catalog</h1>
+<p>The catalog has three levels:</p>
+<table class="grid">
+ <tr><th>Level</th><th>Example</th><th>Page</th></tr>
+ <tr><td>Category</td><td>Dogs</td><td>Lists the products in the category</td></tr>
+ <tr><td>Product</td><td>Bulldog (K9-BD-01)</td><td>Lists the items of the product with their list price</td></tr>
+ <tr><td>Item</td><td>Male Adult Bulldog (EST-6)</td><td>Shows the picture, List Price, Your Price, description and Item ID</td></tr>
+</table>
+<p>The store has five categories: Birds, Cats, Dogs, Fish and Reptiles.</p>
+
+<h2>3.1 Browse a category</h2>
+<ol>
+ <li>Click a category in the <b>Pets</b> side bar, for example <b>Dogs</b>.</li>
+ <li>The page <i>Products for this Category</i> lists two products at a time, each with its name and description.</li>
+ <li>Click <b>Next</b> to see the next two products, or <b>Previous</b> to go back. A link only appears when there is a page in that direction.</li>
+</ol>
+<figure><img src="../screenshots/03-category-dogs.png"><figcaption>Figure 3. Products in the Dogs category, first page</figcaption></figure>
+
+<h2>3.2 View the items of a product</h2>
+<ol>
+ <li>Click a product name, for example <b>Bulldog</b>.</li>
+ <li>The page <i>Items for this Product</i> lists the items, two at a time, with the item attribute, name, description and list price.</li>
+</ol>
+<figure><img src="../screenshots/05-product-bulldog.png"><figcaption>Figure 4. Items of the Bulldog product</figcaption></figure>
+
+<h2>3.3 View an item</h2>
+<p>Click an item. The item page shows:</p>
+<ul>
+ <li><b>List Price</b>: the catalog price.</li>
+ <li><b>Your Price</b>: the discounted price for members.</li>
+ <li>The description and the <b>Item ID</b> (for example EST-6). Quote the Item ID when you contact the store.</li>
+</ul>
+<figure><img src="../screenshots/06-item-detail.png"><figcaption>Figure 5. Item page for EST-6 Male Adult Bulldog</figcaption></figure>
+
+<h1>4. Searching</h1>
+<ol>
+ <li>Type one or more words in the <b>Search</b> box in the banner and click <b>Search</b>.</li>
+ <li>The page <i>Search Results</i> lists the matching items, two at a time, with <b>Next</b> and <b>Previous</b> links.</li>
+ <li>Click an item to open its item page.</li>
+</ol>
+<p>How search matches:</p>
+<ul>
+ <li>A word matches when it appears anywhere in the product name, the category code (for example DOGS) or the item description.
+ Part of a word is enough: <i>dog</i> finds Bulldog and every item in the DOGS category.</li>
+ <li>When you type several words separated by spaces, items that match <b>any</b> of the words are listed.</li>
+ <li>Search is not case-sensitive.</li>
+ <li>If nothing matches, or the box is empty, the page shows <i>No results were found for your search.</i></li>
+</ul>
+<figure><img src="../screenshots/07-search-results.png"><figcaption>Figure 6. Search results for "dog"</figcaption></figure>
+<figure><img src="../screenshots/08-search-no-results.png"><figcaption>Figure 7. A search with no results</figcaption></figure>
+
+<h1>5. Your account</h1>
+<h2>5.1 Create an account</h2>
+<ol>
+ <li>Click <b>Sign in</b> in the banner, or click <b>Account</b>. The <i>Sign In</i> page appears.</li>
+ <li>In the right-hand box <i>No. I would like to sign up for an account</i>, enter a <b>User Name</b>, a <b>Password</b> and the password again in <b>Password (Repeat)</b>.</li>
+ <li>Click <b>Create New Account</b>. You are signed in at once and taken to the page you asked for, or to the home page.</li>
+</ol>
+<table class="grid">
+ <tr><th>Field</th><th>Rule</th><th>Message when the rule is broken</th></tr>
+ <tr><td>User Name</td><td>3 to 25 characters</td><td>The user name must be 3 to 25 characters.</td></tr>
+ <tr><td>User Name</td><td>Letters, digits, '-' and '_' only</td><td>The user name can only contain letters, digits, '-' and '_'.</td></tr>
+ <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>
+ <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>
+ <tr><td>Password (Repeat)</td><td>Must equal Password</td><td>The password and the confirmation do not match.</td></tr>
+</table>
+<p>User names are case-sensitive: <i>J2EE</i> and <i>j2ee</i> are different users. New accounts are customer accounts.</p>
+<figure><img src="../screenshots/09-sign-on.png"><figcaption>Figure 8. Sign In page with the sign-in and sign-up forms</figcaption></figure>
+<figure><img src="../screenshots/12-create-account-error.png"><figcaption>Figure 9. Account creation refused because the user name is taken</figcaption></figure>
+
+<h2>5.2 Sign in</h2>
+<ol>
+ <li>Click <b>Sign in</b>. In the left-hand box <i>Yes.</i>, enter your <b>User Name</b> and <b>Password</b>.</li>
+ <li>Tick <b>Remember My User Name</b> if you want the store to fill in your user name next time. The store keeps it in a browser cookie for 31 days. Untick it to forget the name.</li>
+ <li>Click <b>Sign In</b>. You return to the page you were trying to open, or to the home page.</li>
+</ol>
+<p>If the user name or password is wrong the page <i>Sign-in Error</i> appears. Click <b>try again</b>.</p>
+<figure><img src="../screenshots/10-sign-on-error.png"><figcaption>Figure 10. Sign-in Error</figcaption></figure>
+
+<h2>5.3 Locked account</h2>
+<div class="warn">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>
+<p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set
+(the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.
+A successful sign-in resets the count of failed attempts to zero.</p>
+<figure><img src="../screenshots/11-account-locked.png"><figcaption>Figure 11. Account Locked</figcaption></figure>
+
+<h2>5.4 My Account</h2>
+<p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,
+your role and your 10 most recent sign-in events, newest first.</p>
+<table class="grid">
+ <tr><th>Event</th><th>Meaning</th></tr>
+ <tr><td>USER_CREATED</td><td>The account was created</td></tr>
+ <tr><td>SIGNON_OK</td><td>Successful sign-in</td></tr>
+ <tr><td>SIGNON_FAIL</td><td>Wrong password (or unknown user name)</td></tr>
+ <tr><td>ACCOUNT_LOCKED</td><td>The third failure in a row locked the account</td></tr>
+ <tr><td>SIGNON_LOCKED</td><td>A sign-in was tried while the account was locked</td></tr>
+ <tr><td>ACCOUNT_UNLOCKED</td><td>The lock was cleared by the store</td></tr>
+ <tr><td>SIGNOFF</td><td>You signed out</td></tr>
+</table>
+<p>If you see events you do not recognise, change nothing and contact the store administrator.</p>
+<figure><img src="../screenshots/13-my-account.png"><figcaption>Figure 12. My Account with recent sign-in activity</figcaption></figure>
+
+<h2>5.5 Sign out</h2>
+<p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,
+your session ends after 15 minutes without activity.</p>
+<figure><img src="../screenshots/16-signed-out.png"><figcaption>Figure 13. Signed out</figcaption></figure>
+
+<h1>6. Messages</h1>
+<table class="grid">
+ <tr><th>Page or message</th><th>Cause</th><th>What to do</th></tr>
+ <tr><td>No results were found for your search.</td><td>No item matches any of the words</td><td>Try a shorter word or a category name</td></tr>
+ <tr><td>Sign-in Error</td><td>Wrong user name or password</td><td>Try again. After 3 failures in a row the account locks.</td></tr>
+ <tr><td>Account Locked</td><td>3 failed sign-ins in a row</td><td>Wait 30 to 45 minutes, then sign in</td></tr>
+ <tr><td>Could Not Create Your Account</td><td>A field rule in section 5.1 is broken</td><td>Correct the field and try again</td></tr>
+ <tr><td>Access Denied</td><td>The page is for administrators only</td><td>Return to the catalog</td></tr>
+ <tr><td>Error</td><td>Unexpected problem in the store</td><td>Return to the catalog and try again</td></tr>
+</table>
+<figure><img src="../screenshots/14-access-denied.png"><figcaption>Figure 14. Access Denied</figcaption></figure>
+</body></html>
