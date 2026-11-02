@@ -1,0 +1,20 @@
+# Pass A over j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/util
+# The shard contains a single file, util/tracer/Debug.java: a developer
+# diagnostic print helper. It states no business rule, so no record is emitted.
+records: []
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/util/tracer/Debug.java
+    description: >
+      The only class in this module is Debug, a static helper that prints debug
+      text and stack traces to stderr/stdout. Every method is guarded by the
+      compile-time constant `debuggingOn = false` (line 46), so it produces no
+      output in the shipped build. No Java or JSP file in legacy-source calls it:
+      grep for "Debug." finds no call site, and the one reference is an unused import in
+      catalog/dao/GenericCatalogDAO.java (line 57). It carries no business
+      requirement for any capability in capabilities.csv, so no record was
+      emitted. A human only needs to confirm that diagnostic logging is out
+      of scope for the specification. No document under
+      legacy-analysis/sources exists to cite (the directory is absent), and
+      the legacy docs/ and README.md do not mention debug tracing.
+suspected_defects: []
