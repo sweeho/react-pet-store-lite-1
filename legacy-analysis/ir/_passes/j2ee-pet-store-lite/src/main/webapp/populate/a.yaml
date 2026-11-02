@@ -1,0 +1,900 @@
+# SX-0001 extract-a — shard j2ee-pet-store-lite/src/main/webapp/populate
+# Sources read: PopulateSQL.xml, Populate-UTF8.xml, dtds/*.dtd. Cross-checked (read-only,
+# not extracted) against db/schema/*.sql, PopulateServlet.java, XMLDBHandler.java, UserDAO.java.
+# No legacy-analysis/sources/**/extracted.md exists in the tree, so no document traces.
+records:
+  - record_key: CDI-ENT-0001
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL hold the catalog as a three-level hierarchy in which every product
+      belongs to exactly one existing category and every item belongs to exactly one existing
+      product, and SHALL refuse a product whose category does not exist or an item whose
+      product does not exist. Category, product and item identifiers SHALL be unique and at
+      most 10 characters.
+    plain_text: >
+      The catalog is categories, which contain products, which contain items (the things
+      actually sold). A product must belong to a real category and an item to a real product.
+      Codes are unique and at most 10 characters long.
+    technical_note: >
+      Enforced by the populate DDL primary and foreign keys (category.catid,
+      product.productid + fk_product_1 -> category, item.itemid + fk_item_1 -> product), in
+      both the derby and oracle statement sets, and again by the seed-data DTDs, where
+      Product@category and Item@product are IDREFs that a validating parser resolves.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in two independent places: database foreign keys (both dialects) and the
+      DTD IDREF constraints the populate parser validates against. Matches db/schema scripts.
+    risk_class: operational
+    basis: >
+      Foreign-key constraints on product and item tables, plus IDREF attributes in the
+      Product and Item DTDs.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 56
+        line_end: 61
+        excerpt: |2
+                  create table product (
+                    productid char(10) not null,
+                    catid char(10) not null,
+                    constraint pk_product primary key (productid),
+                      constraint fk_product_1 foreign key (catid)
+                      references category (catid))
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 97
+        line_end: 103
+        excerpt: |2
+                  create table item (
+                    itemid char(10) not null,
+                    productid char(10) not null,
+                    constraint pk_item primary key (itemid),
+                      constraint fk_item_1 foreign key (productid)
+                      references product (productid)
+                  )
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/Item.dtd
+        line_start: 39
+        line_end: 41
+        excerpt: |2
+          <!ATTLIST Item
+          	id ID #REQUIRED
+          	product IDREF #REQUIRED
+    stack_metadata:
+      db.object: [category, product, item]
+      framework: populate-ddl
+
+  - record_key: CDI-BR-0002
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL NOT store an item price entry whose list price is lower than its unit
+      cost; GIVEN an item price entry WHEN its list price is below its unit cost THEN the
+      entry SHALL be rejected.
+    plain_text: >
+      An item may never be priced below what it costs the store.
+    technical_note: >
+      CHECK constraint ck_item_details_price (listprice >= unitcost) on item_details in both
+      the derby and oracle populate DDL; the same constraint is in db/schema/petstore_*.sql.
+      Equal price and cost is allowed.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared as a database CHECK in both populate dialects and repeated in the standalone
+      schema scripts; every seeded item satisfies it (closest case EST-13, 12.50 vs 11.10).
+    risk_class: financial
+    basis: >
+      CHECK constraint on item_details.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 117
+        line_end: 133
+        excerpt: |2
+                  create table item_details (
+                    itemid char(10) not null,
+                    listprice decimal(10,2) not null,
+                    unitcost decimal(10,2) not null,
+                    locale char(10) not null,
+                    image varchar(255) not null,
+                    descn varchar(255) not null,
+                    attr1 varchar(80),
+                    attr2 varchar(80),
+                    attr3 varchar(80),
+                    attr4 varchar(80),
+                    attr5 varchar(80),
+                    constraint pk_item_details primary key (itemid, locale),
+                        constraint fk_item_details_1 foreign key (itemid)
+                        references item (itemid),
+                        constraint ck_item_details_price check (listprice >= unitcost)
+                  )
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 310
+        line_end: 310
+        excerpt: |2
+                        constraint ck_item_details_price check (listprice >= unitcost)
+    stack_metadata:
+      db.object: item_details.ck_item_details_price
+
+  - record_key: CDI-BR-0003
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL record item list price and unit cost as mandatory monetary amounts with
+      two decimal places and at most eight digits before the decimal point.
+    plain_text: >
+      Every item has a list price and a cost, both in money to the cent, up to 99 999 999.99.
+    technical_note: >
+      item_details.listprice / unitcost are decimal(10,2) not null (derby) and number(10,2)
+      not null (oracle). ItemDetails.dtd makes ListPrice and UnitCost mandatory in seed data.
+      No currency column exists; currency is implicit.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Same precision and NOT NULL in both dialects plus mandatory elements in the seed DTD.
+      The implicit single currency is inferred from the absence of a column, not read.
+    risk_class: financial
+    basis: >
+      Column types and NOT NULL on item_details; ListPrice/UnitCost required by DTD.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 297
+        line_end: 298
+        excerpt: |2
+                    listprice number(10,2) not null,
+                    unitcost number(10,2) not null,
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/ItemDetails.dtd
+        line_start: 38
+        line_end: 38
+        excerpt: |2
+          <!ELEMENT ItemDetails (ListPrice, UnitCost, Attribute?, Attribute?, Attribute?, Attribute?, Attribute?, Image, Description)>
+    stack_metadata:
+      db.object: item_details
+
+  - record_key: CDI-BR-0004
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL hold catalog display text per locale, with at most one text entry per
+      category, product or item for each locale. A category or product text entry SHALL have a
+      name (at most 80 characters) and MAY have an image reference and a description (each at
+      most 255 characters). An item text entry SHALL have a list price, unit cost, image
+      reference and description (each image/description at most 255 characters) and MAY have
+      up to five descriptive attributes of at most 80 characters each.
+    plain_text: >
+      Catalog names and descriptions are stored per language. Categories and products must
+      have a name; picture and description are optional. Items must have a price, cost,
+      picture and description, and can carry up to five short descriptive tags such as
+      "Adult Male".
+    technical_note: >
+      category_details / product_details / item_details have composite primary keys
+      (id, locale). Nullability and lengths from the populate DDL; the DTDs mirror it
+      (CategoryDetails/ProductDetails: Name, Image?, Description?; ItemDetails: up to five
+      Attribute? and mandatory Image, Description). Attributes map to attr1..attr5.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL nullability/keys and DTD content models agree, in two independent artifacts.
+    risk_class: presentational
+    basis: >
+      Composite primary keys and NOT NULL columns on the *_details tables; DTD content models.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 37
+        line_end: 42
+        excerpt: |2
+                  create table category_details (catid char(10) not null,
+                    name varchar(80) not null, image varchar(255),
+                    descn varchar(255), locale char(10) not null,
+                    constraint pk_category_details primary key (catid, locale),
+                      constraint fk_category_details_1 foreign key (catid)
+                      references category (catid))
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 75
+        line_end: 83
+        excerpt: |2
+                  create table product_details (
+                    productid char(10) not null,
+                    locale char(10) not null,
+                    name varchar(80) not null,
+                    image varchar(255),
+                    descn varchar(255),
+                    constraint pk_product_details primary key (productid, locale),
+                      constraint fk_product_details_1 foreign key (productid)
+                      references product (productid))
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/ProductDetails.dtd
+        line_start: 38
+        line_end: 38
+        excerpt: |2
+          <!ELEMENT ProductDetails (Name, Image?, Description?)>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/ItemDetails.dtd
+        line_start: 38
+        line_end: 38
+        excerpt: |2
+          <!ELEMENT ItemDetails (ListPrice, UnitCost, Attribute?, Attribute?, Attribute?, Attribute?, Attribute?, Image, Description)>
+    stack_metadata:
+      db.object: [category_details, product_details, item_details]
+
+  - record_key: SDP-BR-0001
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL validate the sample data before loading it, and SHALL require that every
+      category, product and item in it has at least one localized text entry carrying a
+      language code, that every product names a category defined in the same data, and that
+      every item names a product defined in the same data.
+    plain_text: >
+      The sample data file is checked before it is loaded: every category, product and item
+      must have its text in at least one language, and must point at a parent that exists in
+      the file.
+    technical_note: >
+      Populate-UTF8.xml declares an internal DOCTYPE pulling in dtds/*.dtd; Category, Product
+      and Item each require one or more *Details children with a required xml:lang; Product
+      @category and Item @product are IDREF #REQUIRED. PopulateServlet builds the SAX parser
+      with setValidating(true), so a violation aborts the load.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Grammar declared in the DTDs and validation switched on in the loader; also backed by
+      the database foreign keys for the parent references.
+    risk_class: operational
+    basis: >
+      DTD content models (CategoryDetails+, ProductDetails+, ItemDetails+), IDREF attributes,
+      validating parser.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 41
+        line_end: 66
+        excerpt: |2
+          <!DOCTYPE Populate [
+
+          	<!ELEMENT Populate (Users, Catalog)>
+           
+          	<!ELEMENT Catalog (Categories, Products, Items)>
+
+          	<!ELEMENT Users (User+)>
+          	<!ENTITY % User SYSTEM "dtds/User.dtd">
+          	%User;
+
+
+          	<!ELEMENT Categories (Category+)>
+          	<!ENTITY % Category SYSTEM "dtds/Category.dtd">
+          	%Category;
+
+          	<!ELEMENT Products (Product+)>
+          	<!ENTITY % Product SYSTEM "dtds/Product.dtd">
+          	%Product;
+
+          	<!ELEMENT Items (Item+)>
+          	<!ENTITY % Item SYSTEM "dtds/Item.dtd">
+          	%Item;
+
+              <!ENTITY % CommonElements SYSTEM "dtds/CommonElements.dtd">
+              %CommonElements;
+          ]>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/Product.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |2
+          <!ELEMENT Product (ProductDetails+)>
+          <!ATTLIST Product
+                  id ID #REQUIRED
+                  category IDREF #REQUIRED
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/dtds/CategoryDetails.dtd
+        line_start: 38
+        line_end: 40
+        excerpt: |2
+          <!ELEMENT CategoryDetails (Name, Image?, Description?)>
+          <!ATTLIST CategoryDetails
+          	xml:lang NMTOKEN #REQUIRED
+    stack_metadata:
+      framework: SAX validating parser + DTD
+
+  - record_key: SDP-REQ-0002
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL load a fixed sample catalog of 5 categories (Fish, Dogs, Reptiles,
+      Cats, Birds), 16 products and 28 items (EST-1 to EST-28), each with English (United
+      States) text and, for items, the list price and unit cost given in the sample data.
+    plain_text: >
+      A new store starts with a ready-made pet catalog: five categories, sixteen products and
+      twenty-eight items, all in US English, with fixed prices.
+    technical_note: >
+      Populate-UTF8.xml <Catalog> section (Categories lines 84-115, Products 116-229, Items
+      230-485). Every category has at least one product and every product at least one item.
+      Prices range from 5.29 (EST-21) to 325.29 (EST-25).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Read directly from one data file; counts verified by reading every entry. Single source,
+      and whether a rebuild must reproduce this exact content is a business decision.
+    risk_class: presentational
+    basis: >
+      Seed catalog content in the populate data file.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 84
+        line_end: 90
+        excerpt: |2
+              <Categories>
+              	<Category id="FISH">
+          	  <CategoryDetails xml:lang="en-US">
+          	    <Name>Fish</Name>
+          	    <Image>fish_icon.gif</Image>
+          	  </CategoryDetails>
+          	</Category>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 341
+        line_end: 349
+        excerpt: |2
+          	<Item id="EST-13" product="RP-LI-02">
+                 	  <ItemDetails xml:lang="en-US">
+          	    <ListPrice>12.50</ListPrice>
+          	    <UnitCost>11.10</UnitCost>
+          	    <Attribute>Green Adult</Attribute>
+          	    <Image>lizard2.gif</Image>
+          	    <Description>Friendly green friend</Description>
+          	  </ItemDetails>
+          	</Item>
+    stack_metadata:
+      framework: populate seed XML
+
+  - record_key: SDP-REQ-0003
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL create three sample sign-on accounts when it loads sample data: "j2ee"
+      and "shopper" with the CUSTOMER role, and "admin" with the ADMIN role, each with a fixed
+      password supplied in the sample data.
+    plain_text: >
+      Loading the sample data also creates three ready-made logins: two customers ("j2ee",
+      "shopper") and one administrator ("admin"), with preset passwords.
+    technical_note: >
+      Populate-UTF8.xml <Users> block, loaded by UserPopulator through the signon
+      InsertStatement (username, password, role). Password values are redacted in this
+      checkout. Because a forced reload recreates them, the admin password returns to the
+      seeded value after every reload.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear data source plus the matching insert statement; password values are not
+      visible (redacted), so their strength cannot be judged.
+    risk_class: regulated
+    basis: >
+      User entries in the seed data and the signon insert statement.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 69
+        line_end: 82
+        excerpt: |2
+            <Users>
+              <User id="j2ee">
+                <Password>«REDACTED:secret-finding-22»</Password>
+                <Role>CUSTOMER</Role>
+              </User>
+              <User id="shopper">
+                <Password>«REDACTED:secret-finding-23»</Password>
+                <Role>CUSTOMER</Role>
+              </User>
+              <User id="admin">
+                <Password>«REDACTED:secret-finding-24»</Password>
+                <Role>ADMIN</Role>
+              </User>
+            </Users>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 163
+        line_end: 165
+        excerpt: |2
+                <InsertStatement>
+                  insert into signon (username, password, role) values (?, ?, ?)
+                </InsertStatement>
+    stack_metadata:
+      db.object: signon
+
+  - record_key: SDP-BR-0004
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL store the language code of each sample-data text entry with an
+      underscore separator (for example "en-US" in the sample data is stored as "en_US").
+    plain_text: >
+      Language codes in the sample data ("en-US") are saved in the store's own format
+      ("en_US"), so the catalog finds its US English text.
+    technical_note: >
+      XMLDBHandler.normalizeValue replaces '-' with '_' for the xml:lang attribute before it
+      is bound to the locale column. All 49 *Details entries in Populate-UTF8.xml use en-US.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code (outside this shard, read for context) acting on the data in
+      this shard; no test or second enforcement seen.
+    risk_class: presentational
+    basis: >
+      xml:lang values in the data file and the normalisation in the loader.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 86
+        line_end: 86
+        excerpt: |2
+          	  <CategoryDetails xml:lang="en-US">
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/XMLDBHandler.java
+        line_start: 178
+        line_end: 181
+        excerpt: |2
+            private String normalizeValue(String attributeName, String attributeValue) {
+              if (attributeName.equals("xml:lang")) {
+                return attributeValue.replace('-', '_');
+              }
+    stack_metadata:
+      db.object: "*_details.locale"
+
+  - record_key: SDP-WF-0005
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL treat the store as already populated only when every one of the eight
+      store tables (category, category details, product, product details, item, item details,
+      sign-on accounts, sign-on audit) can be read; WHEN it (re)populates THEN it SHALL drop
+      and recreate all eight tables, including all sign-on accounts and the whole sign-on
+      audit history, before loading the sample data.
+    plain_text: >
+      If any store table is missing the store is loaded from scratch. Loading (or a forced
+      reload) wipes everything: the catalog, every customer login and the full sign-in
+      history, and then puts the sample data back.
+    technical_note: >
+      Each TableStatements block has a CheckStatement (select * from <table>), used by the
+      populators' check(); CreateStatement/DropStatement drive dropTables/createTables in
+      PopulateServlet.populate(). signon and signon_audit are in the same statement set, so a
+      reload drops them too (servlet comment lines 118-120 confirms).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Statements declared in the SQL file and the drop/create sequence read in the servlet,
+      whose comment states the same behaviour.
+    risk_class: regulated
+    basis: >
+      Check/Create/Drop statements for all eight tables, used by the populate sequence.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 170
+        line_end: 192
+        excerpt: |2
+              <TableStatements table="signon_audit">
+                <CheckStatement>
+                  select * from signon_audit
+                </CheckStatement>
+                <CreateStatement>
+                  create table signon_audit (
+                    audit_id bigint generated always as identity,
+                    username varchar(25) not null,
+                    event_type varchar(20) not null,
+                    event_ts timestamp not null,
+                    remote_addr varchar(45),
+                    constraint pk_signon_audit primary key (audit_id),
+                    constraint ck_signon_audit_event check (event_type in
+                      ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+                  )
+                </CreateStatement>
+                <InsertStatement>
+                  insert into signon_audit (username, event_type, event_ts, remote_addr) values (?, ?, current_timestamp, ?)
+                </InsertStatement>
+                <DropStatement>
+                  drop table signon_audit
+                </DropStatement>
+              </TableStatements>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 118
+        line_end: 120
+        excerpt: |2
+              // Petstore Lite: the first load is open to anyone so the store can start
+              // on an empty database. A forced repopulate drops every table, sign-ons
+              // included, so only a signed on ADMIN may ask for it.
+    stack_metadata:
+      framework: PopulateServlet
+      db.object: [category, category_details, product, product_details, item, item_details, signon, signon_audit]
+
+  - record_key: SDP-INT-0006
+    kind: integration
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL provide the store table definitions for two database products (Derby
+      and Oracle) and SHALL use the set selected by configuration, Derby by default.
+    plain_text: >
+      The store can run on either of two database products; the table definitions exist for
+      both, and the one in use today is the default (Derby).
+    technical_note: >
+      PopulateSQL.xml has <DatabaseStatements database="derby"> and database="oracle"; the
+      servlet loads the block matching its Database init-param (web.xml sets derby, oracle is
+      commented out; code default is derby). The two sets differ in types (char vs varchar,
+      decimal vs number) and in how the audit id is generated.
+    interface: true
+    confidence: medium
+    confidence_basis: >
+      Both blocks are declared and the selector is read in code and web.xml; only the derby
+      path is configured, so the oracle path's live use is not established.
+    risk_class: operational
+    basis: >
+      Two DatabaseStatements blocks keyed by database name.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 15
+        line_end: 16
+        excerpt: |2
+          <PopulateSQL>
+            <DatabaseStatements database="derby">
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 194
+        line_end: 194
+        excerpt: |2
+            <DatabaseStatements database="oracle">
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 95
+        line_end: 99
+        excerpt: |2
+              <init-param>
+                <param-name>Database</param-name>
+                <param-value>derby</param-value>
+                <!--param-value>oracle</param-value-->
+              </init-param>
+    stack_metadata:
+      db.object: PopulateSQL DatabaseStatements
+
+  - record_key: AREG-ENT-0001
+    kind: entity
+    capability_key: account-registration
+    requirement: >
+      The system SHALL keep one sign-on account per user name, where the user name is unique
+      and at most 25 characters, the password is mandatory and at most 25 characters, and the
+      account records when it was created (defaulting to the moment of creation) and when the
+      user last signed on.
+    plain_text: >
+      Each login has a unique user name of up to 25 characters and a required password of up
+      to 25 characters. The store remembers when the account was created and when the user
+      last signed in.
+    technical_note: >
+      signon table: username varchar(25) PK, password varchar(25) not null, created_ts
+      timestamp default current_timestamp not null, last_signon timestamp nullable. Same in
+      both populate dialects and in db/schema/petstore_*.sql. Password is a plain column with
+      no hashing visible in the DDL.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared identically in both populate dialects and the standalone schema scripts.
+      Registration-screen rules (which may be stricter) are not visible in this shard.
+    risk_class: regulated
+    basis: >
+      signon table definition.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 149
+        line_end: 161
+        excerpt: |2
+                  create table signon (
+                    username varchar(25) not null,
+                    password varchar(25) not null,
+                    role varchar(10) default 'CUSTOMER' not null,
+                    failed_attempts integer default 0 not null,
+                    locked char(1) default 'N' not null,
+                    locked_ts timestamp,
+                    last_signon timestamp,
+                    created_ts timestamp default current_timestamp not null,
+                    constraint pk_signon primary key (username),
+                    constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+                    constraint ck_signon_locked check (locked in ('Y', 'N'))
+                  )
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 327
+        line_end: 336
+        excerpt: |2
+                  create table signon (
+                    username varchar2(25) not null,
+                    password varchar2(25) not null,
+                    role varchar2(10) default 'CUSTOMER' not null,
+                    failed_attempts number(3) default 0 not null,
+                    locked char(1) default 'N' not null,
+                    locked_ts timestamp,
+                    last_signon timestamp,
+                    created_ts timestamp default current_timestamp not null,
+                    constraint pk_signon primary key (username),
+    stack_metadata:
+      db.object: signon
+
+  - record_key: AC-BR-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      The system SHALL give every sign-on account exactly one role, either CUSTOMER or ADMIN,
+      and SHALL assign CUSTOMER when no role is given.
+    plain_text: >
+      Every login is either a customer or an administrator; new logins are customers unless
+      stated otherwise.
+    technical_note: >
+      signon.role varchar(10) default 'CUSTOMER' not null with CHECK ck_signon_role
+      (role in ('CUSTOMER','ADMIN')), both dialects; db/schema comment repeats it. Seed users
+      use both values.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      CHECK constraint in both dialects plus the schema-script comment and seed data.
+    risk_class: regulated
+    basis: >
+      Role column default and CHECK constraint.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 152
+        line_end: 159
+        excerpt: |2
+                    role varchar(10) default 'CUSTOMER' not null,
+                    failed_attempts integer default 0 not null,
+                    locked char(1) default 'N' not null,
+                    locked_ts timestamp,
+                    last_signon timestamp,
+                    created_ts timestamp default current_timestamp not null,
+                    constraint pk_signon primary key (username),
+                    constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 69
+        line_end: 69
+        excerpt: |2
+          -- SIGNON: Sign-on accounts. Role is CUSTOMER or ADMIN. Locked after 3 failed sign-ons in a row; unlocked by PSL_ACCT_UNLOCK after 30 minutes.
+    stack_metadata:
+      db.object: signon.ck_signon_role
+
+  - record_key: ALCK-ENT-0001
+    kind: entity
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL track, for every sign-on account, a count of failed sign-on attempts
+      (starting at 0), a locked flag that is either locked or unlocked (starting unlocked), and
+      the time the account was locked.
+    plain_text: >
+      Each login keeps a count of failed sign-in attempts, whether it is currently locked, and
+      when it was locked. New logins start at zero failures and unlocked.
+    technical_note: >
+      signon.failed_attempts integer default 0 not null (oracle number(3)), signon.locked
+      char(1) default 'N' not null with CHECK ck_signon_locked (Y/N), signon.locked_ts
+      nullable. The threshold (3) and unlock age (30 minutes) appear only in the db/schema
+      comment, not in this shard; they are left to the shards that enforce them.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Columns, defaults and CHECK identical in both populate dialects and the schema scripts.
+      Only the data shape is graded here, not the lockout threshold.
+    risk_class: regulated
+    basis: >
+      Lockout columns on the signon table.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 153
+        line_end: 160
+        excerpt: |2
+                    failed_attempts integer default 0 not null,
+                    locked char(1) default 'N' not null,
+                    locked_ts timestamp,
+                    last_signon timestamp,
+                    created_ts timestamp default current_timestamp not null,
+                    constraint pk_signon primary key (username),
+                    constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+                    constraint ck_signon_locked check (locked in ('Y', 'N'))
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 331
+        line_end: 333
+        excerpt: |2
+                    failed_attempts number(3) default 0 not null,
+                    locked char(1) default 'N' not null,
+                    locked_ts timestamp,
+    stack_metadata:
+      db.object: signon
+
+  - record_key: SAUD-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on audit event with the user name (mandatory, at most
+      25 characters), an event type, the event time (mandatory) and optionally the client
+      network address (at most 45 characters), and SHALL accept only these event types:
+      SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, SIGNOFF, USER_CREATED,
+      ACCOUNT_UNLOCKED.
+    plain_text: >
+      The sign-in history records who, what happened, when, and from which network address.
+      The only events recorded are: successful sign-in, failed sign-in, sign-in refused
+      because locked, account locked, sign-out, account created, and account unlocked.
+    technical_note: >
+      signon_audit table with CHECK ck_signon_audit_event, both dialects. No foreign key to
+      signon, so history survives an account's removal. remote_addr 45 chars fits an IPv6
+      text address. The audit table's insert statement stamps current_timestamp; UserDAO
+      inserts its own event_ts.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      CHECK constraint and NOT NULLs in both dialects, repeated in db/schema scripts.
+    risk_class: regulated
+    basis: >
+      signon_audit table definition and event-type CHECK.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 175
+        line_end: 184
+        excerpt: |2
+                  create table signon_audit (
+                    audit_id bigint generated always as identity,
+                    username varchar(25) not null,
+                    event_type varchar(20) not null,
+                    event_ts timestamp not null,
+                    remote_addr varchar(45),
+                    constraint pk_signon_audit primary key (audit_id),
+                    constraint ck_signon_audit_event check (event_type in
+                      ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+                  )
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 360
+        line_end: 361
+        excerpt: |2
+                    constraint ck_signon_audit_event check (event_type in
+                      ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+    stack_metadata:
+      db.object: signon_audit
+
+  - record_key: SAUD-BR-0002
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL give every sign-on audit event a unique identifier generated
+      automatically when the event is recorded.
+    plain_text: >
+      Each sign-in history entry gets its own automatically assigned number.
+    technical_note: >
+      Derby populate DDL: audit_id bigint generated always as identity. Oracle populate DDL:
+      audit_id number(19) not null with no sequence or trigger, whereas
+      db/schema/petstore_oracle.sql adds signon_audit_seq and trigger trg_signon_audit_id.
+      UserDAO's audit insert omits audit_id, so on Oracle the id only exists if the schema
+      script (not the populate) created the table.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Clear for the configured Derby path; the Oracle populate path contradicts the Oracle
+      schema script, so the guarantee holds on one of the two declared databases only.
+    dispute:
+      reason: conflicting-sources
+      detail: >
+        Derby populate DDL and the Oracle schema script both auto-generate the id; the Oracle
+        populate DDL does not, so audit inserts would fail with a NOT NULL violation after an
+        Oracle populate. Settled by confirming whether any deployment runs the populate with
+        Database=oracle.
+    risk_class: regulated
+    basis: >
+      Identity column (derby) versus plain NOT NULL column (oracle) in the populate DDL.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 176
+        line_end: 176
+        excerpt: |2
+                    audit_id bigint generated always as identity,
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 353
+        line_end: 354
+        excerpt: |2
+                  create table signon_audit (
+                    audit_id number(19) not null,
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        line_start: 96
+        line_end: 104
+        excerpt: |2
+          CREATE SEQUENCE signon_audit_seq START WITH 1 INCREMENT BY 1 CACHE 20;
+
+          CREATE OR REPLACE TRIGGER trg_signon_audit_id
+          BEFORE INSERT ON signon_audit
+          FOR EACH ROW
+          WHEN (new.audit_id IS NULL)
+          BEGIN
+            SELECT signon_audit_seq.NEXTVAL INTO :new.audit_id FROM dual;
+          END;
+    stack_metadata:
+      db.object: signon_audit.audit_id
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+    description: >
+      Derby identifiers and locale columns are char(10) (blank-padded) while Oracle uses
+      varchar(10). Whether code comparing ids or locales (e.g. 'en_US' against a padded value)
+      behaves identically on both databases is not visible here. A human should decide
+      whether fixed-width padding is part of the rule or an accident of the Derby port.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+    description: >
+      No legacy-analysis/sources/**/extracted.md documents exist in this tree, so no document
+      cross-check was possible for this module.
+
+suspected_defects:
+  - capability_key: sign-on-audit
+    record_keys: [SDP-WF-0005, SAUD-ENT-0001]
+    severity: high
+    category: data-corruption
+    title: Populating or force-reloading the store erases all sign-on history and accounts
+    description: >
+      The sign-on audit and account tables are part of the populate statement set, so every
+      (re)populate drops them and recreates them empty (plus the three sample logins). The
+      schema scripts describe the audit table as a transaction log extracted daily and kept
+      90 days; a reload destroys it before retention or extraction has run, and every real
+      customer login is lost.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 189
+        line_end: 191
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 118
+        line_end: 120
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 84
+        line_end: 84
+  - capability_key: sign-on-audit
+    record_keys: [SAUD-BR-0002, SDP-INT-0006]
+    severity: medium
+    category: other
+    title: Oracle populate creates an audit table with no id generator
+    description: >
+      The Oracle populate DDL declares audit_id NOT NULL without the sequence and trigger
+      that the Oracle schema script defines. Audit inserts omit audit_id, so after a populate
+      on Oracle every sign-on audit write would fail. The configured database is Derby, so
+      this is latent.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 353
+        line_end: 363
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        line_start: 96
+        line_end: 104
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 99
+        line_end: 100
+  - capability_key: account-registration
+    record_keys: [AREG-ENT-0001, SDP-REQ-0003]
+    severity: high
+    category: other
+    title: Passwords are stored as plain text
+    description: >
+      The password column is a 25-character text field and the sample data and insert
+      statement write the password as given, with no hashing step visible. A 25-character
+      limit is too short for any standard password hash, which indicates passwords are held
+      in clear text. The sample administrator's password is also fixed in the data file and
+      restored on every reload.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 150
+        line_end: 151
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 78
+        line_end: 81
+  - capability_key: sample-data-population
+    record_keys: [SDP-REQ-0002]
+    severity: low
+    category: other
+    title: Populate DDL omits the indexes the schema scripts define
+    description: >
+      db/schema scripts create indexes on product(catid), item(productid) and two on
+      signon_audit (user+time, time); the populate statements create none, so a store built by
+      the populate has no supporting indexes for catalog listing or audit extract/purge.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 170
+        line_end: 192
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        line_start: 107
+        line_end: 110
+  - capability_key: sample-data-population
+    record_keys: [SDP-REQ-0002]
+    severity: low
+    category: other
+    title: Sample items contradict their product
+    description: >
+      Items EST-1 and EST-2 belong to Angelfish (salt-water fish from Australia) but are
+      described as "Fresh Water fish from Japan" with the Koi image, and EST-1 carries the
+      attributes "Large" and "Cuddly". Product "Dalmation" is misspelt. Shoppers see the
+      contradictory text.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 231
+        line_end: 248
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 117
+        line_end: 122
