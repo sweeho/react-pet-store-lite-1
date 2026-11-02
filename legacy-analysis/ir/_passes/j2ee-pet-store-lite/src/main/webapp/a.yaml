@@ -1,0 +1,1641 @@
+# SX-0001 extract-a, shard j2ee-pet-store-lite/src/main/webapp (populate/ excluded per discovery)
+records:
+  - record_key: BROW-SCR-0001
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show, for a chosen category, a 'Products for this Category' page
+      listing that category's products two at a time, each with its name (linking to the
+      product's items) and description, with a 'Previous' link only when an earlier page
+      exists and a 'Next' link only when a later page exists.
+    plain_text: >-
+      Opening a category lists its products two per page, with name and description;
+      Next and Previous appear only when there is a page in that direction.
+    technical_note: >-
+      category.jsp sets start=0,count=2 when no count parameter is present, otherwise
+      copies start/count from the request into the session CatalogHelper; Previous/Next
+      visibility comes from Page.isPreviousPageAvailable (start>0) and
+      isNextPageAvailable (DAO saw another row).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      The page size of 2 and the conditional links are in the JSP and are restated
+      independently in the User Guide section 3.1; the next/previous logic is
+      corroborated by Page.java. Two independent places agree.
+    risk_class: presentational
+    basis: >-
+      category.jsp default paging block and Previous/Next c:if blocks; User Guide 3.1
+      states two products at a time and links only when a page exists.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/category.jsp"
+        line_start: 24
+        line_end: 33
+        excerpt: "<c:choose>\n <c:when test=\"${param.count != null}\">\n  <c:set value=\"${param.start}\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"${param.count}\" target=\"${catalog}\" property=\"count\"/>\n </c:when>\n <c:otherwise>\n  <c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"2\" target=\"${catalog}\" property=\"count\"/>\n </c:otherwise>\n</c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/category.jsp"
+        line_start: 77
+        line_end: 97
+        excerpt: "  <c:if test=\"${pageResults.previousPageAvailable == true}\">\n    <c:url value=\"/category.screen\" var=\"previousURL\">\n      <c:param name=\"category_id\" value=\"${param.category_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfPreviousPage}\"/>\n      <c:param name=\"count\" value=\"2\"/>\n    </c:url>\n    <a href='<c:out value=\"${previousURL}\"/>'>\n     Previous\n    </a>\n  </c:if>\n\n  <c:if test=\"${pageResults.nextPageAvailable == true}\">\n    <c:url value=\"/category.screen\" var=\"nextURL\">\n      <c:param name=\"category_id\" value=\"${param.category_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfNextPage}\"/>\n      <c:param name=\"count\" value=\"${pageResults.size}\"/>\n    </c:url>\n    <a href='<c:out value=\"${nextURL}\"/>'>\n     Next\n    </a>\n  </c:if>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 61
+        line_end: 62
+        excerpt: " <li>The page <i>Products for this Category</i> lists two products at a time, each with its name and description.</li>\n <li>Click <b>Next</b> to see the next two products, or <b>Previous</b> to go back. A link only appears when there is a page in that direction.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/model/Page.java"
+        line_start: 75
+        line_end: 85
+        excerpt: "    public boolean isNextPageAvailable() {\n      // XXX\n      /*\n        return (start + objects.size()) < containingListSize;\n        */\n        return hasNext;\n    }\n\n    public boolean isPreviousPageAvailable() {\n        return start > 0;\n    }\n"
+    stack_metadata:
+      jsp.page: "category.jsp"
+      framework: "JSP 1.2 / JSTL 1.0"
+      session.scope: "CatalogHelper (session)"
+  - record_key: BROW-SCR-0002
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show, for a chosen product, an 'Items for this Product' page
+      listing that product's items two at a time, each with its attribute and product
+      name (linking to the item page), its description and its list price formatted as
+      en_US currency, with the same conditional Previous/Next links as the category
+      page.
+    plain_text: >-
+      Opening a product lists its items two per page with name, description and list
+      price in US dollars.
+    technical_note: >-
+      product.jsp: default start=0,count=2; price cell is fmt:formatNumber of
+      item.listCost (column listprice) with fmt:setLocale en_US.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP and User Guide section 3.2 agree on two-at-a-time and list price; the column
+      mapping is visible in the GET_ITEMS SQL.
+    risk_class: financial
+    basis: >-
+      product.jsp paging defaults and price column; User Guide 3.2.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/product.jsp"
+        line_start: 24
+        line_end: 33
+        excerpt: "<c:choose>\n <c:when test=\"${param.count != null}\">\n  <c:set value=\"${param.start}\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"${param.count}\" target=\"${catalog}\" property=\"count\"/>\n </c:when>\n <c:otherwise>\n  <c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"2\" target=\"${catalog}\" property=\"count\"/>\n </c:otherwise>\n</c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/product.jsp"
+        line_start: 52
+        line_end: 69
+        excerpt: "<c:forEach var=\"item\" items=\"${pageResults.list}\" >\n <tr>\n  <td class=\"petstore_listing\">\n   <c:url value=\"/item.screen\" var=\"viewItemURL\">\n    <c:param name=\"item_id\" value=\"${item.itemId}\"/>\n   </c:url>\n   <a href='<c:out value=\"${viewItemURL}\"/>'>\n    <c:out value=\"${item.attribute}\" />\n    <c:out value=\"${item.productName}\"/>\n   </a>\n   <br>\n   <c:out value=\"${item.description}\"/>\n  </td>\n  <td class=\"petstore_listing\" align=\"right\">\n   <fmt:formatNumber value=\"${item.listCost}\" type=\"currency\" />\n  </td>\n </tr>\n</c:forEach>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 69
+        line_end: 69
+        excerpt: " <li>The page <i>Items for this Product</i> lists the items, two at a time, with the item attribute, name, description and list price.</li>\n"
+    stack_metadata:
+      jsp.page: "product.jsp"
+      db.object: "item_details.listprice"
+  - record_key: BROW-SCR-0003
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show an item page titled with the item attribute and product
+      name, showing the item image, 'List Price' (the item's list price), 'Your Price'
+      (the item's unit cost), the item description and the Item ID, with both prices
+      formatted as en_US currency.
+    plain_text: >-
+      The item page shows a picture, a List Price, a 'Your Price', the description and
+      the Item ID. 'Your Price' is the item's stored unit cost.
+    technical_note: >-
+      item.jsp lines 26-30: List Price = item.listCost (listprice), Your Price =
+      item.unitCost (unitcost). DDL CHECK listprice >= unitcost; Oracle DDL comment says
+      unitcost is 'Price shown as Your Price'. The User Guide calls Your Price 'the
+      discounted price for members', but no membership or discount logic exists: every
+      visitor, signed in or not, sees the same unitcost.
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      What is displayed is unambiguous in item.jsp and matches the Oracle column
+      comment. Medium, not high, because the business meaning of 'Your Price' (member
+      discount vs. cost price) conflicts between the User Guide and the data model, and
+      no code decides which price a customer pays.
+    dispute:
+      reason: contradicts-docs
+      detail: >-
+        item.jsp shows unitcost as 'Your Price' to everyone. The User Guide 3.3 says
+        Your Price is 'the discounted price for members', implying a member-only price;
+        the schema names the column unitcost and constrains listprice >= unitcost, which
+        reads like a cost price. The Oracle DDL comment says unitcost is the price shown
+        as Your Price. An SME must decide whether unitcost is a customer-facing price
+        and whether it is member-only.
+    risk_class: financial
+    basis: >-
+      item.jsp price block; User Guide 3.3; Oracle DDL column comments.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/item.jsp"
+        line_start: 18
+        line_end: 34
+        excerpt: "<p class=\"petstore_title\">\n <c:out value=\"${item.attribute}\"/>\n <c:out value=\"${item.productName}\"/>\n</p>\n<fmt:setLocale value=\"en_US\" />\n<table cellpadding=\"2\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n <tr>\n  <td><img src='images/<c:out value=\"${item.imageLocation}\"/>'></td>\n  <td class=\"petstore\" width=\"100%\"><b>List Price:</b>\n   <fmt:formatNumber value=\"${item.listCost}\" type=\"currency\" />\n   <br><br>\n   <b>Your Price:</b>\n   <fmt:formatNumber value=\"${item.unitCost}\" type=\"currency\" />\n   <br><br>\n   <c:out value=\"${item.description}\"/>\n   <br><br>\n   <b>Item ID:</b> <c:out value=\"${item.itemId}\"/>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 76
+        line_end: 77
+        excerpt: " <li><b>List Price</b>: the catalog price.</li>\n <li><b>Your Price</b>: the discounted price for members.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql"
+        line_start: 133
+        line_end: 134
+        excerpt: "COMMENT ON COLUMN item_details.listprice IS 'Price shown as List Price';\nCOMMENT ON COLUMN item_details.unitcost IS 'Price shown as Your Price';\n"
+    stack_metadata:
+      jsp.page: "item.jsp"
+      db.object: "item_details.listprice, item_details.unitcost"
+  - record_key: BROW-RUL-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL list categories and the products of a category in ascending order
+      of their localized name.
+    plain_text: >-
+      Categories in the side bar and products within a category are listed
+      alphabetically by name.
+    technical_note: >-
+      CatalogDAOSQL.xml GET_CATEGORIES and GET_PRODUCTS end with 'order by name' in both
+      the derby and oracle statement sets. GET_ITEMS and SEARCH_ITEMS have no ORDER BY
+      (see BROW-RUL-0002, SRCH-RUL-0001).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in both dialect blocks of the SQL config and restated by the User Guide
+      1.1 for the side bar.
+    risk_class: presentational
+    basis: >-
+      ORDER BY name in GET_CATEGORIES/GET_PRODUCTS; User Guide 1.1 'in alphabetical
+      order'.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 71
+        line_end: 91
+        excerpt: "        <SQLStatement method=\"GET_CATEGORIES\">\n            <SQLFragment parameterNb=\"1\">\n                select a.catid, name, descn\n                    from (category a join category_details b on a.catid=b.catid) \n                    where locale = ?  order by name\n            </SQLFragment>\n        </SQLStatement>\n        <SQLStatement method=\"GET_PRODUCT\">\n            <SQLFragment parameterNb=\"2\">\n                select name, descn\n                    from (product a join product_details b on a.productid=b.productid)\n                    where locale = ? and a.productid = ? \n            </SQLFragment>\n        </SQLStatement>\n        <SQLStatement method=\"GET_PRODUCTS\">\n            <SQLFragment parameterNb=\"2\">\n                select a.productid, name, descn\n                    from (product a join product_details b on a.productid=b.productid)\n                    where locale = ? and a.catid = ? order by name\n            </SQLFragment>\n        </SQLStatement>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 137
+        line_end: 157
+        excerpt: "        <SQLStatement method=\"GET_CATEGORIES\">\n            <SQLFragment parameterNb=\"1\">\n                select a.catid, name, descn\n                    from category a, category_details b\n                    where a.catid = b.catid and locale = ? order by name\n            </SQLFragment>\n        </SQLStatement>\n        <SQLStatement method=\"GET_PRODUCT\">\n            <SQLFragment parameterNb=\"2\">\n                select name, descn\n                    from product a, product_details b\n                    where a.productid = b.productid and locale = ? and a.productid = ? \n            </SQLFragment>\n        </SQLStatement>\n        <SQLStatement method=\"GET_PRODUCTS\">\n            <SQLFragment parameterNb=\"2\">\n                select a.productid, name, descn\n                    from product a, product_details b\n                    where a.productid = b.productid and locale = ? and a.catid = ? order by name\n            </SQLFragment>\n        </SQLStatement>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 33
+        line_end: 33
+        excerpt: " <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>\n"
+    stack_metadata:
+      db.object: "category_details.name, product_details.name"
+  - record_key: BROW-RUL-0002
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL list the items of a product without any defined sort order; the
+      order is whatever the database returns.
+    plain_text: >-
+      Items of a product are not sorted; their order (and so which items land on which
+      page) is not guaranteed.
+    technical_note: >-
+      GET_ITEMS in CatalogDAOSQL.xml (derby and oracle) has no ORDER BY, unlike
+      GET_CATEGORIES/GET_PRODUCTS. Paging is done by ResultSet.absolute(start+1) on an
+      unordered result.
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      The absence of ORDER BY is read directly from one declarative file (both
+      dialects); whether the database returns a stable order in practice was not
+      observed.
+    risk_class: presentational
+    basis: >-
+      GET_ITEMS statements lack ORDER BY.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 102
+        line_end: 111
+        excerpt: "        <SQLStatement method=\"GET_ITEMS\">\n            <SQLFragment parameterNb=\"2\">\n                select catid, name, a.itemid, b.image, b.descn, attr1, attr2, attr3,\n                        attr4, attr5, listprice, unitcost\n                    from (((item a join item_details b on a.itemid=b.itemid)\n                        join product_details c on a.productid=c.productid)\n                        join product d on d.productid=c.productid and b.locale = c.locale)\n                    where b.locale = ? and a.productid = ?\n            </SQLFragment>\n        </SQLStatement>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 168
+        line_end: 177
+        excerpt: "        <SQLStatement method=\"GET_ITEMS\">\n            <SQLFragment parameterNb=\"2\">\n                select catid, name, a.itemid, b.image, b.descn, attr1, attr2, attr3,\n                        attr4, attr5, listprice, unitcost\n                    from item a, item_details b, product_details c, product d\n                    where a.itemid = b.itemid and a.productid = c.productid \n                        and d.productid = c.productid and b.locale = c.locale\n                        and b.locale = ? and a.productid = ?\n            </SQLFragment>\n        </SQLStatement>\n"
+    stack_metadata:
+      db.object: "item, item_details"
+  - record_key: BROW-RUL-0003
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show in the Pets side bar at most the first five categories, in
+      name order, each linking to its category page.
+    plain_text: >-
+      The side bar on every page lists the pet categories (up to five) as links.
+    technical_note: >-
+      sidebar.jsp sets locale=en_US, count=5, start=0 on the session CatalogHelper and
+      iterates catalog.categories.list. A sixth category would not appear. The seed has
+      exactly 5 categories (User Guide 3).
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      The limit of 5 is a bare literal in one JSP; the guide says 'one link per
+      category' without stating a cap. Nothing corroborates 5 as a deliberate limit.
+    risk_class: presentational
+    basis: >-
+      sidebar.jsp count=5 literal; User Guide 1.1 and 3.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/sidebar.jsp"
+        line_start: 15
+        line_end: 35
+        excerpt: "<c:set value=\"en_US\" target=\"${catalog}\" property=\"locale\"/>\n<c:set value=\"5\" target=\"${catalog}\" property=\"count\"/>\n<c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n\n<table border=\"0\" width=\"100%\" cellpadding=\"1\" cellspacing=\"0\">\n <tr>\n  <td bgcolor=\"#336666\" class=\"petstore_title\" align=\"center\">\n   <font color=\"#FFFFFF\">Pets</font>\n  </td>\n </tr>\n <tr>\n  <td bgcolor=\"#336666\">\n   <table border=\"0\" width=\"100%\" cellpadding=\"5\" cellspacing=\"1\">\n    <tr>\n     <td bgcolor=\"#FFFFFF\" class=\"petstore\">\n      <c:forEach var=\"item\" items=\"${catalog.categories.list}\" >\n       <a href=\"category.screen?category_id=<c:out value=\"${item.id}\" />\">\n        <c:out value=\"${item.name}\" />\n       </a>\n       <br>\n      </c:forEach>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 33
+        line_end: 33
+        excerpt: " <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 56
+        line_end: 56
+        excerpt: "<p>The store has five categories: Birds, Cats, Dogs, Fish and Reptiles.</p>\n"
+    stack_metadata:
+      jsp.page: "sidebar.jsp"
+  - record_key: BROW-RUL-0004
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL present all catalog text in the en_US locale and format all
+      prices as US-dollar currency, regardless of the visitor's browser locale.
+    plain_text: >-
+      The store is English-only and shows prices in US dollars.
+    technical_note: >-
+      Every catalog JSP sets CatalogHelper.locale to en_US and fmt:setLocale en_US;
+      TemplateServlet init-params locales/default_locale are en_US; all SQL filters on
+      locale = ?.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Hard-coded in every catalog page, in web.xml, and stated by the User Guide 1.
+    risk_class: financial
+    basis: >-
+      en_US literals across sidebar/category/product/item/search JSPs and web.xml; User
+      Guide 1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 56
+        line_end: 63
+        excerpt: "    <init-param>\n      <param-name>locales</param-name>\n      <param-value>en_US</param-value>\n    </init-param>\n    <init-param>\n      <param-name>default_locale</param-name>\n      <param-value>en_US</param-value>\n    </init-param>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/item.jsp"
+        line_start: 14
+        line_end: 22
+        excerpt: "<c:set value=\"en_US\" target=\"${catalog}\" property=\"locale\"/>\n<c:set value=\"${param.item_id}\" target=\"${catalog}\" property=\"itemId\"/>\n<c:set value=\"${catalog.item}\" var=\"item\" />\n\n<p class=\"petstore_title\">\n <c:out value=\"${item.attribute}\"/>\n <c:out value=\"${item.productName}\"/>\n</p>\n<fmt:setLocale value=\"en_US\" />\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/search.jsp"
+        line_start: 24
+        line_end: 35
+        excerpt: "<fmt:setLocale value=\"en_US\" />\n<c:choose>\n <c:when test=\"${param.count != null}\">\n  <c:set value=\"${param.start}\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"${param.count}\" target=\"${catalog}\" property=\"count\"/>\n </c:when>\n <c:otherwise>\n  <c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"2\" target=\"${catalog}\" property=\"count\"/>\n </c:otherwise>\n</c:choose>\n<c:set value=\"en_US\" target=\"${catalog}\" property=\"locale\"/>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 25
+        line_end: 25
+        excerpt: "<p>The store is in English (en_US) and shows prices in US dollars.</p>\n"
+    stack_metadata:
+      framework: "JSTL fmt"
+  - record_key: BROW-RUL-0005
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      GIVEN a category, product or search listing WHEN the visitor follows Next THEN the
+      system SHALL start the next page after the last item shown and keep the current
+      page's size; WHEN the visitor follows Previous THEN the system SHALL start at the
+      current start minus the number of items on the current page (never below zero)
+      with a page size of 2.
+    plain_text: >-
+      Next and Previous move through a list in pages; the page start and size are
+      carried in the link.
+    technical_note: >-
+      Next link: start=Page.startOfNextPage (start+size), count=pageResults.size.
+      Previous link: start=Page.startOfPreviousPage (max(start-size,0)), count=2
+      literal. start and count come from request parameters and are trusted as-is (new
+      Integer(...)); a non-numeric count raises NumberFormatException, which web.xml
+      maps to the general error page.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      The same link construction appears in three JSPs and the arithmetic is read in
+      Page.java.
+    risk_class: presentational
+    basis: >-
+      Previous/Next c:url blocks in category/product/search JSPs; Page.java.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/category.jsp"
+        line_start: 77
+        line_end: 97
+        excerpt: "  <c:if test=\"${pageResults.previousPageAvailable == true}\">\n    <c:url value=\"/category.screen\" var=\"previousURL\">\n      <c:param name=\"category_id\" value=\"${param.category_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfPreviousPage}\"/>\n      <c:param name=\"count\" value=\"2\"/>\n    </c:url>\n    <a href='<c:out value=\"${previousURL}\"/>'>\n     Previous\n    </a>\n  </c:if>\n\n  <c:if test=\"${pageResults.nextPageAvailable == true}\">\n    <c:url value=\"/category.screen\" var=\"nextURL\">\n      <c:param name=\"category_id\" value=\"${param.category_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfNextPage}\"/>\n      <c:param name=\"count\" value=\"${pageResults.size}\"/>\n    </c:url>\n    <a href='<c:out value=\"${nextURL}\"/>'>\n     Next\n    </a>\n  </c:if>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/product.jsp"
+        line_start: 81
+        line_end: 100
+        excerpt: "  <c:if test=\"${pageResults.previousPageAvailable == true}\">\n    <c:url value=\"/product.screen\" var=\"previousURL\">\n      <c:param name=\"product_id\" value=\"${param.product_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfPreviousPage}\"/>\n      <c:param name=\"count\" value=\"2\"/>\n    </c:url>\n    <a href='<c:out value=\"${previousURL}\"/>'>\n     Previous\n    </a>\n  </c:if>\n  <c:if test=\"${pageResults.nextPageAvailable == true}\">\n    <c:url value=\"/product.screen\" var=\"nextURL\">\n      <c:param name=\"product_id\" value=\"${param.product_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfNextPage}\"/>\n      <c:param name=\"count\" value=\"${pageResults.size}\"/>\n    </c:url>\n    <a href='<c:out value=\"${nextURL}\"/>'>\n     Next\n    </a>\n  </c:if>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/search.jsp"
+        line_start: 90
+        line_end: 109
+        excerpt: "   <c:if test=\"${pageResults.previousPageAvailable == true}\">\n    <c:url value=\"/search.screen\" var=\"previousURL\">\n      <c:param name=\"keywords\" value=\"${param.keywords}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfPreviousPage}\"/>\n      <c:param name=\"count\" value=\"2\"/>\n    </c:url>\n    <a href='<c:out value=\"${previousURL}\"/>'>\n     Previous\n    </a>\n   </c:if>\n   <c:if  test=\"${pageResults.nextPageAvailable == true}\">\n   <c:url value=\"/search.screen\" var=\"nextURL\">\n      <c:param name=\"keywords\" value=\"${param.keywords}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfNextPage}\"/>\n      <c:param name=\"count\" value=\"${pageResults.size}\"/>\n    </c:url>\n    <a href='<c:out value=\"${nextURL}\"/>'>\n     Next\n    </a>\n   </c:if>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/model/Page.java"
+        line_start: 87
+        line_end: 91
+        excerpt: "    public int getStartOfNextPage() { return start + objects.size(); }\n\n    public int getStartOfPreviousPage() {\n        return Math.max(start-objects.size(), 0);\n    }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/client/CatalogHelper.java"
+        line_start: 96
+        line_end: 110
+        excerpt: "    public void setCount(String countString) {\n        this.count = (new Integer(countString)).intValue();\n    }\n\n  /**\n     * Bean setter method to set start index prior to calling getSearchItems(),\n     *   getCategory(), and getProduct()\n     */\n    public void setStart(String startString) {\n        if (startString != null) {\n            this.start = (new Integer(startString)).intValue();\n        } else {\n            start = 0;\n        }\n    }\n"
+    stack_metadata:
+      jsp.page: "category.jsp, product.jsp, search.jsp"
+  - record_key: BROW-RUL-0006
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show an item (on the product page, item page or in search
+      results) only when both the item and its product have descriptive text in the
+      store locale.
+    plain_text: >-
+      An item without English text for itself or its product does not appear anywhere in
+      the store.
+    technical_note: >-
+      GET_ITEM, GET_ITEMS and SEARCH_ITEMS inner-join item_details and product_details
+      on b.locale = c.locale and filter b.locale = ?.
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      Read from the join conditions in one declarative file (both dialects); not
+      observed running.
+    risk_class: operational
+    basis: >-
+      Inner joins on locale in CatalogDAOSQL.xml. Related to data rule C4
+      (catalog-data-integrity), filed here because it is how browsing behaves.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 92
+        line_end: 111
+        excerpt: "        <SQLStatement method=\"GET_ITEM\">\n            <SQLFragment parameterNb=\"2\">\n                select catid, a.productid, name, b.image, b.descn, attr1, attr2, attr3,\n                        attr4, attr5, listprice, unitcost\n                    from (((item a join item_details b on a.itemid=b.itemid)\n                        join product_details c on a.productid=c.productid)\n                        join product d on d.productid=c.productid and b.locale = c.locale)\n                    where b.locale = ? and a.itemid = ?\n            </SQLFragment>\n        </SQLStatement>\n        <SQLStatement method=\"GET_ITEMS\">\n            <SQLFragment parameterNb=\"2\">\n                select catid, name, a.itemid, b.image, b.descn, attr1, attr2, attr3,\n                        attr4, attr5, listprice, unitcost\n                    from (((item a join item_details b on a.itemid=b.itemid)\n                        join product_details c on a.productid=c.productid)\n                        join product d on d.productid=c.productid and b.locale = c.locale)\n                    where b.locale = ? and a.productid = ?\n            </SQLFragment>\n        </SQLStatement>\n"
+    stack_metadata:
+      db.object: "item_details, product_details"
+  - record_key: BROW-SCR-0004
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL show a home page with a pet picture whose regions link to the
+      Birds, Fish, Dogs, Reptiles and Cats category pages.
+    plain_text: >-
+      The home page is a clickable picture of pets; each pet opens its category.
+    technical_note: >-
+      main.jsp image map 'petmap' with six areas (BIRDS twice) over images/splash.gif.
+      The same body is used by the signon_welcome screen. The image file itself was
+      excluded from the extracted tree.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Screen definition and JSP agree, and the User Guide 2 describes the picture.
+    risk_class: presentational
+    basis: >-
+      main.jsp map; screendefinitions main screen.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/main.jsp"
+        line_start: 6
+        line_end: 32
+        excerpt: "<map name=\"petmap\">\n<area href=\"category.screen?category_id=BIRDS\" \n      alt=\"Birds\" \n      coords=\"72,2,280,250\">\n<area href=\"category.screen?category_id=FISH\" \n      alt=\"Fish\" \n      coords=\"2,180,72,250\">\n<area href=\"category.screen?category_id=DOGS\" \n      alt=\"Dogs\" \n      coords=\"60,250,130,320\">\n<area href=\"category.screen?category_id=REPTILES\" \n      alt=\"Reptiles\" \n      coords=\"140,270,210,340\">\n<area href=\"category.screen?category_id=CATS\" \n      alt=\"Cats\" \n      coords=\"225,240,295,310\">\n<area href=\"category.screen?category_id=BIRDS\" \n      alt=\"Birds\" \n      coords=\"280,180,350,250\">\n</map>\n\n<img src=\"images/splash.gif\" \n     alt=\"Pet Selection Map\"\n     usemap=\"#petmap\" \n     width=\"350\" \n     height=\"355\" \n     border=\"0\">\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 13
+        line_end: 19
+        excerpt: "  <screen name=\"main\">\n    <parameter key=\"title\" value=\"Welcome to the BluePrints Petstore\" direct=\"true\"/>\n    <parameter key=\"banner\" value=\"/banner.jsp\" />\n    <parameter key=\"sidebar\" value=\"/sidebar.jsp\" />\n    <parameter key=\"body\" value=\"/main.jsp\" />\n    <parameter key=\"footer\" value=\"/footer.jsp\" />\n  </screen>\n"
+    stack_metadata:
+      jsp.page: "main.jsp"
+  - record_key: BROW-SCR-0005
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL compose every store page from a banner (logo linking to the home
+      page, a keyword search box, an Account link and a Sign in or Sign out link), a
+      Pets side bar, the page body and a footer.
+    plain_text: >-
+      Every page has the same frame: banner with logo, search and account links; a
+      category side bar; the content; a footer.
+    technical_note: >-
+      template.jsp inserts banner/sidebar/body/footer; screendefinitions_en_US.xml
+      defines 15 screens all on /template.jsp with banner.jsp, sidebar.jsp, footer.jsp.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in the screen definitions, implemented in template.jsp and described in
+      User Guide 1.1.
+    risk_class: presentational
+    basis: >-
+      template.jsp, banner.jsp, screen definitions, User Guide 1.1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/template.jsp"
+        line_start: 39
+        line_end: 50
+        excerpt: "  <table width=\"100%\" border=\"0\" cellpadding=\"5\" cellspacing=\"0\">\n   <tr height=\"100\" valign=\"top\">\n    <td colspan=\"2\"><template:insert parameter=\"banner\" /></td>\n   </tr>\n   <tr valign=\"top\">\n     <td width=\"20%\" valign=\"top\"><template:insert parameter=\"sidebar\" /></td>\n     <td width=\"80%\" valign=\"top\"><template:insert parameter=\"body\" /></td>\n   </tr>\n   <tr>\n    <td colspan=\"2\"><template:insert parameter=\"footer\" /></td>\n   </tr>\n  </table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 9
+        line_end: 30
+        excerpt: "    <a href=\"main.screen\">\n     <img src=\"images/banner_logo.gif\" alt=\"Java Pet Store Demo logo\" border=\"0\">\n    </a>\n   </td>\n   <td class=\"petstore\" align=\"right\" valign=\"middle\">\n     <form action=\"search.screen\">\n      <input class=\"petstore_listing\" type=\"text\" name=\"keywords\" size=\"8\">\n      <input class=\"petstore_listing\" type=\"submit\" value=\"Search\">\n    </form>\n    <br>\n    <c:if test=\"${j_signon == true}\">\n     Signed in as <b><c:out value=\"${j_signon_username}\"/></b> |\n    </c:if>\n    <a href=\"account.screen\">Account</a>\n    <c:if test=\"${j_signon_role == 'ADMIN'}\">\n     | <a href=\"populate_admin.screen\">Admin</a>\n    </c:if>\n     |\n    <c:choose>\n     <c:when test=\"${j_signon == true}\"><a href=\"signoff.do\">Sign out</a></c:when>\n     <c:otherwise><a href=\"signon_welcome.screen\">Sign in</a></c:otherwise>\n    </c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 30
+        line_end: 32
+        excerpt: " <li><b>Banner</b> at the top: the Java Pet Store logo (returns to the home page), the <b>Search</b> box,\n and the links <b>Account</b> and <b>Sign in</b> (or <b>Sign out</b> when you are signed in). When you are signed in\n the banner shows <i>Signed in as &lt;user name&gt;</i>.</li>\n"
+    stack_metadata:
+      jsp.page: "template.jsp, banner.jsp"
+      framework: "WAF TemplateServlet"
+  - record_key: BROW-SCR-0006
+    kind: screen
+    capability_key: catalog-browsing
+    requirement: >-
+      GIVEN any unexpected error while serving a page WHEN the error is not handled THEN
+      the system SHALL show a General Error page saying an unexpected error occurred,
+      with a link back to the catalog.
+    plain_text: >-
+      When something unexpected fails, the visitor sees a generic error page with a link
+      back to the catalog.
+    technical_note: >-
+      web.xml error-page maps java.lang.Exception to /general_error.screen
+      (general_error.jsp). Filed under catalog-browsing as the closest capability: it is
+      cross-cutting and no listed capability covers error handling.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in web.xml and the screen exists; User Guide 6 lists the message.
+    risk_class: operational
+    basis: >-
+      web.xml error-page; general_error.jsp. Cross-cutting; filed under the closest
+      capability.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 131
+        line_end: 134
+        excerpt: "  <error-page>\n    <exception-type>java.lang.Exception</exception-type>\n    <location>/general_error.screen</location>\n  </error-page>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/general_error.jsp"
+        line_start: 5
+        line_end: 7
+        excerpt: "<p class=\"petstore_title\">Error</p>\n<p class=\"petstore\">An unexpected error occurred. Please return to the\n<a href=\"main.screen\">catalog</a> and try again.</p>\n"
+    stack_metadata:
+      jsp.page: "general_error.jsp"
+  - record_key: BROW-RUL-0007
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >-
+      The system SHALL interpret every incoming request as UTF-8.
+    plain_text: >-
+      Text typed into the store (search words, user names) is read as UTF-8 so
+      non-English characters survive.
+    technical_note: >-
+      web.xml EncodingFilter on /* with init-param encoding=UTF-8. Cross-cutting; filed
+      under the closest capability.
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      One declarative place (web.xml); the filter class was not read in this pass.
+    risk_class: operational
+    basis: >-
+      web.xml EncodingFilter declaration and mapping. Cross-cutting; filed under the
+      closest capability.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 19
+        line_end: 43
+        excerpt: "  <filter>\n    <filter-name>EncodingFilter</filter-name>\n    <display-name>EncodingFilter</display-name>\n    <description>Sets UTF-8 on every request</description>\n    <filter-class>com.sun.j2ee.blueprints.encodingfilter.web.EncodingFilter</filter-class>\n    <init-param>\n      <param-name>encoding</param-name>\n      <param-value>UTF-8</param-value>\n    </init-param>\n  </filter>\n  <!-- Encoding Filter Declaration End -->\n\n  <!-- Signon Filter Declaration Start -->\n  <filter>\n    <filter-name>SignOnFilter</filter-name>\n    <display-name>SignOnFilter</display-name>\n    <description>Guards the protected resources in signon-config.xml and handles j_signon_check</description>\n    <filter-class>com.sun.j2ee.blueprints.signon.web.SignOnFilter</filter-class>\n  </filter>\n  <!-- Signon Filter Declaration End -->\n\n  <filter-mapping>\n    <filter-name>EncodingFilter</filter-name>\n    <url-pattern>/*</url-pattern>\n  </filter-mapping>\n"
+    stack_metadata:
+      framework: "Servlet filter"
+  - record_key: SRCH-RUL-0001
+    kind: business-rule
+    capability_key: catalog-search
+    requirement: >-
+      The system SHALL split the search text on whitespace into distinct keywords and
+      return every en_US item whose product name, category code or item description
+      contains any keyword as a substring, comparing against the lower-cased field
+      values and the keyword exactly as typed; GIVEN a keyword containing an upper-case
+      letter THEN that keyword SHALL match nothing.
+    plain_text: >-
+      Search finds items whose product name, category code or description contains any
+      of the words typed. Today a word typed with a capital letter finds nothing.
+    technical_note: >-
+      SEARCH_ITEMS: '(lower(name) like ? or lower(catid) like ? or lower(b.descn) like
+      ?)' repeated per keyword with OR. GenericCatalogDAO.searchItems wraps each keyword
+      as %kw% without lower-casing, keywords go into a HashSet, and there is no ORDER
+      BY. '%' and '_' in a keyword act as SQL wildcards. Captured sample: 'Bulldog'
+      returns 0 results while 'dog' returns 13.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared SQL plus the Java parameter binding, corroborated by a captured
+      characterisation case ('Bulldog' gives no results). High for what the system does
+      today; the dispute is about what it should do.
+    dispute:
+      reason: contradicts-docs
+      detail: >-
+        The User Guide 4 says 'Search is not case-sensitive'. The SQL lower-cases the
+        columns but the keyword is bound as typed, so 'Bulldog' finds nothing (captured
+        sample). An SME must decide whether the rebuild keeps today's behaviour or the
+        documented case-insensitive match.
+    risk_class: operational
+    basis: >-
+      SEARCH_ITEMS statement; GenericCatalogDAO keyword binding; User Guide 4; captured
+      search cases.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 112
+        line_end: 127
+        excerpt: "        <SQLStatement method=\"SEARCH_ITEMS\">\n            <SQLFragment parameterNb=\"4\">\n                select catid, a.productid, name, a.itemid, b.image, b.descn, attr1, \n                        attr2, attr3, attr4, attr5, listprice, unitcost \n                    from (((item a join item_details b on a.itemid=b.itemid)\n                        join product_details c on a.productid=c.productid)\n                        join product d on d.productid=c.productid and b.locale = c.locale)\n                    where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)\n            </SQLFragment>\n            <SQLFragment parameterNb=\"3\" occurrence=\"VARIABLE\">\n                or (lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)  \n            </SQLFragment>\n            <SQLFragment parameterNb=\"0\">\n                )\n            </SQLFragment>\n        </SQLStatement>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 344
+        line_end: 365
+        excerpt: "  public Page searchItems(String searchQuery, int start, int count, Locale locale)\n    throws CatalogDAOSysException {\n      Collection keywordSet = new HashSet();\n      StringTokenizer tokenizer = new StringTokenizer(searchQuery);\n      while (tokenizer.hasMoreTokens()) {\n        keywordSet.add(tokenizer.nextToken());\n      }\n      if (keywordSet.isEmpty()) {\n        return Page.EMPTY_PAGE;\n      }\n      String[] keywords = (String[]) keywordSet.toArray(new String[0]);\n      Connection connection = null;\n      PreparedStatement statement = null;\n      ResultSet resultSet = null;\n      try {\n        connection = getDataSource().getConnection();\n        String[] parameterValues = new String[1 + (keywords.length * 3)];\n        parameterValues[0] = locale.toString();\n        for (int i = 0; i < keywords.length; i++) {\n          parameterValues[(i * 3) + 1] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 2] = \"%\" + keywords[i] + \"%\";\n          parameterValues[(i * 3) + 3] = \"%\" + keywords[i] + \"%\";\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 90
+        line_end: 94
+        excerpt: " <li>A word matches when it appears anywhere in the product name, the category code (for example DOGS) or the item description.\n Part of a word is enough: <i>dog</i> finds Bulldog and every item in the DOGS category.</li>\n <li>When you type several words separated by spaces, items that match <b>any</b> of the words are listed.</li>\n <li>Search is not case-sensitive.</li>\n <li>If nothing matches, or the box is empty, the page shows <i>No results were found for your search.</i></li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json"
+        line_start: 54
+        line_end: 65
+        excerpt: "      \"input\": {\n        \"keywords\": \"Bulldog\",\n        \"locale\": \"en_US\",\n        \"pageSize\": 2\n      },\n      \"output\": {\n        \"resultCount\": 0,\n        \"itemIds\": [],\n        \"message\": \"No results were found for your search.\",\n        \"pages\": 0\n      }\n    },\n"
+    stack_metadata:
+      db.object: "product_details.name, product.catid, item_details.descn"
+      framework: "Fast Lane Reader DAO"
+  - record_key: SRCH-SCR-0001
+    kind: screen
+    capability_key: catalog-search
+    requirement: >-
+      The system SHALL show a Search page that, WHEN the search text is empty or nothing
+      matches, says 'No results were found for your search.', and otherwise shows
+      'Search Results:', the line 'Items matching any of: <search text>', and the
+      matches two at a time, each with attribute and product name (linking to the item
+      page), description and the item's unit cost formatted as en_US currency, with
+      conditional Previous/Next links.
+    plain_text: >-
+      Searching shows matching items two per page with their price, or a 'No results'
+      message when nothing matches or the box was empty.
+    technical_note: >-
+      search.jsp: keywords from the banner form (banner.jsp, GET
+      search.screen?keywords=). Default start=0,count=2. Empty test is param.keywords ==
+      '' or pageResults.size == 0. Price cell is item.unitCost, whereas the product page
+      shows listCost.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP, User Guide 4 and two captured cases (empty text and no-match) agree on the
+      messages and paging.
+    risk_class: presentational
+    basis: >-
+      search.jsp; banner.jsp search form; User Guide 4; captured search cases.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/search.jsp"
+        line_start: 24
+        line_end: 84
+        excerpt: "<fmt:setLocale value=\"en_US\" />\n<c:choose>\n <c:when test=\"${param.count != null}\">\n  <c:set value=\"${param.start}\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"${param.count}\" target=\"${catalog}\" property=\"count\"/>\n </c:when>\n <c:otherwise>\n  <c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n  <c:set value=\"2\" target=\"${catalog}\" property=\"count\"/>\n </c:otherwise>\n</c:choose>\n<c:set value=\"en_US\" target=\"${catalog}\" property=\"locale\"/>\n<c:set value=\"${param.keywords}\" target=\"${catalog}\" property=\"searchQuery\"/>\n<c:set value=\"${catalog.searchItems}\" var=\"pageResults\" />\n\n<c:choose>\n <c:when test=\"${param.keywords == '' || pageResults.size == 0}\">\n  <p class=\"petstore_title\">\n    No results were found for your search.\n  </p>\n </c:when>\n <c:otherwise>\n  <p class=\"petstore_title\">\n   Search Results:\n  </p>\n  <p class=\"petstore\">\n   Items matching any of: <b><c:out value=\"${param.keywords}\" /></b>\n  </p>\n  <table border=\"0\"\n                width=\"100%\"\n      cellpadding=\"1\"\n       cellspacing=\"0\">\n   <tr>\n    <td bgcolor=\"#808080\">\n     <table width=\"100%\"\n        cellspacing=\"0\" \n       cellpadding=\"2\" \n               border=\"0\" \n             bgcolor=\"#FFFFFF\">\n     <c:forEach var=\"item\" items=\"${pageResults.list}\" >\n      <tr>\n       <td class=\"petstore_listing\">\n        <c:url value=\"/item.screen\" var=\"itemURL\">\n         <c:param name=\"item_id\" value=\"${item.itemId}\"/>\n        </c:url>\n        <a href='<c:out value=\"${itemURL}\"/>'>\n          <c:out value=\"${item.attribute}\"/>\n          <c:out value=\"${item.productName}\"/>\n        </a>\n        <br>\n        <c:out value=\"${item.description}\"/>\n       </td>\n       <td class=\"petstore_listing\" align=\"right\">\n       <fmt:formatNumber value=\"${item.unitCost}\" type=\"currency\" />\n       </td>\n      </tr>\n     </c:forEach>\n     </table>\n    </td>\n   </tr>\n  </table>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 14
+        line_end: 17
+        excerpt: "     <form action=\"search.screen\">\n      <input class=\"petstore_listing\" type=\"text\" name=\"keywords\" size=\"8\">\n      <input class=\"petstore_listing\" type=\"submit\" value=\"Search\">\n    </form>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 84
+        line_end: 85
+        excerpt: " <li>Type one or more words in the <b>Search</b> box in the banner and click <b>Search</b>.</li>\n <li>The page <i>Search Results</i> lists the matching items, two at a time, with <b>Next</b> and <b>Previous</b> links.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json"
+        line_start: 264
+        line_end: 272
+        excerpt: "      \"input\": {\n        \"keywords\": \"\",\n        \"locale\": \"en_US\",\n        \"pageSize\": 2\n      },\n      \"output\": {\n        \"resultCount\": 0,\n        \"itemIds\": [],\n        \"message\": \"No results were found for your search.\",\n"
+    stack_metadata:
+      jsp.page: "search.jsp"
+  - record_key: SIGN-SCR-0001
+    kind: screen
+    capability_key: sign-on
+    requirement: >-
+      The system SHALL show a Sign In page whose returning-customer form has User Name,
+      Password and a 'Remember My User Name' checkbox; GIVEN a remembered user name is
+      stored in the browser THEN the user name field SHALL be pre-filled with it and the
+      checkbox ticked, otherwise the user name field SHALL be pre-filled with 'j2ee' and
+      the checkbox unticked.
+    plain_text: >-
+      The sign-in form asks for user name and password, offers to remember the user
+      name, and pre-fills a remembered name (or the demo name 'j2ee').
+    technical_note: >-
+      signon.jsp reads cookie bp_signon; form posts
+      j_username/j_password/j_remember_username to j_signon_check, which SignOnFilter
+      handles. signon-config.xml names signon.screen as the login page.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Behaviour read directly in the JSP; the cookie name matches
+      SignOnFilter.COOKIE_NAME and the User Guide 5.2 describes the checkbox.
+    risk_class: presentational
+    basis: >-
+      signon.jsp left-hand form; signon-config login page.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp"
+        line_start: 11
+        line_end: 58
+        excerpt: "   <form name=\"existingcustomer\" action=\"j_signon_check\" method=\"POST\">\n    <table cellpadding=\"5\" cellspacing=\"0\" border=\"0\">\n     <tr>\n      <td class=\"petstore\" align=\"center\" colspan=\"2\">\n       <b>Yes.</b>\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"right\">\n       <b>User Name:</b>\n      </td>\n      <td class=\"petstore_form\">\n       <c:choose>\n        <c:when test=\"${cookie['bp_signon'] != null && cookie['bp_signon'] != ''}\">\n         <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\" value=\"<c:out value=\"${cookie['bp_signon'].value}\"/>\">\n        </c:when>\n        <c:otherwise>\n         <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\" value=\"j2ee\">\n        </c:otherwise>\n       </c:choose>\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"right\">\n       <b>Password:</b>\n      </td>\n      <td class=\"petstore_form\">\n       <input class=\"petstore_form\" type=\"password\" size=\"15\" name=\"j_password\" value=\"\">\n      </td>\n     </tr>\n     <tr>\n      <td align=\"center\" colspan=\"2\">\n       <input class=\"petstore_form\" name=\"submit\" type=\"submit\" value=\"Sign In\">\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"center\" colspan=\"2\">\n       Remember My User Name\n       <c:choose>\n        <c:when test=\"${cookie['bp_signon'] != null && cookie['bp_signon'] != ''}\">\n         <input type=\"checkbox\" name=\"j_remember_username\" checked>\n        </c:when>\n        <c:otherwise>\n         <input type=\"checkbox\" name=\"j_remember_username\">\n        </c:otherwise>\n       </c:choose>\n      </td>\n     </tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 14
+        line_end: 17
+        excerpt: " <!-- Form Sign On Page-->\n <signon-form-login-page>\n  signon.screen\n </signon-form-login-page>\n"
+    stack_metadata:
+      jsp.page: "signon.jsp"
+      framework: "custom SignOnFilter (form login)"
+  - record_key: SIGN-RUL-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >-
+      GIVEN a sign-in attempt WHEN 'Remember My User Name' is ticked THEN the system
+      SHALL store the typed user name in the browser for 31 days (2,678,400 seconds);
+      WHEN it is not ticked THEN the system SHALL delete any stored user name. This
+      SHALL happen whether or not the sign-in succeeds.
+    plain_text: >-
+      Ticking 'remember my user name' keeps the name in the browser for 31 days;
+      unticking it forgets the name.
+    technical_note: >-
+      SignOnFilter.validateSignOn sets cookie bp_signon max-age 2678400 or expires it
+      (max-age 0) before authenticating; signon.jsp reads it back.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Code literal in SignOnFilter plus the JSP that reads the cookie plus the User
+      Guide 5.2 '31 days'.
+    risk_class: operational
+    basis: >-
+      SignOnFilter cookie handling; signon.jsp cookie read; User Guide 5.2.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 172
+        line_end: 192
+        excerpt: "        // check if the user wants userName set in cookie\n        String rememberUserName = hreq.getParameter(REMEMBER_USERNAME);\n        if (rememberUserName != null) {\n          // set a cookie with the username in it\n          Cookie userNameCookie = new Cookie(COOKIE_NAME, userName);\n          // set cookie to last for one month\n          userNameCookie.setMaxAge(2678400);\n          hres.addCookie(userNameCookie);\n        } else {\n            // see if the cookie exists and remove accordingly\n            Cookie[] cookies = hreq.getCookies();\n            if (cookies != null) {\n                for (int loop=0; loop < cookies.length; loop++) {\n                    if (cookies[loop].getName().equals(COOKIE_NAME)) {\n                        cookies[loop].setMaxAge(0);\n                        hres.addCookie(cookies[loop]);\n\n                    }\n                }\n            }\n        }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp"
+        line_start: 23
+        line_end: 30
+        excerpt: "       <c:choose>\n        <c:when test=\"${cookie['bp_signon'] != null && cookie['bp_signon'] != ''}\">\n         <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\" value=\"<c:out value=\"${cookie['bp_signon'].value}\"/>\">\n        </c:when>\n        <c:otherwise>\n         <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\" value=\"j2ee\">\n        </c:otherwise>\n       </c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 121
+        line_end: 121
+        excerpt: " <li>Tick <b>Remember My User Name</b> if you want the store to fill in your user name next time. The store keeps it in a browser cookie for 31 days. Untick it to forget the name.</li>\n"
+    stack_metadata:
+      framework: "HTTP cookie bp_signon"
+  - record_key: SIGN-RUL-0002
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >-
+      The system SHALL end a visitor's session after 15 minutes without activity.
+    plain_text: >-
+      A visitor who does nothing for 15 minutes is signed out automatically.
+    technical_note: >-
+      web.xml session-config session-timeout 15 (minutes).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in web.xml and stated in both the User Guide 5.5 and Admin Guide rule R8.
+    risk_class: operational
+    basis: >-
+      web.xml session-timeout; User Guide 5.5; Admin Guide R8.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 123
+        line_end: 125
+        excerpt: "  <session-config>\n    <session-timeout>15</session-timeout>\n  </session-config>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 151
+        line_end: 152
+        excerpt: "<p>Click <b>Sign out</b> in the banner. The page <i>You are signed out</i> appears. If you leave the store without signing out,\nyour session ends after 15 minutes without activity.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 57
+        line_end: 57
+        excerpt: " <tr><td>R8</td><td>Sessions time out after 15 minutes without activity.</td></tr>\n"
+    stack_metadata:
+      session.scope: "HttpSession"
+  - record_key: SIGN-RUL-0003
+    kind: workflow
+    capability_key: sign-on
+    requirement: >-
+      GIVEN an anonymous visitor who requested a sign-in-only page WHEN they sign in
+      successfully THEN the system SHALL take them to the page first requested;
+      otherwise THEN the system SHALL take them to the home page.
+    plain_text: >-
+      After signing in you return to the page you were trying to open, or to the home
+      page.
+    technical_note: >-
+      SignOnFilter stores the target in session attribute j_signon_original_url when
+      forwarding to signon.screen and redirects there on SIGNON_OK, defaulting to
+      main.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Code plus User Guide 5.2 plus Admin Guide 1.1 agree.
+    risk_class: presentational
+    basis: >-
+      SignOnFilter redirect logic; guides.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 151
+        line_end: 156
+        excerpt: "            if (urlPattern.equals(targetURL)) {\n                // put the orginal url in the session so others can access\n                hreq.getSession().setAttribute(ORIGINAL_URL,  targetURL);\n                config.getServletContext().getRequestDispatcher(\"/\" + signOnPage).forward(request, response);\n                // Jump out of the filter and go to the next page\n                return;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 216
+        line_end: 220
+        excerpt: "            // redirect to the original destination\n            String targetURL = (String)hreq.getSession().getAttribute(ORIGINAL_URL);\n            if (targetURL == null) targetURL = DEFAULT_TARGET_URL;\n            hres.sendRedirect(targetURL);\n            return;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 122
+        line_end: 122
+        excerpt: " <li>Click <b>Sign In</b>. You return to the page you were trying to open, or to the home page.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 34
+        line_end: 35
+        excerpt: "roles listed; a page without one is open to any signed-in user. When an anonymous user opens a protected page, the Sign In page\nis shown and, after a successful sign-in, the user is sent back to the page first asked for.</p>\n"
+    stack_metadata:
+      framework: "SignOnFilter"
+  - record_key: SIGN-RUL-0004
+    kind: workflow
+    capability_key: sign-on
+    requirement: >-
+      The system SHALL offer a 'Sign in' link that opens a sign-in-only welcome page, so
+      an anonymous visitor is first shown the Sign In page and, after signing in, the
+      home page.
+    plain_text: >-
+      The banner's Sign in link asks you to sign in and then shows the home page.
+    technical_note: >-
+      banner.jsp links Sign in to signon_welcome.screen; signon-config.xml protects
+      signon_welcome.screen; the screen definition renders main.jsp as its body.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Three declarative/JSP places agree (banner link, protected resource, screen
+      definition) and the Admin Guide 4 lists the page as protected.
+    risk_class: presentational
+    basis: >-
+      banner.jsp, signon-config.xml, screendefinitions signon_welcome.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 27
+        line_end: 30
+        excerpt: "    <c:choose>\n     <c:when test=\"${j_signon == true}\"><a href=\"signoff.do\">Sign out</a></c:when>\n     <c:otherwise><a href=\"signon_welcome.screen\">Sign in</a></c:otherwise>\n    </c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 32
+        line_end: 38
+        excerpt: " <!-- A Protected Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Sign On Welcome Screen</web-resource-name>\n    <url-pattern>signon_welcome.screen</url-pattern>\n   </web-resource-collection>\n </security-constraint>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 55
+        line_end: 61
+        excerpt: "  <screen name=\"signon_welcome\">\n    <parameter key=\"title\" value=\"Welcome\" direct=\"true\"/>\n    <parameter key=\"banner\" value=\"/banner.jsp\" />\n    <parameter key=\"sidebar\" value=\"/sidebar.jsp\" />\n    <parameter key=\"body\" value=\"/main.jsp\" />\n    <parameter key=\"footer\" value=\"/footer.jsp\" />\n  </screen>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 107
+        line_end: 107
+        excerpt: " <tr><td>Protected pages</td><td><code>WEB-INF/signon-config.xml</code></td><td>account.screen, signon_welcome.screen, populate_admin.screen (ADMIN)</td></tr>\n"
+    stack_metadata:
+      jsp.page: "banner.jsp"
+  - record_key: SIGN-SCR-0002
+    kind: screen
+    capability_key: sign-on
+    requirement: >-
+      GIVEN a sign-in with a wrong user name or password on an unlocked account THEN the
+      system SHALL show a Sign-in Error page saying the user name and password were not
+      found, with a 'try again' link to sign in, and stating that 3 failed attempts in a
+      row lock the account.
+    plain_text: >-
+      A wrong user name or password shows a sign-in error page with a try-again link and
+      a warning about the 3-attempt lock.
+    technical_note: >-
+      signon-config.xml signon-form-error-page = signon_error.screen (body
+      signon_failed.jsp); SignOnFilter redirects there on any result other than OK or
+      LOCKED.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in signon-config, implemented in the filter, and listed in User Guide 6.
+    risk_class: presentational
+    basis: >-
+      signon-config error page; signon_failed.jsp; filter fallthrough.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 19
+        line_end: 22
+        excerpt: " <!-- Error Page When Sign On fails-->\n <signon-form-error-page>\n  signon_error.screen\n </signon-form-error-page>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_failed.jsp"
+        line_start: 5
+        line_end: 9
+        excerpt: "<p class=\"petstore_title\">Sign-in Error</p>\n<p class=\"petstore\">There were errors signing you in. The user name\nand password you entered were not found in our records. Please\n<a href=\"signon_welcome.screen\">try again</a>.</p>\n<p class=\"petstore\">After 3 failed attempts in a row your account is locked.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 224
+        line_end: 226
+        excerpt: "        } else {\n            hres.sendRedirect(signOnErrorPage);\n            return;\n"
+    stack_metadata:
+      jsp.page: "signon_failed.jsp"
+  - record_key: SIGN-SCR-0003
+    kind: screen
+    capability_key: sign-on
+    requirement: >-
+      WHEN a signed-in visitor chooses Sign out THEN the system SHALL end their session
+      and show a 'You are signed out.' page thanking them and offering a link to sign in
+      again.
+    plain_text: >-
+      Signing out ends the session and shows a goodbye page with a link to sign in
+      again.
+    technical_note: >-
+      banner.jsp Sign out links to signoff.do (SignOffServlet), which records the
+      sign-off, invalidates the session and redirects to signoff.screen (signoff.jsp).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Banner link, servlet redirect and JSP agree; User Guide 5.5 describes it.
+    risk_class: presentational
+    basis: >-
+      signoff.jsp; banner.jsp; SignOffServlet.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signoff.jsp"
+        line_start: 7
+        line_end: 12
+        excerpt: "<p class=\"petstore_title\">You are signed out.</p>\n\n<p class=\"petstore\">Thank you for visiting the Pet Store.</p>\n\n<p class=\"petstore\">You may <a href=\"signon_welcome.screen\">sign\nin</a> again.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 27
+        line_end: 30
+        excerpt: "    <c:choose>\n     <c:when test=\"${j_signon == true}\"><a href=\"signoff.do\">Sign out</a></c:when>\n     <c:otherwise><a href=\"signon_welcome.screen\">Sign in</a></c:otherwise>\n    </c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOffServlet.java"
+        line_start: 61
+        line_end: 72
+        excerpt: "        if (session != null) {\n            String userName = (String)session.getAttribute(SignOnFilter.USER_NAME);\n            if (userName != null) {\n                try {\n                    new UserDAO().recordSignOff(userName, request.getRemoteAddr());\n                } catch (UserDAOException ue) {\n                    System.err.println(\"SignOffServlet: \" + ue.getMessage());\n                }\n            }\n            session.invalidate();\n        }\n        response.sendRedirect(\"signoff.screen\");\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 113
+        line_end: 116
+        excerpt: "  <servlet-mapping>\n    <servlet-name>SignOffServlet</servlet-name>\n    <url-pattern>/signoff.do</url-pattern>\n  </servlet-mapping>\n"
+    stack_metadata:
+      jsp.page: "signoff.jsp"
+      struts.action: "n/a (servlet /signoff.do)"
+  - record_key: SIGN-SCR-0004
+    kind: screen
+    capability_key: sign-on
+    requirement: >-
+      WHILE a visitor is signed in the system SHALL show 'Signed in as <user name>' and
+      a 'Sign out' link in the banner; WHILE not signed in it SHALL show a 'Sign in'
+      link instead.
+    plain_text: >-
+      The banner shows who is signed in and a Sign out link, or a Sign in link for
+      visitors.
+    technical_note: >-
+      banner.jsp c:if on session attribute j_signon and c:out of j_signon_username.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP plus User Guide 1.1 agree.
+    risk_class: presentational
+    basis: >-
+      banner.jsp; User Guide 1.1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 19
+        line_end: 30
+        excerpt: "    <c:if test=\"${j_signon == true}\">\n     Signed in as <b><c:out value=\"${j_signon_username}\"/></b> |\n    </c:if>\n    <a href=\"account.screen\">Account</a>\n    <c:if test=\"${j_signon_role == 'ADMIN'}\">\n     | <a href=\"populate_admin.screen\">Admin</a>\n    </c:if>\n     |\n    <c:choose>\n     <c:when test=\"${j_signon == true}\"><a href=\"signoff.do\">Sign out</a></c:when>\n     <c:otherwise><a href=\"signon_welcome.screen\">Sign in</a></c:otherwise>\n    </c:choose>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 30
+        line_end: 32
+        excerpt: " <li><b>Banner</b> at the top: the Java Pet Store logo (returns to the home page), the <b>Search</b> box,\n and the links <b>Account</b> and <b>Sign in</b> (or <b>Sign out</b> when you are signed in). When you are signed in\n the banner shows <i>Signed in as &lt;user name&gt;</i>.</li>\n"
+    stack_metadata:
+      jsp.page: "banner.jsp"
+  - record_key: LOCK-RUL-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >-
+      The system SHALL lock an account after 3 consecutive failed sign-in attempts.
+    plain_text: >-
+      Three wrong passwords in a row lock the account.
+    technical_note: >-
+      Stated on signon_failed.jsp and signon_locked.jsp; enforced by
+      UserDAO.MAX_FAILED_ATTEMPTS = 3 (signon Java shard).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Two web pages, the Java constant and Admin Guide rule R3 all say 3.
+    risk_class: operational
+    basis: >-
+      Page texts in this module, corroborated by UserDAO constant and Admin Guide R3.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_failed.jsp"
+        line_start: 9
+        line_end: 9
+        excerpt: "<p class=\"petstore\">After 3 failed attempts in a row your account is locked.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_locked.jsp"
+        line_start: 6
+        line_end: 6
+        excerpt: "<p class=\"petstore_error\">Your account is locked after 3 failed sign-in attempts in a row.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 69
+        line_end: 69
+        excerpt: "    public static final int MAX_FAILED_ATTEMPTS = 3;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 52
+        line_end: 52
+        excerpt: " <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>\n"
+    stack_metadata:
+      framework: "UserDAO"
+  - record_key: LOCK-SCR-0001
+    kind: screen
+    capability_key: account-lockout
+    requirement: >-
+      GIVEN an account that is locked WHEN a sign-in is attempted (even with the right
+      password) THEN the system SHALL show an Account Locked page stating the account is
+      locked after 3 failed attempts in a row, that it is unlocked automatically 30
+      minutes after the lock, suggesting to try later or contact the store
+      administrator, and offering a link to keep browsing the catalog.
+    plain_text: >-
+      A locked account sees an 'Account Locked' page that explains the automatic unlock
+      after 30 minutes and lets them keep browsing.
+    technical_note: >-
+      SignOnFilter redirects to signon_locked.screen (LOCKED_PAGE) on
+      UserDAO.SIGNON_LOCKED; body signon_locked.jsp. The unlock itself is the
+      PSL_ACCT_UNLOCK batch (every 15 minutes), not this page.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Screen definition, filter redirect and JSP agree; User Guide 5.3 describes the
+      page.
+    risk_class: presentational
+    basis: >-
+      signon_locked.jsp; screen definition; filter LOCKED branch.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_locked.jsp"
+        line_start: 5
+        line_end: 9
+        excerpt: "<p class=\"petstore_title\">Account Locked</p>\n<p class=\"petstore_error\">Your account is locked after 3 failed sign-in attempts in a row.</p>\n<p class=\"petstore\">Locked accounts are unlocked automatically 30 minutes after\nthe lock. Please try again later, or contact the store administrator.</p>\n<p class=\"petstore\">You can keep <a href=\"main.screen\">browsing the catalog</a> while you wait.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 69
+        line_end: 75
+        excerpt: "  <screen name=\"signon_locked\">\n    <parameter key=\"title\" value=\"Account Locked\" direct=\"true\"/>\n    <parameter key=\"banner\" value=\"/banner.jsp\" />\n    <parameter key=\"sidebar\" value=\"/sidebar.jsp\" />\n    <parameter key=\"body\" value=\"/signon_locked.jsp\" />\n    <parameter key=\"footer\" value=\"/footer.jsp\" />\n  </screen>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 221
+        line_end: 223
+        excerpt: "        } else if (result == UserDAO.SIGNON_LOCKED) {\n            hres.sendRedirect(LOCKED_PAGE);\n            return;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 128
+        line_end: 130
+        excerpt: "<div class=\"warn\">After <b>3 failed sign-in attempts in a row</b> your account is locked. While it is locked you cannot sign in, even with the right password.</div>\n<p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set\n(the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.\n"
+    stack_metadata:
+      jsp.page: "signon_locked.jsp"
+  - record_key: ACC-RUL-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >-
+      The system SHALL require sign-in for the My Account page and the sign-in welcome
+      page; WHEN an anonymous visitor requests one of them THEN the system SHALL show
+      the Sign In page instead. All catalog, search, sign-in and account-creation pages
+      SHALL be open to anonymous visitors.
+    plain_text: >-
+      My Account needs a sign-in; browsing, searching and creating an account do not.
+    technical_note: >-
+      signon-config.xml security-constraints for account.screen and
+      signon_welcome.screen with no auth-constraint (any signed-in role). SignOnFilter
+      on /* compares the path after the context root to each url-pattern by exact string
+      equality and forwards anonymous users to signon.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in signon-config.xml, enforced in SignOnFilter, and restated in the Admin
+      Guide access matrix.
+    risk_class: operational
+    basis: >-
+      signon-config.xml; SignOnFilter; Admin Guide 1.1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 24
+        line_end: 38
+        excerpt: " <!-- A Protected Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Account Screen</web-resource-name>\n    <url-pattern>account.screen</url-pattern>\n   </web-resource-collection>\n </security-constraint>\n\n <!-- A Protected Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Sign On Welcome Screen</web-resource-name>\n    <url-pattern>signon_welcome.screen</url-pattern>\n   </web-resource-collection>\n </security-constraint>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 142
+        line_end: 160
+        excerpt: "        // find out if the patterns match the target URL\n        Iterator it = null;\n        if (protectedResources != null) it = protectedResources.keySet().iterator();\n        while ((it != null) && it.hasNext()) {\n            String protectedName = (String)it.next();\n            ProtectedResource resource  = (ProtectedResource)protectedResources.get(protectedName);\n            String urlPattern = resource.getURLPattern();\n\n            // now check agains the targetURL\n            if (urlPattern.equals(targetURL)) {\n                // put the orginal url in the session so others can access\n                hreq.getSession().setAttribute(ORIGINAL_URL,  targetURL);\n                config.getServletContext().getRequestDispatcher(\"/\" + signOnPage).forward(request, response);\n                // Jump out of the filter and go to the next page\n                return;\n            }\n        }\n        // No matches if we made it to here\n        chain.doFilter(request,response);\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 26
+        line_end: 28
+        excerpt: " <tr><td>Home, category, product, item, search</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>Sign In, create account</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>\n <tr><td>My Account (<code>account.screen</code>)</td><td>Sign In page shown</td><td>Yes</td><td>Yes</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 45
+        line_end: 48
+        excerpt: "  <filter-mapping>\n    <filter-name>SignOnFilter</filter-name>\n    <url-pattern>/*</url-pattern>\n  </filter-mapping>\n"
+    stack_metadata:
+      framework: "SignOnFilter + signon-config.xml"
+  - record_key: ACC-RUL-0002
+    kind: business-rule
+    capability_key: access-control
+    requirement: >-
+      The system SHALL allow only signed-in users with role ADMIN to open the Catalog
+      Administration page; GIVEN a signed-in user without that role WHEN they request it
+      THEN the system SHALL show the Access Denied page; GIVEN an anonymous visitor THEN
+      the system SHALL show the Sign In page.
+    plain_text: >-
+      Only administrators can open Catalog Administration; customers see Access Denied
+      and visitors are asked to sign in.
+    technical_note: >-
+      signon-config.xml auth-constraint role-name ADMIN on populate_admin.screen;
+      SignOnFilter.isRoleAllowed checks session attribute j_signon_role and forwards to
+      access_denied.screen. The reload action itself is separately checked in
+      PopulateServlet (see POP-RUL-0001).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Declared in signon-config, enforced in SignOnFilter, and in the Admin Guide
+      matrix.
+    risk_class: operational
+    basis: >-
+      signon-config auth-constraint; SignOnFilter role check; Admin Guide 1.1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 40
+        line_end: 49
+        excerpt: " <!-- An Administrator Only Resource-->\n <security-constraint>\n   <web-resource-collection>\n    <web-resource-name>Populate Admin Screen</web-resource-name>\n    <url-pattern>populate_admin.screen</url-pattern>\n   </web-resource-collection>\n   <auth-constraint>\n    <role-name>ADMIN</role-name>\n   </auth-constraint>\n </security-constraint>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 132
+        line_end: 139
+        excerpt: "        // jump to the resource if signed on and the user's role is allowed\n        if (signedOn) {\n                ProtectedResource resource = findProtectedResource(targetURL);\n                if (resource != null && !isRoleAllowed(resource, (String)hreq.getSession().getAttribute(SIGNED_ON_ROLE))) {\n                    config.getServletContext().getRequestDispatcher(\"/\" + ACCESS_DENIED_PAGE).forward(request, response);\n                    return;\n                }\n                chain.doFilter(request,response);\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 244
+        line_end: 247
+        excerpt: "     private boolean isRoleAllowed(ProtectedResource resource, String role) {\n        if (resource.getRoles() == null || resource.getRoles().isEmpty()) return true;\n        return role != null && resource.getRoles().contains(role);\n     }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 29
+        line_end: 29
+        excerpt: " <tr><td>Catalog Administration (<code>populate_admin.screen</code>)</td><td>Sign In page shown</td><td>Access Denied</td><td>Yes</td></tr>\n"
+    stack_metadata:
+      framework: "SignOnFilter"
+  - record_key: ACC-SCR-0001
+    kind: screen
+    capability_key: access-control
+    requirement: >-
+      The system SHALL show an Access Denied page saying the visitor does not have
+      permission, that the page is for store administrators only, with a link back to
+      the catalog.
+    plain_text: >-
+      Someone who opens an administrator-only page sees an 'Access Denied' message and a
+      link back to the catalog.
+    technical_note: >-
+      access_denied.jsp via access_denied.screen; used by SignOnFilter and
+      PopulateServlet.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP, screen definition and two callers in Java agree; User Guide 6 lists the page.
+    risk_class: presentational
+    basis: >-
+      access_denied.jsp; screen definition.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/access_denied.jsp"
+        line_start: 5
+        line_end: 8
+        excerpt: "<p class=\"petstore_title\">Access Denied</p>\n<p class=\"petstore_error\">You do not have permission to view this page.</p>\n<p class=\"petstore\">This page is for store administrators only. Return to the\n<a href=\"main.screen\">catalog</a>.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/screendefinitions_en_US.xml"
+        line_start: 97
+        line_end: 103
+        excerpt: "  <screen name=\"access_denied\">\n    <parameter key=\"title\" value=\"Access Denied\" direct=\"true\"/>\n    <parameter key=\"banner\" value=\"/banner.jsp\" />\n    <parameter key=\"sidebar\" value=\"/sidebar.jsp\" />\n    <parameter key=\"body\" value=\"/access_denied.jsp\" />\n    <parameter key=\"footer\" value=\"/footer.jsp\" />\n  </screen>\n"
+    stack_metadata:
+      jsp.page: "access_denied.jsp"
+  - record_key: ACC-SCR-0002
+    kind: screen
+    capability_key: access-control
+    requirement: >-
+      WHILE the signed-in user has role ADMIN the system SHALL show an 'Admin' link to
+      Catalog Administration in the banner; for any other visitor it SHALL NOT. The
+      'Account' link SHALL be shown to every visitor.
+    plain_text: >-
+      Administrators see an extra Admin link in the banner; everyone sees the Account
+      link.
+    technical_note: >-
+      banner.jsp c:if j_signon_role == 'ADMIN'.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP plus Admin Guide 1.1 sentence agree.
+    risk_class: presentational
+    basis: >-
+      banner.jsp; Admin Guide 1.1.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/banner.jsp"
+        line_start: 22
+        line_end: 25
+        excerpt: "    <a href=\"account.screen\">Account</a>\n    <c:if test=\"${j_signon_role == 'ADMIN'}\">\n     | <a href=\"populate_admin.screen\">Admin</a>\n    </c:if>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 36
+        line_end: 36
+        excerpt: "<p>When signed in as ADMIN the banner shows an extra <b>Admin</b> link.</p>\n"
+    stack_metadata:
+      jsp.page: "banner.jsp"
+  - record_key: AUD-SCR-0001
+    kind: screen
+    capability_key: sign-on-audit
+    requirement: >-
+      The system SHALL show a signed-in user a My Account page with their user name,
+      their role and their 10 most recent sign-on events, newest first, each with the
+      time (yyyy-MM-dd HH:mm:ss), the event type code and the client address it came
+      from.
+    plain_text: >-
+      My Account shows your name, your role and your last 10 sign-in events (when, what,
+      from where), newest first.
+    technical_note: >-
+      account.jsp uses AccountHelper (RECENT_ACTIVITY_COUNT = 10) which calls
+      UserDAO.getRecentActivity: 'order by event_ts desc, audit_id desc', stopping after
+      10 rows. Event types are shown raw (USER_CREATED, SIGNON_OK, SIGNON_FAIL,
+      ACCOUNT_LOCKED, SIGNON_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF). Time is formatted with
+      no time zone.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP, the helper constant, the DAO ordering and User Guide 5.4 all agree on 10,
+      newest first.
+    risk_class: operational
+    basis: >-
+      account.jsp; AccountHelper; UserDAO SELECT_AUDIT; User Guide 5.4.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/account.jsp"
+        line_start: 7
+        line_end: 45
+        excerpt: "<jsp:useBean\n  id=\"account\"\n  class=\"com.sun.j2ee.blueprints.signon.web.AccountHelper\"\n  scope=\"request\"\n/>\n<c:set value=\"${j_signon_username}\" target=\"${account}\" property=\"userName\"/>\n<p class=\"petstore_title\">My Account</p>\n<table cellpadding=\"2\" cellspacing=\"0\" border=\"0\">\n <tr>\n  <td class=\"petstore\"><b>User Name:</b></td>\n  <td class=\"petstore\"><c:out value=\"${account.userName}\"/></td>\n </tr>\n <tr>\n  <td class=\"petstore\"><b>Role:</b></td>\n  <td class=\"petstore\"><c:out value=\"${account.role}\"/></td>\n </tr>\n</table>\n<p class=\"petstore_title\">Recent Sign-in Activity</p>\n<table border=\"0\" width=\"100%\" cellpadding=\"1\" cellspacing=\"0\">\n<tr>\n<td bgcolor=\"#808080\">\n<table width=\"100%\" cellspacing=\"0\" cellpadding=\"2\" border=\"0\" bgcolor=\"#FFFFFF\">\n <tr bgcolor=\"#336666\">\n  <td class=\"petstore_listing\"><font color=\"#FFFFFF\"><b>When</b></font></td>\n  <td class=\"petstore_listing\"><font color=\"#FFFFFF\"><b>Event</b></font></td>\n  <td class=\"petstore_listing\"><font color=\"#FFFFFF\"><b>From</b></font></td>\n </tr>\n <c:forEach var=\"event\" items=\"${account.recentActivity}\">\n <tr>\n  <td class=\"petstore_listing\"><fmt:formatDate value=\"${event.eventTime}\" pattern=\"yyyy-MM-dd HH:mm:ss\"/></td>\n  <td class=\"petstore_listing\"><c:out value=\"${event.eventType}\"/></td>\n  <td class=\"petstore_listing\"><c:out value=\"${event.remoteAddr}\"/></td>\n </tr>\n </c:forEach>\n</table>\n</td>\n</tr>\n</table>\n<p class=\"petstore_listing\">Showing your 10 most recent events.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/AccountHelper.java"
+        line_start: 51
+        line_end: 51
+        excerpt: "    public static final int RECENT_ACTIVITY_COUNT = 10;\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java"
+        line_start: 101
+        line_end: 102
+        excerpt: "    private static final String SELECT_AUDIT =\n        \"select event_type, event_ts, remote_addr from signon_audit where username = ? order by event_ts desc, audit_id desc\";\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 135
+        line_end: 136
+        excerpt: "<p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,\nyour role and your 10 most recent sign-in events, newest first.</p>\n"
+    stack_metadata:
+      jsp.page: "account.jsp"
+      db.object: "signon_audit"
+  - record_key: REG-SCR-0001
+    kind: screen
+    capability_key: account-registration
+    requirement: >-
+      The system SHALL offer, on the Sign In page, a new-customer form with User Name,
+      Password and Password (Repeat) and a 'Create New Account' button, showing the
+      rules 'User name: 3 to 25 letters, digits, '-' or '_'.' and 'Password: 4 to 25
+      characters.'
+    plain_text: >-
+      New customers sign up on the sign-in page with a user name and a password typed
+      twice; the rules are shown under the form.
+    technical_note: >-
+      signon.jsp right-hand form posts j_username/j_password/j_password_confirm to
+      createuser.do (CreateUserServlet).
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP and User Guide 5.1 agree on fields and stated rules.
+    risk_class: presentational
+    basis: >-
+      signon.jsp new-customer form; web.xml createuser.do mapping.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp"
+        line_start: 63
+        line_end: 104
+        excerpt: "   <form name=\"newcustomer\" action=\"createuser.do\" method=\"POST\">\n    <table cellpadding=\"5\" cellspacing=\"0\" border=\"0\">\n     <tr>\n      <td class=\"petstore\" align=\"center\" colspan=\"2\">\n       <b>No. I would like to sign up for an account.</b>\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"right\">\n       <b>User Name:</b>\n      </td>\n      <td class=\"petstore_form\">\n       <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\">\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"right\">\n       <b>Password:</b>\n      </td>\n      <td class=\"petstore_form\">\n       <input class=\"petstore_form\" type=\"password\" size=\"15\" name=\"j_password\">\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"right\">\n       <b>Password (Repeat):</b>\n      </td>\n      <td class=\"petstore_form\">\n       <input class=\"petstore_form\" type=\"password\" size=\"15\" name=\"j_password_confirm\">\n      </td>\n     </tr>\n     <tr>\n      <td align=\"center\" colspan=\"2\">\n       <input class=\"petstore_form\" name=\"submit\" type=\"submit\" value=\"Create New Account\">\n      </td>\n     </tr>\n     <tr>\n      <td class=\"petstore_form\" align=\"center\" colspan=\"2\">\n       User name: 3 to 25 letters, digits, '-' or '_'.<br>\n       Password: 4 to 25 characters.\n      </td>\n     </tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 108
+        line_end: 111
+        excerpt: "  <servlet-mapping>\n    <servlet-name>CreateUserServlet</servlet-name>\n    <url-pattern>/createuser.do</url-pattern>\n  </servlet-mapping>\n"
+    stack_metadata:
+      jsp.page: "signon.jsp"
+  - record_key: REG-RUL-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >-
+      The system SHALL accept a new password only when it is 4 to 25 characters long.
+    plain_text: >-
+      A new password must be 4 to 25 characters.
+    technical_note: >-
+      CreateUserServlet.validate compares against UserDAO.MIN/MAX_PASSWORD_LENGTH, whose
+      values are redacted in the extracted source. The 4 and 25 come from the sign-up
+      hint on signon.jsp and User Guide 5.1 only.
+    interface: false
+    confidence: medium
+    confidence_basis: >-
+      The check exists in code, but its limits are redacted; the numbers rest on the
+      page hint and the User Guide, which are documentation of the rule rather than its
+      enforcement.
+    risk_class: operational
+    basis: >-
+      signon.jsp hint text; User Guide 5.1 table; CreateUserServlet check (values
+      redacted).
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp"
+        line_start: 100
+        line_end: 103
+        excerpt: "      <td class=\"petstore_form\" align=\"center\" colspan=\"2\">\n       User name: 3 to 25 letters, digits, '-' or '_'.<br>\n       Password: 4 to 25 characters.\n      </td>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 111
+        line_end: 111
+        excerpt: " <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 113
+        line_end: 116
+        excerpt: "        if (password =«REDACTED:secret-finding-14»\n            || password.length() > UserDAO.MAX_PASSWORD_LENGTH) {\n            return \"The password must be \" + UserDAO.MIN_PASSWORD_LENGTH + \" to \" + UserDAO.MAX_PASSWORD_LENGTH + \" characters.\";\n        }\n"
+    stack_metadata:
+      framework: "CreateUserServlet.validate"
+  - record_key: REG-SCR-0002
+    kind: screen
+    capability_key: account-registration
+    requirement: >-
+      GIVEN an account-creation request that breaks a field rule or uses a taken user
+      name THEN the system SHALL show a 'Could Not Create Your Account' page with the
+      specific reason and a 'go back' link to the Sign In page.
+    plain_text: >-
+      When an account cannot be created, the visitor is told exactly why and can go back
+      and try again.
+    technical_note: >-
+      CreateUserServlet stores the message in session attribute j_user_creation_error
+      and redirects to user_creation_error.screen; user_creation_error.jsp prints it.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP and servlet agree; the messages are listed in User Guide 5.1.
+    risk_class: presentational
+    basis: >-
+      user_creation_error.jsp; CreateUserServlet redirects.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/user_creation_error.jsp"
+        line_start: 5
+        line_end: 8
+        excerpt: "<%@ taglib prefix=\"c\" uri=\"/WEB-INF/c.tld\" %>\n<p class=\"petstore_title\">Could Not Create Your Account</p>\n<p class=\"petstore_error\"><c:out value=\"${j_user_creation_error}\"/></p>\n<p class=\"petstore\">Please <a href=\"signon_welcome.screen\">go back</a> and try again.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/CreateUserServlet.java"
+        line_start: 95
+        line_end: 96
+        excerpt: "            request.getSession().setAttribute(USER_CREATION_ERROR, \"The user name \" + userName + \" is already taken. Choose another user name.\");\n            response.sendRedirect(USER_CREATION_ERROR_PAGE);\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 107
+        line_end: 112
+        excerpt: " <tr><th>Field</th><th>Rule</th><th>Message when the rule is broken</th></tr>\n <tr><td>User Name</td><td>3 to 25 characters</td><td>The user name must be 3 to 25 characters.</td></tr>\n <tr><td>User Name</td><td>Letters, digits, '-' and '_' only</td><td>The user name can only contain letters, digits, '-' and '_'.</td></tr>\n <tr><td>User Name</td><td>Must not already exist</td><td>The user name &lt;name&gt; is already taken. Choose another user name.</td></tr>\n <tr><td>Password</td><td>4 to 25 characters</td><td>The password must be 4 to 25 characters.</td></tr>\n <tr><td>Password (Repeat)</td><td>Must equal Password</td><td>The password and the confirmation do not match.</td></tr>\n"
+    stack_metadata:
+      jsp.page: "user_creation_error.jsp"
+  - record_key: POP-SCR-0001
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >-
+      The system SHALL show an entry page with an 'enter the store' link; WHEN followed
+      THEN the system SHALL show 'Please wait while the Java Pet Store Application is
+      being populated...' and immediately request a first load (not a forced reload) of
+      the sample data, then show the home page. Any visitor SHALL be able to do this
+      without signing in.
+    plain_text: >-
+      The store's front door has an 'enter the store' link. Following it loads the
+      sample catalog if the store is empty, then opens the home page. No sign-in is
+      needed.
+    technical_note: >-
+      index.jsp (welcome-file) links to populating.jsp, whose meta refresh issues GET
+      Populate?success_page=main.screen&forcefully=false. PopulateServlet.doGet
+      delegates to doPost; with force=false no role check applies. The servlet
+      invalidates the session before populating, so entering the store also signs out
+      anyone signed in.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      Two JSPs, the web.xml welcome file and the Admin Guide 3.1 agree; servlet
+      behaviour read in PopulateServlet.
+    risk_class: operational
+    basis: >-
+      index.jsp; populating.jsp; web.xml welcome-file; Admin Guide 3.1; User Guide 2.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/index.jsp"
+        line_start: 21
+        line_end: 23
+        excerpt: "<p>To start using the demo, <a href=\"populating.jsp\">enter the\nstore</a>. <i>If you are using this demo for the very first time, the\ndatabase is populated automatically.</i></p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/populating.jsp"
+        line_start: 8
+        line_end: 18
+        excerpt: "<META HTTP-EQUIV=REFRESH CONTENT=\"0; URL=Populate?success_page=main.screen&forcefully=false\">\n</head>\n<body>\n<table width=\"100%\" cellpadding=\"5\" cellspacing=\"0\" border=\"0\">\n<tr>\n<td bgcolor=\"#000033\">\n<font color=\"#FFFFFF\"><b>Java&#153; Pet Store Lite</b></font>\n</td>\n</tr>\n</table>\n<p><font color=\"red\">Please wait while the Java Pet Store Application is being populated...</font>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 127
+        line_end: 129
+        excerpt: "  <welcome-file-list>\n    <welcome-file>index.jsp</welcome-file>\n  </welcome-file-list>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 76
+        line_end: 77
+        excerpt: "<p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables\nalready hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 118
+        line_end: 127
+        excerpt: "    // Petstore Lite: the first load is open to anyone so the store can start\n    // on an empty database. A forced repopulate drops every table, sign-ons\n    // included, so only a signed on ADMIN may ask for it.\n    boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();\n    if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {\n      redirect(request, response, ACCESS_DENIED_PAGE);\n      return;\n    }\n    // kill the Servlet Session because the cached catalog and sign-on state are no longer valid\n    request.getSession().invalidate();\n"
+    stack_metadata:
+      jsp.page: "index.jsp, populating.jsp"
+      framework: "PopulateServlet /Populate"
+  - record_key: POP-SCR-0002
+    kind: screen
+    capability_key: sample-data-population
+    requirement: >-
+      The system SHALL show administrators a Catalog Administration page that warns that
+      reloading drops and recreates every catalog and sign-on table, deletes all
+      accounts created in the store and all sign-in history, and signs the administrator
+      out, and offers a 'Reload Sample Data' button that requests a forced reload
+      followed by the home page.
+    plain_text: >-
+      The admin page warns that a reload wipes every customer account and sign-in
+      history and signs you out, then offers a Reload Sample Data button.
+    technical_note: >-
+      populate_admin.jsp POSTs to Populate with hidden forcefully=true and
+      success_page=main.screen.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      JSP text and Admin Guide 3.2 agree step for step.
+    risk_class: operational
+    basis: >-
+      populate_admin.jsp; Admin Guide 3.2.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/populate_admin.jsp"
+        line_start: 5
+        line_end: 15
+        excerpt: "<p class=\"petstore_title\">Catalog Administration</p>\n<p class=\"petstore\">Reloading the sample data drops and recreates every catalog and\nsign-on table, then loads the categories, products, items and users from\n<code>populate/Populate-UTF8.xml</code>.</p>\n<p class=\"petstore_error\">All accounts created in the store and all sign-in\nhistory are deleted. You will be signed out.</p>\n<form action=\"Populate\" method=\"POST\">\n <input type=\"hidden\" name=\"forcefully\" value=\"true\">\n <input type=\"hidden\" name=\"success_page\" value=\"main.screen\">\n <input class=\"petstore_form\" type=\"submit\" value=\"Reload Sample Data\">\n</form>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 81
+        line_end: 87
+        excerpt: " <li>Sign in as an ADMIN user.</li>\n <li>Click <b>Admin</b> in the banner. The page <i>Catalog Administration</i> opens.</li>\n <li>Click <b>Reload Sample Data</b>.</li>\n <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,\n loads the file, ends your session and shows the home page.</li>\n</ol>\n<div class=\"warn\">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>\n"
+    stack_metadata:
+      jsp.page: "populate_admin.jsp"
+  - record_key: POP-RUL-0001
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >-
+      WHEN a forced reload of the sample data is requested THEN the system SHALL perform
+      it only for a signed-in user with role ADMIN, SHALL show Access Denied to anyone
+      else, and on success SHALL delete and recreate all catalog, account and sign-on
+      history data from the sample file and end the requester's session.
+    plain_text: >-
+      Only an administrator can force a reload; it erases and reloads the catalog, every
+      account and all sign-in history, and signs the administrator out.
+    technical_note: >-
+      PopulateServlet: force = Boolean.valueOf(forcefully); if force and session
+      j_signon_role != ADMIN redirect to /access_denied.screen; then
+      session.invalidate() and populate(force). Tables per Admin Guide 3.2: CATEGORY,
+      CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON,
+      SIGNON_AUDIT.
+    interface: false
+    confidence: high
+    confidence_basis: >-
+      The ADMIN check is in PopulateServlet independently of the page protection in
+      signon-config, and both guides and the admin page text describe the wipe.
+    risk_class: operational
+    basis: >-
+      populate_admin.jsp warning; PopulateServlet role check and invalidate; Admin Guide
+      1.1 and 3.2.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/populate_admin.jsp"
+        line_start: 9
+        line_end: 13
+        excerpt: "<p class=\"petstore_error\">All accounts created in the store and all sign-in\nhistory are deleted. You will be signed out.</p>\n<form action=\"Populate\" method=\"POST\">\n <input type=\"hidden\" name=\"forcefully\" value=\"true\">\n <input type=\"hidden\" name=\"success_page\" value=\"main.screen\">\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 121
+        line_end: 127
+        excerpt: "    boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();\n    if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {\n      redirect(request, response, ACCESS_DENIED_PAGE);\n      return;\n    }\n    // kill the Servlet Session because the cached catalog and sign-on state are no longer valid\n    request.getSession().invalidate();\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 31
+        line_end: 31
+        excerpt: " <tr><td>Forced reload of sample data</td><td>Access Denied</td><td>Access Denied</td><td>Yes</td></tr>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 84
+        line_end: 87
+        excerpt: " <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,\n loads the file, ends your session and shows the home page.</li>\n</ol>\n<div class=\"warn\">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>\n"
+    stack_metadata:
+      framework: "PopulateServlet"
+      db.object: "all 8 tables"
+  - record_key: POP-INT-0001
+    kind: integration
+    capability_key: sample-data-population
+    requirement: >-
+      The system SHALL expose the first-load request over plain HTTP without sign-in, so
+      that the daily catalog check job can ask the store to populate itself when the
+      catalog tables are missing.
+    plain_text: >-
+      The nightly catalog check can ask the store, over the web, to load the sample data
+      when its catalog is missing.
+    technical_note: >-
+      web.xml maps PopulateServlet to /Populate. batch/psl_catalog_check.sh calls curl
+      $PSL_STORE_URL/Populate?forcefully=false when catalog_check.sql reports missing
+      tables, and exits 8 if that call fails.
+    interface: true
+    confidence: high
+    confidence_basis: >-
+      The servlet mapping is declared and the batch caller is read directly; the shell
+      comment states the intent.
+    risk_class: operational
+    basis: >-
+      web.xml /Populate mapping; psl_catalog_check.sh.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+        line_start: 118
+        line_end: 121
+        excerpt: "  <servlet-mapping>\n    <servlet-name>PopulateServlet</servlet-name>\n    <url-pattern>/Populate</url-pattern>\n  </servlet-mapping>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 3
+        line_end: 12
+        excerpt: "# Runs the catalog integrity checks. When the catalog is empty it asks the\n# store to populate itself (first load, not a forced reload). Any failed\n# check ends the job with code 4 so operations is alerted.\nPSL_JOB=PSL_CATALOG_CHECK\n. \"${PSL_HOME:-/opt/petstore}/conf/env.sh\"\npsl_log \"start\"\nOUT=$(psl_ij \"$PSL_SQL/catalog_check.sql\")\nif echo \"$OUT\" | grep -q \"does not exist\"; then\n  psl_log \"catalog tables missing, requesting first load\"\n  curl -sf -o /dev/null \"$PSL_STORE_URL/Populate?forcefully=false\" || { psl_log \"FAILED: populate\"; exit 8; }\n"
+    stack_metadata:
+      batch.trigger: "PSL_CATALOG_CHECK 06:00"
+findings:
+  - kind: ambiguity
+    path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/search.jsp"
+    description: >-
+      search.screen requested with no 'keywords' parameter at all (as opposed to an
+      empty one): search.jsp copies param.keywords (null) into CatalogHelper.searchQuery
+      and GenericCatalogDAO passes it to new StringTokenizer(searchQuery), which would
+      throw and show the general error page rather than 'No results were found'. Read,
+      not executed; depends on how JSTL 1.0 c:set handles a null value on a bean
+      property. A human should confirm whether a bare search.screen shows the no-results
+      message or the error page.
+  - kind: ambiguity
+    path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/META-INF/context.xml"
+    description: >-
+      The database connection pool (max 20 connections, 10 s wait) and the Derby
+      location /var/petstore/db/PetStoreDB are deployment settings, not requirements; no
+      record was emitted. A human should decide whether pool size or wait time is a
+      capacity requirement for the rebuild. The password on line 13 is redacted.
+  - kind: ambiguity
+    path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml"
+    description: >-
+      The catalog DAO class, SQL file URL and database dialect env-entries (lines
+      149-165) are redacted, so which CatalogDAOSQL.xml statement set (derby or oracle)
+      runs in production cannot be confirmed from this module; PopulateServlet's
+      Database init-param says derby. Records here assume the derby and oracle
+      statements behave the same, which they do on the rules extracted.
+suspected_defects:
+  - capability_key: catalog-search
+    record_keys: [SRCH-RUL-0001]
+    severity: medium
+    category: contradicts-document
+    title: "Search is case-sensitive for keywords typed with capitals"
+    description: >-
+      The User Guide says search is not case-sensitive. The stored fields are
+      lower-cased before comparison but the typed keyword is not, so any keyword
+      containing a capital letter matches nothing ('Bulldog' returns no results, 'dog'
+      returns 13).
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 119
+        line_end: 119
+        excerpt: "                    where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 349
+        line_end: 349
+        excerpt: "        keywordSet.add(tokenizer.nextToken());\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 93
+        line_end: 93
+        excerpt: " <li>Search is not case-sensitive.</li>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/vortex/samples/catalog_search_cases.json"
+        line_start: 55
+        line_end: 60
+        excerpt: "        \"keywords\": \"Bulldog\",\n        \"locale\": \"en_US\",\n        \"pageSize\": 2\n      },\n      \"output\": {\n        \"resultCount\": 0,\n"
+  - capability_key: catalog-search
+    record_keys: [SRCH-RUL-0001]
+    severity: low
+    category: other
+    title: "Search result order and page boundaries are not defined"
+    description: >-
+      The search query has no sort order and keywords are de-duplicated into an
+      unordered set, so the same search can list items in a different order and split
+      them across pages differently. '%' and '_' typed in a keyword act as wildcards.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/CatalogDAOSQL.xml"
+        line_start: 112
+        line_end: 127
+        excerpt: "        <SQLStatement method=\"SEARCH_ITEMS\">\n            <SQLFragment parameterNb=\"4\">\n                select catid, a.productid, name, a.itemid, b.image, b.descn, attr1, \n                        attr2, attr3, attr4, attr5, listprice, unitcost \n                    from (((item a join item_details b on a.itemid=b.itemid)\n                        join product_details c on a.productid=c.productid)\n                        join product d on d.productid=c.productid and b.locale = c.locale)\n                    where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)\n            </SQLFragment>\n            <SQLFragment parameterNb=\"3\" occurrence=\"VARIABLE\">\n                or (lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)  \n            </SQLFragment>\n            <SQLFragment parameterNb=\"0\">\n                )\n            </SQLFragment>\n        </SQLStatement>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java"
+        line_start: 346
+        line_end: 349
+        excerpt: "      Collection keywordSet = new HashSet();\n      StringTokenizer tokenizer = new StringTokenizer(searchQuery);\n      while (tokenizer.hasMoreTokens()) {\n        keywordSet.add(tokenizer.nextToken());\n"
+  - capability_key: catalog-browsing
+    record_keys: [BROW-SCR-0002, BROW-SCR-0003, SRCH-SCR-0001]
+    severity: medium
+    category: contradicts-document
+    title: "Different screens show different prices for the same item"
+    description: >-
+      The product page shows each item's list price; the search results show the unit
+      cost; the item page shows both, calling the unit cost 'Your Price'. The User Guide
+      describes 'Your Price' as a member discount, yet it is shown to every visitor,
+      signed in or not. A customer can see two different prices for one item depending
+      on how they reached it.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/product.jsp"
+        line_start: 66
+        line_end: 66
+        excerpt: "   <fmt:formatNumber value=\"${item.listCost}\" type=\"currency\" />\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/search.jsp"
+        line_start: 77
+        line_end: 77
+        excerpt: "       <fmt:formatNumber value=\"${item.unitCost}\" type=\"currency\" />\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/item.jsp"
+        line_start: 26
+        line_end: 30
+        excerpt: "  <td class=\"petstore\" width=\"100%\"><b>List Price:</b>\n   <fmt:formatNumber value=\"${item.listCost}\" type=\"currency\" />\n   <br><br>\n   <b>Your Price:</b>\n   <fmt:formatNumber value=\"${item.unitCost}\" type=\"currency\" />\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 77
+        line_end: 77
+        excerpt: " <li><b>Your Price</b>: the discounted price for members.</li>\n"
+  - capability_key: catalog-browsing
+    record_keys: [BROW-RUL-0005]
+    severity: low
+    category: other
+    title: "Previous link after a short last page overlaps the earlier page"
+    description: >-
+      The Previous link starts at the current start minus the number of items on the
+      current page. On a last page holding one item (for example start 4), Previous
+      starts at 3 with a page size of 2, so it shows a page that overlaps the one before
+      and does not line up with the pages reached by Next. Page start and size are also
+      taken from the address unchecked; a non-number shows the general error page.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/model/Page.java"
+        line_start: 89
+        line_end: 91
+        excerpt: "    public int getStartOfPreviousPage() {\n        return Math.max(start-objects.size(), 0);\n    }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/category.jsp"
+        line_start: 78
+        line_end: 82
+        excerpt: "    <c:url value=\"/category.screen\" var=\"previousURL\">\n      <c:param name=\"category_id\" value=\"${param.category_id}\"/>\n      <c:param name=\"start\" value=\"${pageResults.startOfPreviousPage}\"/>\n      <c:param name=\"count\" value=\"2\"/>\n    </c:url>\n"
+  - capability_key: catalog-browsing
+    record_keys: [BROW-RUL-0003]
+    severity: low
+    category: other
+    title: "Side bar can show only five categories"
+    description: >-
+      The side bar asks for the first five categories only. A sixth category added to
+      the catalog would be reachable only by search and would never appear in the side
+      bar, while the User Guide says the side bar has one link per category.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/sidebar.jsp"
+        line_start: 16
+        line_end: 17
+        excerpt: "<c:set value=\"5\" target=\"${catalog}\" property=\"count\"/>\n<c:set value=\"0\" target=\"${catalog}\" property=\"start\"/>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 33
+        line_end: 33
+        excerpt: " <li><b>Pets</b> side bar on the left: one link per category, in alphabetical order.</li>\n"
+  - capability_key: sample-data-population
+    record_keys: [POP-SCR-0001, POP-INT-0001]
+    severity: high
+    category: data-corruption
+    title: "Anonymous first-load path can wipe every account and the sign-in history"
+    description: >-
+      The first load needs no sign-in and is triggered by the entry page and by the
+      daily catalog check job. When it decides the store is empty (catalog or sign-on
+      check returns no row, or fails) it drops and recreates every table, including
+      accounts and sign-in history. A catalog problem alone can therefore erase all
+      customer accounts and the audit trail. Entering the store also ends the session of
+      anyone already signed in.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/populating.jsp"
+        line_start: 8
+        line_end: 8
+        excerpt: "<META HTTP-EQUIV=REFRESH CONTENT=\"0; URL=Populate?success_page=main.screen&forcefully=false\">\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java"
+        line_start: 118
+        line_end: 128
+        excerpt: "    // Petstore Lite: the first load is open to anyone so the store can start\n    // on an empty database. A forced repopulate drops every table, sign-ons\n    // included, so only a signed on ADMIN may ask for it.\n    boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();\n    if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {\n      redirect(request, response, ACCESS_DENIED_PAGE);\n      return;\n    }\n    // kill the Servlet Session because the cached catalog and sign-on state are no longer valid\n    request.getSession().invalidate();\n    try {\n"
+      - path: "legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh"
+        line_start: 10
+        line_end: 12
+        excerpt: "if echo \"$OUT\" | grep -q \"does not exist\"; then\n  psl_log \"catalog tables missing, requesting first load\"\n  curl -sf -o /dev/null \"$PSL_STORE_URL/Populate?forcefully=false\" || { psl_log \"FAILED: populate\"; exit 8; }\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 76
+        line_end: 77
+        excerpt: "<p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables\nalready hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>\n"
+  - capability_key: access-control
+    record_keys: [ACC-RUL-0001, ACC-RUL-0002]
+    severity: medium
+    category: other
+    title: "Protected-page check compares the exact address"
+    description: >-
+      Pages are protected by comparing the address after the store root to the
+      configured name character for character. An address carrying extra path text (for
+      example a session id after a semicolon) probably does not match and is served
+      without a sign-in check. The forced data reload is checked again separately, so
+      the data wipe stays administrator-only. Not executed; read from the code.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 113
+        line_end: 117
+        excerpt: "        String currentURL = hreq.getRequestURI();\n        // get everything after the context root\n        int firstSlash = currentURL.indexOf(\"/\",1); // jump past the starting slash\n        String targetURL = null;\n        if (firstSlash != -1) targetURL = currentURL.substring(firstSlash + 1, currentURL.length());\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/web/SignOnFilter.java"
+        line_start: 151
+        line_end: 151
+        excerpt: "            if (urlPattern.equals(targetURL)) {\n"
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml"
+        line_start: 28
+        line_end: 28
+        excerpt: "    <url-pattern>account.screen</url-pattern>\n"
+  - capability_key: account-lockout
+    record_keys: [LOCK-SCR-0001]
+    severity: low
+    category: contradicts-document
+    title: "Account Locked page promises unlock after 30 minutes; real wait is up to 45"
+    description: >-
+      The Account Locked page says accounts unlock 30 minutes after the lock. The User
+      Guide says the unlock job runs every 15 minutes, so the real wait can be up to 45
+      minutes.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon_locked.jsp"
+        line_start: 7
+        line_end: 8
+        excerpt: "<p class=\"petstore\">Locked accounts are unlocked automatically 30 minutes after\nthe lock. Please try again later, or contact the store administrator.</p>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html"
+        line_start: 129
+        line_end: 130
+        excerpt: "<p>The page <i>Account Locked</i> appears. The lock is cleared automatically 30 minutes after it was set\n(the store checks every 15 minutes, so allow up to 45 minutes). You can keep browsing the catalog while you wait.\n"
+  - capability_key: sign-on
+    record_keys: [SIGN-SCR-0001]
+    severity: low
+    category: other
+    title: "Sign-in form pre-fills the demo account name 'j2ee'"
+    description: >-
+      When no name is remembered, the sign-in user name field is pre-filled with 'j2ee',
+      the name of a sample customer account whose password the Admin Guide publishes. In
+      a live store this invites sign-in attempts against that account and can lock it.
+    traces:
+      - path: "legacy-source/j2ee-pet-store-lite/src/main/webapp/signon.jsp"
+        line_start: 27
+        line_end: 29
+        excerpt: "        <c:otherwise>\n         <input class=\"petstore_form\" type=\"text\" size=\"15\" name=\"j_username\" value=\"j2ee\">\n        </c:otherwise>\n"
+      - path: "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html"
+        line_start: 41
+        line_end: 41
+        excerpt: " <tr><td>j2ee</td><td>CUSTOMER</td><td>j2ee</td></tr>\n"
