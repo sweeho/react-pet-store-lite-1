@@ -1,6 +1,9 @@
 # Pass A over j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/util
 # The shard contains a single file, util/tracer/Debug.java: a developer
 # diagnostic print helper. It states no business rule, so no record is emitted.
+# Re-verified on attempt 2 (2026-11-02): grep over legacy-source (*.java, *.jsp,
+# *.xml) still finds only the unused import in GenericCatalogDAO.java:57, and
+# legacy-analysis/sources/ is still absent, so there is no document to cite.
 records: []
 findings:
   - kind: ambiguity
