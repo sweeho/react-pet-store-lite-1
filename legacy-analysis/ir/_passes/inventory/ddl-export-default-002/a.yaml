@@ -1,0 +1,443 @@
+{
+  "records": [
+    {
+      "record_key": "CDI-ENT-0001",
+      "kind": "entity",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL store each product under a unique product identifier of up to 10 characters, and SHALL refuse a product that does not name exactly one existing category.",
+      "plain_text": "Every product has its own code of up to 10 characters and belongs to exactly one category that already exists. A product cannot be saved without a valid category.",
+      "technical_note": "Table PRODUCT: productid char(10) (Derby) / varchar(10) (Oracle) primary key pk_product; catid NOT NULL with foreign key fk_product_1 to CATEGORY(catid). Created at runtime by PopulateServlet from PopulateSQL.xml; the db/schema files mirror it. Index idx_product_catid supports listing by category.",
+      "confidence": "high",
+      "confidence_basis": "The primary key, NOT NULL and foreign key are declared identically in both the Derby and Oracle DDL, and the same structure appears in the runtime creation script PopulateSQL.xml. The database enforces it, so there is no reachability question.",
+      "risk_class": "operational",
+      "interface": false,
+      "basis": "pk_product makes productid unique; catid NOT NULL plus fk_product_1 references category(catid), so every product belongs to one existing category. Schema comment: \"A kind of pet within a category\".",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "product",
+          "line_start": 23,
+          "line_end": 28,
+          "excerpt": "CREATE TABLE product (\n  productid char(10) not null,\n  catid char(10) not null,\n  constraint pk_product primary key (productid),\n    constraint fk_product_1 foreign key (catid)\n    references category (catid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "product",
+          "line_start": 23,
+          "line_end": 28,
+          "excerpt": "CREATE TABLE product (\n  productid varchar(10) not null,\n  catid varchar(10) not null,\n  constraint pk_product primary key (productid),\n    constraint fk_product_1 foreign key (catid)\n    references category (catid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "product",
+          "line_start": 23,
+          "line_end": 28,
+          "excerpt": "CREATE TABLE product (\n  productid char(10) not null,\n  catid char(10) not null,\n  constraint pk_product primary key (productid),\n    constraint fk_product_1 foreign key (catid)\n    references category (catid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "product",
+          "line_start": 23,
+          "line_end": 28,
+          "excerpt": "CREATE TABLE product (\n  productid varchar(10) not null,\n  catid varchar(10) not null,\n  constraint pk_product primary key (productid),\n    constraint fk_product_1 foreign key (catid)\n    references category (catid));\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "product",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER",
+        "db.reads": "category"
+      }
+    },
+    {
+      "record_key": "CDI-ENT-0002",
+      "kind": "entity",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL hold at most one localised text record per product and locale, SHALL require a name of up to 80 characters on it, SHALL treat image (up to 255 characters) and description (up to 255 characters) as optional, and SHALL refuse a localised record for a product that does not exist.",
+      "plain_text": "A product has one name per language, of up to 80 characters, which is mandatory. Its picture and description are optional. Text cannot be added for a product that does not exist.",
+      "technical_note": "Table PRODUCT_DETAILS: composite primary key pk_product_details (productid, locale); name varchar(80) NOT NULL; image and descn varchar(255) nullable; fk_product_details_1 to PRODUCT(productid). Same in PopulateSQL.xml.",
+      "confidence": "high",
+      "confidence_basis": "Declared identically in the Derby and Oracle DDL and in the runtime creation script; enforced by the database.",
+      "risk_class": "presentational",
+      "interface": false,
+      "basis": "Composite PK (productid, locale) gives one row per product per locale; name NOT NULL; image/descn have no NOT NULL; FK to product.",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "product_details",
+          "line_start": 31,
+          "line_end": 39,
+          "excerpt": "CREATE TABLE product_details (\n  productid char(10) not null,\n  locale char(10) not null,\n  name varchar(80) not null,\n  image varchar(255),\n  descn varchar(255),\n  constraint pk_product_details primary key (productid, locale),\n    constraint fk_product_details_1 foreign key (productid)\n    references product (productid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "product_details",
+          "line_start": 31,
+          "line_end": 39,
+          "excerpt": "CREATE TABLE product_details (\n  productid varchar(10) not null,\n  locale varchar(10) not null,\n  name varchar2(80) not null,\n  image varchar2(255),\n  descn varchar2(255),\n  constraint pk_product_details primary key (productid, locale),\n    constraint fk_product_details_1 foreign key (productid)\n    references product (productid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "product_details",
+          "line_start": 31,
+          "line_end": 39,
+          "excerpt": "CREATE TABLE product_details (\n  productid char(10) not null,\n  locale char(10) not null,\n  name varchar(80) not null,\n  image varchar(255),\n  descn varchar(255),\n  constraint pk_product_details primary key (productid, locale),\n    constraint fk_product_details_1 foreign key (productid)\n    references product (productid));\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "product_details",
+          "line_start": 31,
+          "line_end": 39,
+          "excerpt": "CREATE TABLE product_details (\n  productid varchar(10) not null,\n  locale varchar(10) not null,\n  name varchar2(80) not null,\n  image varchar2(255),\n  descn varchar2(255),\n  constraint pk_product_details primary key (productid, locale),\n    constraint fk_product_details_1 foreign key (productid)\n    references product (productid));\n"
+        },
+        {
+          "kind": "code",
+          "path": "legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml",
+          "line_start": 70,
+          "line_end": 84,
+          "excerpt": "    <TableStatements table=\"product_details\">\n      <CheckStatement>\n        select * from product_details\n      </CheckStatement>\n      <CreateStatement>\n        create table product_details (\n          productid char(10) not null,\n          locale char(10) not null,\n          name varchar(80) not null,\n          image varchar(255),\n          descn varchar(255),\n          constraint pk_product_details primary key (productid, locale),\n            constraint fk_product_details_1 foreign key (productid)\n            references product (productid))\n      </CreateStatement>\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "product_details",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER",
+        "db.reads": "product"
+      }
+    },
+    {
+      "record_key": "CDI-ENT-0003",
+      "kind": "entity",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL store each sellable item under a unique item identifier of up to 10 characters, and SHALL refuse an item that does not name exactly one existing product.",
+      "plain_text": "Every item for sale (a specific variant of a product) has its own code of up to 10 characters and belongs to exactly one existing product.",
+      "technical_note": "Table ITEM: itemid char(10)/varchar(10) primary key pk_item; productid NOT NULL with fk_item_1 to PRODUCT(productid). Index idx_item_productid supports listing items of a product.",
+      "confidence": "high",
+      "confidence_basis": "Same declaration in both dialects of the DDL and in PopulateSQL.xml; enforced by the database.",
+      "risk_class": "operational",
+      "interface": false,
+      "basis": "pk_item; productid NOT NULL; fk_item_1 references product(productid). Comment: \"A sellable variant of a product\".",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "item",
+          "line_start": 42,
+          "line_end": 48,
+          "excerpt": "CREATE TABLE item (\n  itemid char(10) not null,\n  productid char(10) not null,\n  constraint pk_item primary key (itemid),\n    constraint fk_item_1 foreign key (productid)\n    references product (productid)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "item",
+          "line_start": 42,
+          "line_end": 48,
+          "excerpt": "CREATE TABLE item (\n  itemid varchar(10) not null,\n  productid varchar(10) not null,\n  constraint pk_item primary key (itemid),\n    constraint fk_item_1 foreign key (productid)\n    references product (productid)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "item",
+          "line_start": 42,
+          "line_end": 48,
+          "excerpt": "CREATE TABLE item (\n  itemid char(10) not null,\n  productid char(10) not null,\n  constraint pk_item primary key (itemid),\n    constraint fk_item_1 foreign key (productid)\n    references product (productid)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "item",
+          "line_start": 42,
+          "line_end": 48,
+          "excerpt": "CREATE TABLE item (\n  itemid varchar(10) not null,\n  productid varchar(10) not null,\n  constraint pk_item primary key (itemid),\n    constraint fk_item_1 foreign key (productid)\n    references product (productid)\n);\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "item",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER",
+        "db.reads": "product"
+      }
+    },
+    {
+      "record_key": "CDI-ENT-0004",
+      "kind": "entity",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL hold at most one localised detail record per item and locale; each SHALL carry a list price, a unit cost, an image reference (up to 255 characters) and a description (up to 255 characters), all mandatory, and up to five optional attributes of up to 80 characters each; a detail record for an item that does not exist SHALL be refused.",
+      "plain_text": "Each item has, per language, a list price, a cost, a picture and a description, all of which must be filled in, plus up to five optional short attributes (for example \"Male Adult\"). Details cannot be added for an item that does not exist.",
+      "technical_note": "Table ITEM_DETAILS: pk_item_details (itemid, locale); listprice, unitcost decimal(10,2)/number(10,2) NOT NULL; image, descn varchar(255) NOT NULL; attr1..attr5 varchar(80) nullable; fk_item_details_1 to ITEM(itemid). Note prices are stored per locale, not per item. Same in PopulateSQL.xml lines 112-141.",
+      "confidence": "high",
+      "confidence_basis": "Declared identically in both DDL dialects and in the runtime creation script; enforced by the database.",
+      "risk_class": "financial",
+      "interface": false,
+      "basis": "NOT NULL on listprice, unitcost, image, descn; attr1-5 nullable; composite PK; FK to item. Unlike product_details, image and description are mandatory here.",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 51,
+          "line_end": 67,
+          "excerpt": "CREATE TABLE item_details (\n  itemid char(10) not null,\n  listprice decimal(10,2) not null,\n  unitcost decimal(10,2) not null,\n  locale char(10) not null,\n  image varchar(255) not null,\n  descn varchar(255) not null,\n  attr1 varchar(80),\n  attr2 varchar(80),\n  attr3 varchar(80),\n  attr4 varchar(80),\n  attr5 varchar(80),\n  constraint pk_item_details primary key (itemid, locale),\n      constraint fk_item_details_1 foreign key (itemid)\n      references item (itemid),\n      constraint ck_item_details_price check (listprice >= unitcost)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 51,
+          "line_end": 67,
+          "excerpt": "CREATE TABLE item_details (\n  itemid varchar(10) not null,\n  listprice number(10,2) not null,\n  unitcost number(10,2) not null,\n  locale varchar(10) not null,\n  image varchar2(255) not null,\n  descn varchar2(255) not null,\n  attr1 varchar2(80),\n  attr2 varchar2(80),\n  attr3 varchar2(80),\n  attr4 varchar2(80),\n  attr5 varchar2(80),\n  constraint pk_item_details primary key (itemid, locale),\n      constraint fk_item_details_1 foreign key (itemid)\n      references item (itemid),\n      constraint ck_item_details_price check (listprice >= unitcost)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 51,
+          "line_end": 67,
+          "excerpt": "CREATE TABLE item_details (\n  itemid char(10) not null,\n  listprice decimal(10,2) not null,\n  unitcost decimal(10,2) not null,\n  locale char(10) not null,\n  image varchar(255) not null,\n  descn varchar(255) not null,\n  attr1 varchar(80),\n  attr2 varchar(80),\n  attr3 varchar(80),\n  attr4 varchar(80),\n  attr5 varchar(80),\n  constraint pk_item_details primary key (itemid, locale),\n      constraint fk_item_details_1 foreign key (itemid)\n      references item (itemid),\n      constraint ck_item_details_price check (listprice >= unitcost)\n);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 51,
+          "line_end": 67,
+          "excerpt": "CREATE TABLE item_details (\n  itemid varchar(10) not null,\n  listprice number(10,2) not null,\n  unitcost number(10,2) not null,\n  locale varchar(10) not null,\n  image varchar2(255) not null,\n  descn varchar2(255) not null,\n  attr1 varchar2(80),\n  attr2 varchar2(80),\n  attr3 varchar2(80),\n  attr4 varchar2(80),\n  attr5 varchar2(80),\n  constraint pk_item_details primary key (itemid, locale),\n      constraint fk_item_details_1 foreign key (itemid)\n      references item (itemid),\n      constraint ck_item_details_price check (listprice >= unitcost)\n);\n"
+        },
+        {
+          "kind": "code",
+          "path": "legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml",
+          "line_start": 112,
+          "line_end": 141,
+          "excerpt": "    <TableStatements table=\"item_details\">\n      <CheckStatement>\n        select * from item_details\n      </CheckStatement>\n      <CreateStatement>\n        create table item_details (\n          itemid char(10) not null,\n          listprice decimal(10,2) not null,\n          unitcost decimal(10,2) not null,\n          locale char(10) not null,\n          image varchar(255) not null,\n          descn varchar(255) not null,\n          attr1 varchar(80),\n          attr2 varchar(80),\n          attr3 varchar(80),\n          attr4 varchar(80),\n          attr5 varchar(80),\n          constraint pk_item_details primary key (itemid, locale),\n              constraint fk_item_details_1 foreign key (itemid)\n              references item (itemid),\n              constraint ck_item_details_price check (listprice >= unitcost)\n        )\n      </CreateStatement>\n      <InsertStatement>\n        insert into item_details\n          (itemid, listprice, unitcost, locale, attr1, attr2, attr3, attr4, attr5, image, descn)\n          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n      </InsertStatement>\n      <DropStatement>\n        drop table item_details\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "item_details",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER",
+        "db.reads": "item"
+      }
+    },
+    {
+      "record_key": "CDI-BR-0001",
+      "kind": "business-rule",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL refuse to store or change an item's details when its list price is below its unit cost. GIVEN an item detail with unit cost 12.00 WHEN a list price of 11.99 is saved THEN the save SHALL be rejected; a list price equal to the unit cost SHALL be accepted.",
+      "plain_text": "An item can never be priced below what it costs the store. Selling at exactly cost is allowed.",
+      "technical_note": "Check constraint ck_item_details_price CHECK (listprice >= unitcost) on ITEM_DETAILS, in both dialects and in PopulateSQL.xml. The nightly catalog check (db/batch/catalog_check.sql, check C3) re-tests the same condition; the Administrator Guide 3.3 documents it as rule C3.",
+      "confidence": "high",
+      "confidence_basis": "Enforced by a database check constraint in both dialects and in the runtime creation script, re-checked by the nightly batch query C3, and stated in the Administrator Guide. Code, batch and document agree.",
+      "risk_class": "financial",
+      "interface": false,
+      "basis": "ck_item_details_price check (listprice >= unitcost); catalog_check.sql C3 \"items priced below cost\"; Admin Guide 3.3 rule C3.",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 66,
+          "line_end": 66,
+          "excerpt": "      constraint ck_item_details_price check (listprice >= unitcost)\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 66,
+          "line_end": 66,
+          "excerpt": "      constraint ck_item_details_price check (listprice >= unitcost)\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 66,
+          "line_end": 66,
+          "excerpt": "      constraint ck_item_details_price check (listprice >= unitcost)\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 66,
+          "line_end": 66,
+          "excerpt": "      constraint ck_item_details_price check (listprice >= unitcost)\n"
+        },
+        {
+          "kind": "code",
+          "path": "legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml",
+          "line_start": 132,
+          "line_end": 132,
+          "excerpt": "              constraint ck_item_details_price check (listprice >= unitcost)\n"
+        },
+        {
+          "kind": "code",
+          "path": "legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql",
+          "line_start": 9,
+          "line_end": 10,
+          "excerpt": "-- C3: items priced below cost\nSELECT 'C3' AS chk, itemid FROM item_details WHERE listprice < unitcost;\n"
+        },
+        {
+          "kind": "document",
+          "path": "legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html",
+          "anchor": "3.3 Catalog data rules",
+          "line_start": 91,
+          "line_end": 99,
+          "excerpt": "<h2>3.3 Catalog data rules</h2>\n<table class=\"grid\">\n <tr><th>#</th><th>Rule</th></tr>\n <tr><td>C1</td><td>Every category has at least one product.</td></tr>\n <tr><td>C2</td><td>Every product has at least one item.</td></tr>\n <tr><td>C3</td><td>An item's list price is never below its unit cost (database check constraint).</td></tr>\n <tr><td>C4</td><td>Every item has an en_US description.</td></tr>\n</table>\n<p>Job PSL_CATALOG_CHECK checks C1 to C4 every morning at 06:00 and alerts the catalog team when one fails.</p>\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "item_details",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER",
+        "db.constraint": "ck_item_details_price"
+      }
+    },
+    {
+      "record_key": "CDI-BR-0002",
+      "kind": "business-rule",
+      "capability_key": "catalog-data-integrity",
+      "requirement": "The system SHALL store list price and unit cost as decimal amounts with exactly two decimal places and at most ten significant digits (a maximum of 99 999 999.99).",
+      "plain_text": "Prices and costs are kept to the cent, up to 99,999,999.99.",
+      "technical_note": "listprice and unitcost are decimal(10,2) in Derby and number(10,2) in Oracle. Neither dialect has a check that the amounts are positive; see findings.",
+      "confidence": "high",
+      "confidence_basis": "Same precision and scale declared in both dialects; enforced by the column type. The currency (US dollars) is only stated in the User Guide, so it is not part of this rule.",
+      "risk_class": "financial",
+      "interface": false,
+      "basis": "Column types decimal(10,2)/number(10,2) on both price columns.",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 53,
+          "line_end": 54,
+          "excerpt": "  listprice decimal(10,2) not null,\n  unitcost decimal(10,2) not null,\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 53,
+          "line_end": 54,
+          "excerpt": "  listprice number(10,2) not null,\n  unitcost number(10,2) not null,\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "item_details",
+          "line_start": 53,
+          "line_end": 54,
+          "excerpt": "  listprice decimal(10,2) not null,\n  unitcost decimal(10,2) not null,\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "item_details",
+          "line_start": 53,
+          "line_end": 54,
+          "excerpt": "  listprice number(10,2) not null,\n  unitcost number(10,2) not null,\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "item_details",
+        "db.kind": "table",
+        "db.schema": "ESTOREUSER"
+      }
+    },
+    {
+      "record_key": "SOA-REQ-0001",
+      "kind": "requirement",
+      "capability_key": "sign-on-audit",
+      "requirement": "The system SHALL support retrieving the sign-on events of one user in order of event time, so that a user's recent activity can be listed newest first.",
+      "plain_text": "The store can quickly look up one customer's sign-in history in date order, which is what the My Account page shows as recent activity.",
+      "technical_note": "Index idx_signon_audit_user_ts on SIGNON_AUDIT (username, event_ts) in both dialects. It serves UserDAO.SELECT_AUDIT (\"... where username = ? order by event_ts desc, audit_id desc\"). The 10-event limit is stated in the User Guide 5.4, not in this index.",
+      "confidence": "medium",
+      "confidence_basis": "An index enforces no rule; the requirement is inferred from it together with the one query that uses its column order and the User Guide description of My Account. One clear usage, so medium rather than high.",
+      "risk_class": "operational",
+      "interface": false,
+      "basis": "Composite index on (username, event_ts) matches the per-user, time-ordered audit query and the documented My Account recent-activity list.",
+      "traces": [
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+          "anchor": "idx_signon_audit_user_ts",
+          "line_start": 98,
+          "line_end": 98,
+          "excerpt": "CREATE INDEX idx_signon_audit_user_ts ON signon_audit (username, event_ts);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_oracle.sql",
+          "anchor": "idx_signon_audit_user_ts",
+          "line_start": 109,
+          "line_end": 109,
+          "excerpt": "CREATE INDEX idx_signon_audit_user_ts ON signon_audit (username, event_ts);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql",
+          "anchor": "idx_signon_audit_user_ts",
+          "line_start": 98,
+          "line_end": 98,
+          "excerpt": "CREATE INDEX idx_signon_audit_user_ts ON signon_audit (username, event_ts);\n"
+        },
+        {
+          "kind": "db_object",
+          "path": "legacy-source/j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql",
+          "anchor": "idx_signon_audit_user_ts",
+          "line_start": 109,
+          "line_end": 109,
+          "excerpt": "CREATE INDEX idx_signon_audit_user_ts ON signon_audit (username, event_ts);\n"
+        },
+        {
+          "kind": "code",
+          "path": "legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java",
+          "line_start": 101,
+          "line_end": 102,
+          "excerpt": "    private static final String SELECT_AUDIT =\n        \"select event_type, event_ts, remote_addr from signon_audit where username = ? order by event_ts desc, audit_id desc\";\n"
+        },
+        {
+          "kind": "document",
+          "path": "legacy-source/j2ee-pet-store-lite/docs/guides/user-guide.html",
+          "anchor": "5.4 My Account",
+          "line_start": 134,
+          "line_end": 136,
+          "excerpt": "<h2>5.4 My Account</h2>\n<p>Click <b>Account</b> in the banner. If you are not signed in, the Sign In page appears first. My Account shows your user name,\nyour role and your 10 most recent sign-in events, newest first.</p>\n"
+        }
+      ],
+      "stack_metadata": {
+        "db.object": "idx_signon_audit_user_ts",
+        "db.kind": "index",
+        "db.schema": "ESTOREUSER",
+        "db.reads": "signon_audit"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "kind": "ambiguity",
+      "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+      "description": "Catalog keys (productid, catid, itemid, locale) are char(10) in the Derby runtime schema but varchar(10) in the Oracle schema. Derby blank-pads the stored value, Oracle does not, so a key read back from Derby may carry trailing spaces. A human should decide whether identifiers are fixed-width or variable-length text in the new system (affects records CDI-ENT-0001..0004)."
+    },
+    {
+      "kind": "ambiguity",
+      "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+      "description": "No constraint requires list price or unit cost to be positive: the only price rule is listprice >= unitcost, so a zero or negative cost and price pair is accepted by the database. A business owner should decide whether non-positive prices are allowed (affects CDI-BR-0001, CDI-BR-0002)."
+    },
+    {
+      "kind": "ambiguity",
+      "path": "legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql",
+      "description": "Prices are stored per item and locale (pk_item_details is itemid, locale), so the same item could carry different prices in different locales. Only en_US exists today per the User Guide; a human should decide whether price is per item or per locale in the new system (affects CDI-ENT-0004)."
+    }
+  ],
+  "suspected_defects": []
+}
