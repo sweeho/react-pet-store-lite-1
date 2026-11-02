@@ -39,7 +39,9 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./src/test/setup.ts"],
           css: false,
-          exclude: ["node_modules", "dist", ".output", "e2e", "routes/**"],
+          // tests/acceptance/** is the locked acceptance suite, red until Build makes it
+          // green; it runs only through `test:acceptance` / `test:acceptance:e2e`.
+          exclude: ["node_modules", "dist", ".output", "e2e", "routes/**", "tests/acceptance/**"],
         },
       },
       {
@@ -48,6 +50,7 @@ export default defineConfig({
           name: "server",
           environment: "node",
           include: ["routes/**/*.test.ts"],
+          exclude: ["tests/acceptance/**"],
         },
       },
     ],
