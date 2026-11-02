@@ -5,9 +5,9 @@ The legacy Pet Store locks a sign-on account after 3 consecutive wrong-password 
 ## What Changes
 
 - Recover the account-lockout capability from the legacy application as one specification `account-lockout`.
-- Specify the failed-attempt counter, the lock on the 3rd consecutive failure, the refusal of every sign-in while locked, and the treatment of blank passwords and unknown user names.
+- Specify the failed-attempt counter, the lock on the 3rd consecutive failure, the refusal of every sign-in while locked, and the treatment of unknown user names.
 - Specify the scheduled automatic unlock, its strict threshold, its audit event, and the manual early-unlock path owned by operations.
-- Specify the lock state carried per account and its consistency rule.
+- Specify the lock state carried per account and its defaults.
 - Specify the Account Locked page: what it displays and when it is shown.
 - Carry two open questions to an SME: the timing of the account-locked audit event (code and sample disagree) and the behaviour of a locked account with no lock time.
 

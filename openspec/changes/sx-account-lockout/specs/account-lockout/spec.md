@@ -20,28 +20,67 @@ WHEN a sign-in with an existing, unlocked user name has a wrong password, the sy
 
 ### Requirement: Lock on the third consecutive failure
 
-Recovered from: AL-BR-0001
-WHEN a wrong-password attempt brings an account's consecutive failed sign-in count to 3, the system SHALL lock the account, record the time of the lock, record a sign-in failure event followed by an account-locked event, and SHALL refuse that same attempt as a locked-account refusal rather than as an ordinary failed sign-in.
+ID: SWHR5-R-0145
+Recovered from: LOCK-BR-0002
+WHEN a wrong-password attempt brings an account's consecutive failed sign-in count to 3, the system SHALL lock the account, record the time of the lock, and SHALL show the Account Locked page for that same attempt instead of the sign-in error page.
 
 #### Scenario: Third consecutive failure locks the account
 
 - **GIVEN** an existing, unlocked account with 2 consecutive failed sign-ins
 - **WHEN** a third sign-in is attempted with a wrong password
-- **THEN** the account is locked, its failed count is 3, its lock time is the time of the attempt, a sign-in failure event and then an account-locked event are recorded, and the Account Locked page is shown instead of the sign-in error page
+- **THEN** the account is locked, its failed count is 3, its lock time is the time of the attempt, and the Account Locked page is shown instead of the sign-in error page
 
-### Requirement: Blank password counts as a wrong password
+### Requirement: Lock threshold of three consecutive failures
 
-Recovered from: LOCKOUT-BR-0003
-The system SHALL treat a sign-in with a blank password on an existing, unlocked account as a wrong-password attempt: it SHALL show the sign-in error page, record a sign-in failure event and add 1 to the consecutive failed sign-in count.
+ID: SWHR5-R-0108
+Recovered from: LOCK-RUL-0001
+The system SHALL lock an account after 3 consecutive failed sign-in attempts, and MUST NOT lock it after fewer.
 
-#### Scenario: Blank password submitted
+#### Scenario: Two consecutive failures do not lock
 
-- **GIVEN** an existing, unlocked account with 0 consecutive failed sign-ins
-- **WHEN** a sign-in is submitted for it with a blank password
-- **THEN** the sign-in error page is shown, a sign-in failure event is recorded and the failed count becomes 1
+- **GIVEN** an existing, unlocked account with 1 consecutive failed sign-in
+- **WHEN** a second sign-in is attempted with a wrong password
+- **THEN** the account is not locked and the sign-in error page is shown
+
+### Requirement: Lockout and automatic unlock policy
+
+ID: SWHR5-R-0143
+Recovered from: AL-RULE-0002
+The system SHALL lock an account after 3 consecutive failed sign-ins, SHALL reset the consecutive-failure count to 0 on a successful sign-in or on unlock, and SHALL unlock a locked account automatically after 30 minutes.
+
+#### Scenario: Count restarts after an unlock
+
+- **GIVEN** an account that was locked with a failed count of 3 and has been automatically unlocked
+- **WHEN** its failed count is read
+- **THEN** the count is 0 and the account is not locked
+
+### Requirement: Only consecutive failures count towards a lock
+
+ID: SWHR5-R-0156
+Recovered from: LOCK-RULE-0002
+GIVEN an account with one or two consecutive failed sign-ins, WHEN the next sign-in succeeds, the system SHALL reset the failed-attempt count to zero, so that earlier failures do not count towards a lock.
+
+#### Scenario: Failures interrupted by a success
+
+- **GIVEN** an account with 2 consecutive failed sign-ins
+- **WHEN** a sign-in succeeds and then two more sign-ins fail
+- **THEN** the account's failed count is 2 and the account is not locked
+
+### Requirement: Successful sign-in clears earlier failures
+
+ID: SWHR5-R-0149
+Recovered from: ACCTLOCK-BR-0002
+The system SHALL reset an account's failed-attempt count when a sign-in succeeds, so only consecutive failures count toward a lock.
+
+#### Scenario: One failure then success
+
+- **GIVEN** an account with 1 failed sign-in
+- **WHEN** the next sign-in succeeds
+- **THEN** the account's failure count returns to 0
 
 ### Requirement: Unknown user names do not count towards a lock
 
+ID: SWHR5-R-0155
 Recovered from: LOCK-BR-0004
 WHEN a sign-in uses a user name that matches no account, the system SHALL treat it as an ordinary failed sign-in, recording a sign-in failure event against the name as typed and showing the sign-in error page, and SHALL NOT count it towards locking any account.
 
@@ -69,8 +108,45 @@ GIVEN an account is locked, WHEN anyone tries to sign in to it with any password
 - **WHEN** a sign-in is attempted for it with a wrong password
 - **THEN** only a sign-in-while-locked event is recorded, no sign-in failure event is recorded, and the lock is not extended
 
+### Requirement: Locked refusal leaves catalog browsing available
+
+ID: SWHR5-R-0151
+Recovered from: AL-BR-0002
+GIVEN an account is locked, WHEN anyone tries to sign in to it, even with the right password, the system SHALL refuse the sign-in, show the Account Locked page, record a sign-in-while-locked event and leave the failed-attempt count unchanged, and the user SHALL still be able to browse the catalog.
+
+#### Scenario: Browsing after a locked refusal
+
+- **GIVEN** a sign-in to a locked account has just been refused
+- **WHEN** the user opens a catalog category
+- **THEN** the category is displayed without the user being signed in
+
+### Requirement: Locked attempts are audited separately from failures
+
+ID: SWHR5-R-0157
+Recovered from: LOCK-RULE-0003
+GIVEN a locked account, WHEN someone tries to sign in to it, the system SHALL refuse the attempt without signing the user in, and SHALL record it as a sign-in-while-locked audit event rather than as a failed sign-in.
+
+#### Scenario: Audit entry for an attempt on a locked account
+
+- **GIVEN** a locked account
+- **WHEN** a sign-in is attempted for it
+- **THEN** the audit trail gains one sign-in-while-locked event and no sign-in failure event, and no session is established
+
+### Requirement: Attempts on a locked account do not extend the lock
+
+ID: SWHR5-R-0150
+Recovered from: ACCTLOCK-BR-0003
+The system SHALL refuse a sign-in attempt on a locked account, record it as a distinct locked-account attempt (not as a failed attempt), and SHALL NOT extend the lock.
+
+#### Scenario: Repeated attempts while locked
+
+- **GIVEN** an account locked at 10:00:00
+- **WHEN** sign-ins are attempted for it at 10:10 and 10:20
+- **THEN** both are refused, its lock time stays 10:00:00, and it is released by the first unlock run more than 30 minutes after 10:00:00
+
 ### Requirement: Lockout applies to every role
 
+ID: SWHR5-R-0146
 Recovered from: LOCK-RULE-0005
 The system SHALL apply the same three-failure lockout and the same automatic unlock to administrator accounts as to customer accounts.
 
@@ -82,6 +158,7 @@ The system SHALL apply the same three-failure lockout and the same automatic unl
 
 ### Requirement: Account lock state
 
+ID: SWHR5-R-0148
 Recovered from: LOCK-ENT-0001
 The system SHALL keep, for every account, a mandatory count of consecutive failed sign-ins that starts at 0, a mandatory locked indicator that is either locked or not locked and starts as not locked, and an optional time at which the lock was set, which MUST be empty while the account is not locked.
 
@@ -91,16 +168,29 @@ The system SHALL keep, for every account, a mandatory count of consecutive faile
 - **WHEN** the account "newcustomer" is created
 - **THEN** its failed count is 0, it is not locked and it has no lock time
 
-### Requirement: Lock state consistency
+### Requirement: Lock tracking for every sign-on account
 
-Recovered from: ACCTLOCK-BR-0001
-The system SHALL keep an account's lock state consistent: an account is locked if and only if it has a lock time, and a locked account SHALL carry a failed sign-in count of 3; an account that is locked when its data is migrated SHALL keep its lock time so the automatic unlock still applies 30 minutes after it.
+ID: SWHR5-R-0154
+Recovered from: ALCK-ENT-0001
+The system SHALL track, for every sign-on account, a count of failed sign-on attempts starting at 0, a locked flag that is either locked or unlocked and starts unlocked, and the time the account was locked.
 
-#### Scenario: Locked account migrated at cut-over
+#### Scenario: Sample accounts loaded unlocked
 
-- **GIVEN** an account locked 10 minutes before cut-over
-- **WHEN** its data is migrated
-- **THEN** it remains locked with its original lock time and is released by the first unlock run more than 30 minutes after that time
+- **GIVEN** an empty store
+- **WHEN** the sample accounts are populated
+- **THEN** every populated account has a failed count of 0, is unlocked and has no lock time
+
+### Requirement: Lock state defaults
+
+ID: SWHR5-R-0153
+Recovered from: AL-RULE-0001
+The system SHALL record for each account whether it is locked (yes or no, default no), the count of consecutive failed sign-ins (default 0), and the time it was locked.
+
+#### Scenario: Account stored without lock values
+
+- **GIVEN** an account is stored without a locked value or a failed count
+- **WHEN** it is read back
+- **THEN** it is not locked and its failed count is 0
 
 ### Requirement: Scheduled automatic unlock
 
@@ -120,38 +210,53 @@ The system SHALL, every 15 minutes around the clock, unlock every account locked
 - **WHEN** the unlock run executes at 15:00 (lock 29 minutes 54 seconds old)
 - **THEN** the account stays locked and no unlock event is recorded for it
 
-### Requirement: Unlock threshold is strictly more than 30 minutes
+### Requirement: Unlock check schedule
 
-Recovered from: LOCK-RULE-0001
-The system SHALL release a lock only when it is strictly more than 30 minutes old at the time of the unlock run, so that a lock is cleared no earlier than 30 and no later than about 45 minutes after it was set.
+ID: SWHR5-R-0147
+Recovered from: LOCK-REQ-0001
+The system SHALL run the automatic account-unlock check every 15 minutes, all day from 00:00 to 23:59, every day, unlocking accounts whose lock is more than 30 minutes old.
+
+#### Scenario: Weekend overnight run
+
+- **GIVEN** an account locked at 02:00:00 on a Sunday
+- **WHEN** the unlock check runs at 02:45 that Sunday
+- **THEN** the account is unlocked
+
+### Requirement: Automatic unlock clears lock state
+
+ID: SWHR5-R-0152
+Recovered from: AL-BR-0003
+The system SHALL automatically unlock an account once its lock is more than 30 minutes old, clearing the lock time, resetting the failure count to 0 and recording an account-unlocked event.
 
 #### Scenario: Lock exactly 30 minutes old
 
 - **GIVEN** an account locked at 10:00:00 and unlock runs at 10:15, 10:30 and 10:45
 - **WHEN** the 10:30 run evaluates it (lock exactly 30 minutes old)
-- **THEN** it stays locked, and it is unlocked by the 10:45 run
+- **THEN** it stays locked, and the 10:45 run unlocks it, clears its lock time, sets its failure count to 0 and records an account-unlocked event
 
-### Requirement: Unlock is recorded atomically with the release
+### Requirement: Quarter-hour unlock job records its run time
 
-Recovered from: LOCK-BR-0002
-The system SHALL record exactly one account-unlocked event per account it unlocks automatically, carrying the unlock time, and the event and the release MUST be committed together.
+ID: SWHR5-R-0144
+Recovered from: LOCK-RULE-0004
+The system SHALL automatically unlock a locked account with a scheduled job that runs every 15 minutes on the quarter hour, and each unlock SHALL be recorded as an account-unlocked audit event timestamped with the job's run time, after which the account's failed-attempt count SHALL restart from zero.
 
-#### Scenario: Two accounts released in one run
+#### Scenario: Unlock event carries the run time
 
-- **GIVEN** two accounts locked more than 30 minutes ago
-- **WHEN** the unlock run executes
-- **THEN** both accounts are released and exactly one account-unlocked event is recorded for each
+- **GIVEN** an account locked at 09:12:40
+- **WHEN** the job runs at 09:45:00
+- **THEN** the account is unlocked, its account-unlocked event is timestamped 09:45:00 and its failed count is 0
 
-### Requirement: Locked account with no lock time
+### Requirement: Unlock attributed to the job
 
-Recovered from: LOCK-BR-0003 (j2ee-pet-store-lite/db/batch)
-GIVEN an account marked locked that has no recorded lock time, WHEN the automatic unlock runs, the system SHALL leave the account locked and SHALL record no unlock event for it.
+ID: SWHR5-R-0142
+Recovered from: ACCTLOCK-BR-0004
+The system SHALL automatically unlock a locked account using a scheduled job that runs every 15 minutes on the quarter hour, once the lock is more than 30 minutes old, and each unlock SHALL be recorded as an account-unlocked event attributed to the job, not to a network address.
 
-#### Scenario: Lock flag set without a lock time
+#### Scenario: Source of an automatic unlock event
 
-- **GIVEN** an account marked locked whose lock time is empty
-- **WHEN** the unlock run executes
-- **THEN** the account stays locked and no account-unlocked event is recorded for it
+- **GIVEN** an account locked more than 30 minutes ago
+- **WHEN** the scheduled job unlocks it
+- **THEN** the account-unlocked event names the unlock job as its source and carries no client address
 
 ### Requirement: No in-application unlock
 
@@ -183,8 +288,33 @@ An on-demand run of the automatic unlock SHALL release only accounts whose lock 
 - **WHEN** an administrator applies the documented manual unlock
 - **THEN** the account is not locked, its failed count is 0, its lock time is empty and an account-unlocked event attributed to "admin" is recorded
 
+### Requirement: Operations unlock routes
+
+ID: SWHR5-R-0029
+Recovered from: AL-REQ-0001
+The system SHALL provide no screen to unlock an account; an account SHALL be unlockable before the scheduled job only by operations running the unlock job on demand, which still only clears locks older than 30 minutes, or by a direct data change that clears the lock and failed count and records an account-unlocked event with source "admin".
+
+#### Scenario: Direct data change by operations
+
+- **GIVEN** an account locked 5 minutes ago with a failed count of 3
+- **WHEN** operations apply the direct data change for it
+- **THEN** the account is not locked, its failed count is 0 and an account-unlocked event with source "admin" is recorded
+
+### Requirement: Manual unlock is audited with the admin source
+
+ID: SWHR5-R-0030
+Recovered from: LOCK-REQ-0005
+The system SHALL offer no screen to unlock an account; an earlier unlock SHALL be done by operations, either by running the unlock job on demand, which only releases locks older than 30 minutes, or by a manual data update that clears the lock, resets the count and records an account-unlocked event with address "admin".
+
+#### Scenario: Manual unlock leaves an audit record
+
+- **GIVEN** a locked account released by a manual data update
+- **WHEN** the audit trail for that user is read
+- **THEN** it holds an account-unlocked event whose address is "admin"
+
 ### Requirement: Lock event timing in the sign-in audit trail
 
+ID: SWHR5-R-0141
 Recovered from: LOCK-BR-0008
 GIVEN an account with two consecutive failed sign-ins, WHEN a third consecutive sign-in with a wrong password is made, the system SHALL record a sign-in failure event followed by an account-locked event for that user, both carrying the client address of the attempt. Whether the two events carry the same time or the account-locked event follows later is disputed between the code and the sample extract and MUST be settled before this is built.
 
@@ -196,14 +326,15 @@ GIVEN an account with two consecutive failed sign-ins, WHEN a third consecutive 
 
 ### Requirement: Account Locked page display
 
+ID: SWHR5-R-0109
 Recovered from: LOCK-SCR-0001
-The Account Locked page SHALL be titled "Account Locked" on the store's shared page layout and SHALL state that the account is locked after 3 failed sign-in attempts in a row, that locked accounts are unlocked automatically 30 minutes after the lock, that the user should try again later or contact the store administrator, and it MUST offer a link to keep browsing the catalog.
+The system SHALL provide an Account Locked page, titled "Account Locked", on the store's shared page layout; it SHALL state that the account is locked after 3 failed sign-in attempts in a row, that locked accounts are unlocked automatically 30 minutes after the lock, and that the user should try again later or contact the store administrator, and it MUST offer a link to keep browsing the catalog.
 
 #### Scenario: Page content is displayed
 
 - **GIVEN** a sign-in has been refused because the account is locked
 - **WHEN** the Account Locked page is displayed
-- **THEN** it shows the title "Account Locked", the statement that the account is locked after 3 failed sign-in attempts in a row, the statement that locks clear automatically 30 minutes after they are set, the advice to try later or contact the store administrator, and a "browsing the catalog" link
+- **THEN** it shows the title "Account Locked" within the shared layout, the statement that the account is locked after 3 failed sign-in attempts in a row, the statement that locks clear automatically 30 minutes after they are set, the advice to try later or contact the store administrator, and a "browsing the catalog" link
 
 #### Scenario: Browse-catalog link is followed
 
@@ -213,6 +344,7 @@ The Account Locked page SHALL be titled "Account Locked" on the store's shared p
 
 ### Requirement: Account Locked page shown on a locked refusal
 
+ID: SWHR5-R-0031
 Recovered from: LOCK-SCR-0006
 WHEN a sign-in is refused because the account is locked, whether by the attempt that locked it or by any attempt while it is locked, the system SHALL show the Account Locked page instead of the sign-in error page, and SHALL let the user keep browsing the catalog without signing in.
 

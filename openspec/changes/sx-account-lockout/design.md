@@ -52,16 +52,15 @@ Rendered by `signon_locked.jsp` inside the shared template (banner, sidebar, foo
 
 ### Record consolidation
 
-The extraction produced the same rules from many modules under colliding keys. The spec writes one requirement per behaviour; corroborating records are:
+Every requirement in the spec carries one approved key; unapproved records (for example `AL-BR-0001`, `LOCKOUT-BR-0003` blank password, `ACCTLOCK-BR-0001` lock-state consistency, `LOCK-RULE-0001`, `LOCK-BR-0003` from db/batch on locks without a time) are Not specified and live only in the recommendations file. Several approved keys were minted by more than one module with different text, so the module the spec followed is recorded here:
 
-- Count and reset: signon `LOCK-BR-0001` (a and b); also docs/guides `LOCK-BR-0001`, `AL-BR-0001`, `LOCKOUT`/samples `LOCK-BR-0003`, `ACCTLOCK-BR-0002`, `LOCK-RULE-0002`.
-- Lock at 3: `AL-BR-0001`; also signon `LOCK-BR-0002`, conf `ACCOUNT-LOCKOUT-BR-0001`, webapp `LOCK-RUL-0001` / `AL-BR-0002`, seed, migration and samples records.
-- Refusal while locked: signon `LOCK-BR-0003`; also docs/guides `LOCK-BR-0002`/`LOCK-BR-0003`, `AL-BR-0002`, `ACCTLOCK-BR-0003`, `LOCK-RULE-0003`, `LOCKOUT-BR-0002`.
-- Scheduled unlock: `LOCK-WF-0004`; also `AL-WF-0001`, `LOCK-WF-0001`, batch, db/batch, scheduler, seed, migration and samples records.
-- No unlock screen / manual unlock: `LOCK-BR-0005` and `LOCK-REQ-0002`; also `LOCK-REQ-0005`, `AL-REQ-0001`, docs/guides `LOCK-REQ-0001`.
-- Lock state: `LOCK-ENT-0001`, `ALK-ENT-0001`, `AL-ENT-0001`, `AL-RULE-0001`, `ALCK-ENT-0001`.
-- Role-independence: `LOCK-RULE-0005`, migration `LOCK-BR-0004`, seed `LOCK-BR-0004`, `ACCTLOCK-BR-0005`.
-- Screens: `LOCK-SCR-0001` (webapp a, waf b), `AL-SCR-0001`, `LOCK-SCR-0006`.
+- `LOCK-BR-0001`, `LOCK-BR-0002`, `LOCK-BR-0003`, `LOCK-BR-0004`, `LOCK-BR-0005`: the signon module (a/b) reading of `SignOnDAO` / `SignOnFilter`. `LOCK-BR-0002` from other modules variously describes the locked refusal or the unlock run; those behaviours are carried by `LOCK-BR-0003`, `LOCK-WF-0004` and `AL-BR-0003`.
+- `AL-BR-0002`: the docs/guides (c) reading, locked refusal with catalog browsing kept available. The webapp and db/schema readings (lock after 3) are carried by `LOCK-RUL-0001` and `AL-RULE-0002`.
+- `LOCK-REQ-0001`: the scheduler/control-m reading (every 15 minutes, 00:00-23:59, every day). The docs/guides (b) reading (no unlock screen) is carried by `AL-REQ-0001` and `LOCK-REQ-0005`.
+- `LOCK-SCR-0001`: webapp (a) page content merged with waf (b) title and shared layout; the two readings do not conflict.
+- `LOCK-ENT-0001`: inventory DDL (a) and populate (b) readings agree.
+
+Overlap between approved keys (for example `LOCK-RULE-0002` and `ACCTLOCK-BR-0002` both state the success reset) is kept: each key is its own requirement, and the scenarios are written to test a different facet.
 
 ## Goals / Non-Goals
 
@@ -70,5 +69,5 @@ Goals: record where and how the legacy application enforces lockout so the rebui
 ## Risks / Trade-offs
 
 - LOCK-BR-0008 (audit timing) is disputed between code and sample data; an external consumer may depend on either.
-- Locked-without-time accounts are never auto-released in legacy; the rebuild needs a decision.
-- Several samples-derived records (`ACCTLOCK-BR-0004`, `LOCK-RULE-0004`) say "at least 30 minutes"; the SQL is strictly more than 30. The code is authoritative.
+- Locked-without-time accounts are never auto-released in legacy; the record describing this is not approved, so the spec is silent and the rebuild needs a decision.
+- Several samples-derived records (`ACCTLOCK-BR-0004`, `LOCK-RULE-0004`) say "at least 30 minutes"; the SQL is strictly more than 30. The code is authoritative, so the spec states "more than 30 minutes" for `ACCTLOCK-BR-0004`.
