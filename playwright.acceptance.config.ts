@@ -14,8 +14,8 @@ export default defineConfig({
   // checkout flow takes several seconds on a CI runner. Shorter waits failed
   // working flows by timeout, so keep these floors even though the red suite
   // then runs longer.
-  timeout: 15_000,
-  expect: { timeout: 5_000 },
+  timeout: 15000,
+  expect: { timeout: 5000 },
   // The merge gate reads one run; a retry would hide an unreliable test.
   retries: 0,
   // In CI the JUnit report is what the merge gate reads
