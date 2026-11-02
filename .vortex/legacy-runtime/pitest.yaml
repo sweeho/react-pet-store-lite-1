@@ -1,0 +1,25 @@
+# Mutation testing on the legacy code for initiative SWHR5-N-0001 (FR-IM-56).
+#
+# PIT runs through the legacy code's own Maven build, in the same image its
+# Dockerfile builds with (maven:3.9-eclipse-temurin-8; the legacy code has no
+# mvnw), so the host needs Docker but no JDK or Maven. Run from the repository
+# root on a checkout that has legacy-source/j2ee-pet-store-lite/ (the
+# spec-extraction branch vortex/legacy-spec/sx-0001; dev does not carry it).
+# The pom is not changed: the plugin is invoked by its full coordinates.
+tool: pit
+command: >-
+  docker run --rm
+  -v "$PWD/legacy-source/j2ee-pet-store-lite:/src"
+  -v "$HOME/.m2:/root/.m2"
+  -w /src
+  maven:3.9-eclipse-temurin-8
+  mvn -B test-compile org.pitest:pitest-maven:1.17.0:mutationCoverage
+  -DtargetClasses=com.sun.j2ee.blueprints.*
+  -DtargetTests=com.sun.j2ee.blueprints.*Test*
+  -DoutputFormats=XML,HTML
+  -DtimestampedReports=false
+targetClasses:
+  - com.sun.j2ee.blueprints.*
+targetTests:
+  - com.sun.j2ee.blueprints.*Test*
+reportPath: legacy-source/j2ee-pet-store-lite/target/pit-reports/mutations.xml
