@@ -1,0 +1,38 @@
+# Legacy runtime for initiative SWHR5-N-0001: Java Pet Store Lite (J2EE 1.3).
+# Builds the legacy WAR with the legacy code's own Maven build and Dockerfile
+# (maven:3.9-eclipse-temurin-8 -> tomcat:9.0-jdk8-temurin) and serves it on
+# Tomcat 9. The database is Apache Derby, embedded in Tomcat, so there is no
+# separate database service.
+#
+#   docker compose -f .vortex/legacy-runtime/compose.yaml up -d --build --wait
+#   -> http://localhost:8080/petstore/
+#
+# The build context is the legacy source as the spec-extraction branch lays it
+# out (legacy-source/j2ee-pet-store-lite at the repository root). See README.md.
+name: swhr5-legacy
+
+services:
+  petstore:
+    build:
+      context: ../../legacy-source/j2ee-pet-store-lite
+      dockerfile: Dockerfile
+    image: swhr5-legacy/petstore-lite:local
+    ports:
+      # The one published HTTP port. Derby's network port (1527) stays inside
+      # the container; only the batch jobs use it.
+      - "8080:8080"
+    healthcheck:
+      # The Tomcat image ships no curl; bash's /dev/tcp is enough to see the
+      # webapp answer. /petstore/ is index.jsp, which needs no sign-on.
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /petstore/ HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
+          head -1 <&3 | grep -q ' 200 '
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
