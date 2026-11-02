@@ -14,23 +14,18 @@ have today.
 
 Adds the `sign-on` capability, recovered from spec extraction SX-0001:
 
-- Refused sign-in shows the sign-in error page and does not sign the user in (approved,
-  `SWHR5-R-0023`).
-- The Sign-in Error page does not disclose whether the user name or the password was wrong
-  (approved, `SWHR5-R-0024`).
-- Sign out records the sign-off, ends the session and shows the signed-out page, also
-  without a session (approved, `SWHR5-R-0009`).
-- Draft requirements awaiting SME decision: the case-sensitive credential check, account
-  updates and audit events on sign-in, the signed-in session, return to the requested page,
-  Remember My User Name, the 15-minute inactivity timeout, the account-store failure path,
-  UTF-8 request decoding, readable password storage, account sign-on timestamps, and
-  (disputed) existing user names containing ".".
+- All 34 approved sign-on records, each written as one requirement carrying its key: the
+  case-sensitive credential check (and its restatements from the guides and samples), account
+  record and sign-in timestamps, failure-count reset on success, readable password storage,
+  existing user names containing ".", return to the requested page, the banner Sign in link
+  through the Welcome page, the refused-sign-in and account-store-failure paths, Remember My
+  User Name, sign out, and the 15-minute inactivity timeout.
 - Five screen requirements: the Sign In returning-customer form, the Sign-in Error page,
-  the signed-out page, the banner sign-in status and the sign-in Welcome page.
+  the Sign-in Error try-again link, the signed-out page and the banner sign-in status.
 
 ## Impact
 
-- Spec: `specs/sign-on/spec.md` (20 requirements: 3 approved, 12 draft rules, 5 screens).
+- Spec: `specs/sign-on/spec.md` (34 approved requirements, 5 of them screens).
 - Related capabilities specified separately: account-lockout (failure counting, the lock,
   the Account Locked page), account-registration (sign-up form and the full account record)
   and access-control (protected pages, role checks, sign-in interception).

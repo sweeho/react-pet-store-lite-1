@@ -2,13 +2,27 @@
 
 ### Requirement: Credential check
 
-The system SHALL accept a sign-in only when an account with exactly the submitted user name exists, the account is not locked, and the submitted password is exactly equal to the stored password; user names and passwords MUST be compared case-sensitively.
+ID: SWHR5-R-0309
+Recovered from: SIGN-REQ-0001
+The system SHALL accept a sign-in only when an account with exactly the submitted user name exists, the account is not locked, and the submitted password is exactly equal to the stored password; user names and passwords SHALL be compared case-sensitively.
 
 #### Scenario: Correct credentials on an unlocked account
 
 - **GIVEN** an unlocked account "j2ee" whose stored password is "j2ee"
 - **WHEN** a sign-in is submitted with user name "j2ee" and password "j2ee"
 - **THEN** the sign-in is accepted
+
+#### Scenario: Correct password on a locked account
+
+- **GIVEN** a locked account "alice" whose stored password is "secret"
+- **WHEN** a sign-in is submitted with user name "alice" and password "secret"
+- **THEN** the sign-in is refused
+
+### Requirement: Case-sensitive match of user name and password
+
+ID: SWHR5-R-0312
+Recovered from: SIGNON-REQ-0001
+The system SHALL accept a sign-in only when an account with exactly the entered user name exists, the account is not locked, and the entered password is exactly equal to the stored password, comparing both the user name and the password case-sensitively.
 
 #### Scenario: Password differs only in letter case
 
@@ -20,13 +34,289 @@ The system SHALL accept a sign-in only when an account with exactly the submitte
 
 - **GIVEN** an account "j2ee" exists and no account "J2EE" exists
 - **WHEN** a sign-in is submitted with user name "J2EE" and the correct password of "j2ee"
-- **THEN** the sign-in is refused as an unknown user name and the failure count of "j2ee" is unchanged
-
-#### Scenario: Correct password on a locked account
-
-- **GIVEN** a locked account "alice" whose stored password is "secret"
-- **WHEN** a sign-in is submitted with user name "alice" and password "secret"
 - **THEN** the sign-in is refused
+
+### Requirement: Sign-in outcome routing
+
+ID: SWHR5-R-0308
+Recovered from: SIGN-BR-0001
+A sign-in SHALL succeed only when the user exists, is not locked and the password matches exactly; on success the user SHALL be returned to the page they were trying to open, or to the home page; on failure a "Sign-in Error" page with a try-again link SHALL be shown.
+
+#### Scenario: Successful sign-in with no page requested
+
+- **GIVEN** an unlocked account "alice" and a visitor who opened the Sign In page directly
+- **WHEN** the visitor signs in as "alice" with the correct password
+- **THEN** the home page is shown
+
+#### Scenario: Failed sign-in
+
+- **GIVEN** an unlocked account "alice"
+- **WHEN** a sign-in is submitted for "alice" with a wrong password that does not lock the account
+- **THEN** the "Sign-in Error" page is shown with a try-again link
+
+### Requirement: Sign-in acceptance rule
+
+ID: SWHR5-R-0314
+Recovered from: SIGNON-BR-0001
+The system SHALL accept a sign-in only when the user exists, is not locked and the password matches the stored password exactly.
+
+#### Scenario: Unknown user
+
+- **GIVEN** no account named "nobody" exists
+- **WHEN** a sign-in is submitted for "nobody"
+- **THEN** the sign-in is refused
+
+#### Scenario: All three conditions hold
+
+- **GIVEN** an unlocked account "alice" whose stored password is "secret"
+- **WHEN** a sign-in is submitted for "alice" with password "secret"
+- **THEN** the sign-in is accepted
+
+### Requirement: Sign-in acceptance with try-again on wrong credentials
+
+ID: SWHR5-R-0313
+Recovered from: SO-BR-0001
+The system SHALL accept a sign-in only when the user name exists, the account is not locked and the password matches exactly. GIVEN the user name or password is wrong THEN the system SHALL show the Sign-in Error page with a "try again" link.
+
+#### Scenario: Wrong user name
+
+- **GIVEN** no account named "nobody" exists
+- **WHEN** a sign-in is submitted for "nobody"
+- **THEN** the Sign-in Error page is shown with a "try again" link
+
+### Requirement: Passwords compared as entered
+
+ID: SWHR5-R-0310
+Recovered from: SIGNON-BR-0007
+The system SHALL store account passwords exactly as entered, without hashing, and SHALL compare them as entered at sign-in.
+
+#### Scenario: Entered password matches the stored text
+
+- **GIVEN** an unlocked account "alice" created with the password "Pa55word"
+- **WHEN** a sign-in is submitted for "alice" with the password "Pa55word"
+- **THEN** the sign-in is accepted
+
+### Requirement: Passwords stored in readable form
+
+ID: SWHR5-R-0211
+Recovered from: SIGNON-BR-0004
+The system SHALL store account passwords exactly as entered, in readable form.
+
+#### Scenario: Stored password is the entered text
+
+- **GIVEN** an account created with the password "Pa55word"
+- **WHEN** the account record is read
+- **THEN** its stored password is "Pa55word"
+
+### Requirement: One account per case-sensitive user name
+
+ID: SWHR5-R-0311
+Recovered from: SIGNON-ENT-0001
+The system SHALL keep one sign-on account per unique, case-sensitive user name, holding the password, a role, a count of consecutive failed sign-ins, a locked flag, the time the lock was set, the time of the last successful sign-in and the time the account was created.
+
+#### Scenario: User names differing only in case are different accounts
+
+- **GIVEN** an account "alice" exists
+- **WHEN** the accounts are looked up by the user name "Alice"
+- **THEN** no account is found
+
+### Requirement: Account record
+
+ID: SWHR5-R-0210
+Recovered from: SIGN-ENT-0001
+The system SHALL keep one account record per user name, holding: user name (unique, at most 25 characters), password (at most 25 characters), role (CUSTOMER or ADMIN, default CUSTOMER), count of consecutive failed sign-ins (default 0), locked flag (Y or N, default N), time the lock was set, time of the last successful sign-in, and time the account was created.
+
+#### Scenario: Defaults on a new account
+
+- **GIVEN** an account "alice" is created with only a user name and password
+- **WHEN** the account record is read
+- **THEN** its role is CUSTOMER, its failed sign-in count is 0, its locked flag is N and its creation time is set
+
+#### Scenario: Duplicate user name
+
+- **GIVEN** an account "alice" exists
+- **WHEN** a second account "alice" is stored
+- **THEN** the store refuses it
+
+### Requirement: Successful sign-in resets the failure count
+
+ID: SWHR5-R-0315
+Recovered from: SIGNON-BR-0002
+The system SHALL reset the consecutive failed sign-in count to zero on a successful sign-in and SHALL store the time of that sign-in as the account's last sign-in.
+
+#### Scenario: Sign-in after earlier failures
+
+- **GIVEN** an unlocked account "alice" with 2 consecutive failed sign-ins
+- **WHEN** "alice" signs in with the correct password at 2024-03-05 10:15
+- **THEN** the account's failed sign-in count is 0 and its last sign-in time is 2024-03-05 10:15
+
+### Requirement: Existing user names containing a full stop
+
+ID: SWHR5-R-0212
+Recovered from: SIGNON-BR-0003
+The system SHALL hold, and SHALL allow sign-in for, existing accounts whose user names contain ".", which the self-registration rule does not permit.
+
+#### Scenario: Migrated account with a dotted user name
+
+- **GIVEN** a migrated, unlocked account "al.khan" with a known password
+- **WHEN** a sign-in is submitted for "al.khan" with that password
+- **THEN** the sign-in is accepted
+
+### Requirement: Last successful sign-in time recorded
+
+ID: SWHR5-R-0093
+Recovered from: SIGN-REQ-0002
+The system SHALL record the date and time of the last successful sign-in on the account whenever a sign-in succeeds.
+
+#### Scenario: First successful sign-in
+
+- **GIVEN** an account "alice" that has never signed in
+- **WHEN** "alice" signs in successfully at 2024-02-01 08:30
+- **THEN** the account's last sign-in time is 2024-02-01 08:30
+
+#### Scenario: Refused sign-in leaves the time unchanged
+
+- **GIVEN** an account "alice" whose last sign-in time is 2024-02-01 08:30
+- **WHEN** a sign-in for "alice" is refused
+- **THEN** the account's last sign-in time is still 2024-02-01 08:30
+
+### Requirement: Last sign-in time equals the most recent successful sign-in
+
+ID: SWHR5-R-0094
+Recovered from: SIGN-RULE-0001
+The system SHALL set an account's last sign-in time to the time of its most recent successful sign-in.
+
+#### Scenario: Several sign-ins
+
+- **GIVEN** an account "alice" that signed in successfully at 2024-03-01 09:00 and again at 2024-03-05 10:15
+- **WHEN** the account record is read
+- **THEN** its last sign-in time is 2024-03-05 10:15
+
+### Requirement: Sign out ends the session and records the sign-off
+
+ID: SWHR5-R-0098
+Recovered from: SIGNON-REQ-0006
+WHEN a signed-in user chooses Sign out THEN the system SHALL end the session, record a sign-off event and show the "You are signed out" page.
+
+#### Scenario: Signed-in user chooses Sign out
+
+- **GIVEN** a visitor signed in as "alice"
+- **WHEN** the visitor chooses Sign out
+- **THEN** the session ends, a sign-off event is recorded for "alice" and the "You are signed out" page is shown
+
+### Requirement: Sign out
+
+ID: SWHR5-R-0009
+Recovered from: SIGNON-REQ-0005
+WHEN a user signs out, the system SHALL record the sign-out against the signed-in user name (if any), end the user's session, and show the "You are signed out" page. Signing out without a session or without a signed-in user SHALL still show that page.
+
+#### Scenario: Signed-in user signs out
+
+- **GIVEN** a visitor signed in as "alice"
+- **WHEN** the visitor chooses Sign out
+- **THEN** a sign-off event is recorded for "alice", the session ends and the "You are signed out" page is shown
+
+#### Scenario: Sign out with no signed-in user
+
+- **GIVEN** a visitor who is not signed in
+- **WHEN** the sign-out address is requested
+- **THEN** the "You are signed out" page is shown and no sign-off event is recorded
+
+### Requirement: Sign-off by link or form submission
+
+ID: SWHR5-R-0218
+Recovered from: SIGN-REQ-0007
+WHEN the user signs off, THEN the system SHALL record a sign-off event for the signed-in user name (if any), end the session, and show the signed-out page. WHEN there is no session, THEN the system SHALL show the signed-out page without recording anything. Sign-off SHALL be accepted both by following a page link and by form submission.
+
+#### Scenario: Sign out by form submission
+
+- **GIVEN** a visitor signed in as "alice"
+- **WHEN** the sign-out address is submitted as a form post rather than followed as a link
+- **THEN** a sign-off event is recorded for "alice", the session ends and the signed-out page is shown
+
+#### Scenario: No session
+
+- **GIVEN** a browser with no session
+- **WHEN** the sign-out link is followed
+- **THEN** the signed-out page is shown and no event is recorded
+
+### Requirement: Return to the originally requested protected page
+
+ID: SWHR5-R-0216
+Recovered from: SIGN-REQ-0003
+After a successful sign-in the system SHALL send the user to the protected page they originally asked for in this session; if no page was recorded the system SHALL send the user to the home page.
+
+#### Scenario: Sign-in requested by a protected page
+
+- **GIVEN** an anonymous visitor who opened My Account and was shown the Sign In page
+- **WHEN** the visitor signs in successfully
+- **THEN** the visitor is taken to My Account
+
+#### Scenario: No page was recorded
+
+- **GIVEN** an anonymous visitor who opened the Sign In page with no protected page recorded in the session
+- **WHEN** the visitor signs in successfully
+- **THEN** the visitor is taken to the home page
+
+### Requirement: Return to the first requested sign-in-only page
+
+ID: SWHR5-R-0132
+Recovered from: SIGN-RUL-0003
+GIVEN an anonymous visitor who requested a sign-in-only page, WHEN they sign in successfully THEN the system SHALL take them to the page first requested; otherwise the system SHALL take them to the home page.
+
+#### Scenario: Sign-in-only page requested first
+
+- **GIVEN** an anonymous visitor who requested My Account and was shown the Sign In page
+- **WHEN** the visitor signs in successfully
+- **THEN** My Account is shown
+
+### Requirement: Return after sign-in to the page being opened
+
+ID: SWHR5-R-0097
+Recovered from: SIGNON-REQ-0002
+WHEN a sign-in succeeds THEN the system SHALL return the user to the page they were trying to open, or to the home page if there was none.
+
+#### Scenario: Page being opened
+
+- **GIVEN** an anonymous visitor who tried to open My Account
+- **WHEN** the visitor signs in successfully
+- **THEN** My Account is shown
+
+#### Scenario: No page being opened
+
+- **GIVEN** a visitor who opened the Sign In page directly
+- **WHEN** the visitor signs in successfully
+- **THEN** the home page is shown
+
+### Requirement: Return to the intended page on successful sign-in
+
+ID: SWHR5-R-0100
+Recovered from: SO-REQ-0001
+WHEN a user signs in successfully THEN the system SHALL return them to the page they were trying to open, or to the home page when there was none.
+
+#### Scenario: Intended page recorded
+
+- **GIVEN** an anonymous visitor who tried to open My Account and was asked to sign in
+- **WHEN** the visitor signs in successfully
+- **THEN** My Account is shown rather than the home page
+
+### Requirement: Banner sign-in link leads through the Welcome page
+
+ID: SWHR5-R-0133
+Recovered from: SIGN-RUL-0004
+The system SHALL offer a "Sign in" link that opens a sign-in-only Welcome page, so an anonymous visitor is first shown the Sign In page and, after signing in, the Welcome page with the home page content.
+
+#### Scenario: Signing in from the banner link
+
+- **GIVEN** an anonymous visitor on a catalog page
+- **WHEN** the visitor follows the "Sign in" link and signs in successfully
+- **THEN** the visitor is first shown the Sign In page and then the Welcome page with the home page content
+
+#### Scenario: Already signed in
+
+- **GIVEN** a visitor signed in as "alice"
+- **WHEN** the Welcome page address is opened
+- **THEN** the Welcome page is shown without a sign-in prompt
 
 ### Requirement: Refused sign-in shows the sign-in error page
 
@@ -58,73 +348,29 @@ GIVEN an account that is not locked, WHEN a sign-in is refused because the user 
 - **WHEN** one sign-in is submitted for "nobody" and another for "alice" with a wrong password
 - **THEN** both attempts show the same Sign-in Error page with identical wording
 
-### Requirement: Successful sign-in updates the account
+### Requirement: Account store failure during sign-in
 
-WHEN a sign-in succeeds THEN the system SHALL reset the account's consecutive failed sign-in count to zero and SHALL store the time of that sign-in as the account's last successful sign-in time.
+ID: SWHR5-R-0215
+Recovered from: SIGN-REQ-0008
+WHEN the account store cannot be reached or fails during a sign-in attempt, THEN the system SHALL NOT sign the user in and SHALL end the request with a general server error rather than the sign-in error page.
 
-#### Scenario: Sign-in after earlier failures
+#### Scenario: Account store unavailable
 
-- **GIVEN** an unlocked account "alice" with 2 consecutive failed sign-ins and last sign-in time 2024-01-01 09:00
-- **WHEN** "alice" signs in with the correct password at 2024-03-05 10:15
-- **THEN** the account's failed sign-in count is 0 and its last sign-in time is 2024-03-05 10:15
-
-### Requirement: Sign-in outcome audit events
-
-The system SHALL write one audit event for every sign-in attempt, carrying the user name exactly as typed, the event time and the client address: a successful sign-in event when the sign-in is accepted and a failed sign-in event when the user name is unknown or the password is wrong. A failed sign-in for an unknown user name MUST NOT change any account's failure count.
-
-#### Scenario: Successful sign-in is audited
-
-- **GIVEN** an unlocked account "alice"
-- **WHEN** "alice" signs in with the correct password
-- **THEN** one successful sign-in event is recorded for "alice"
-
-#### Scenario: Unknown user name is audited as typed
-
-- **GIVEN** no account named "Alice" exists and an account "alice" with 0 failed sign-ins exists
-- **WHEN** a sign-in is submitted with user name "Alice"
-- **THEN** one failed sign-in event is recorded for "Alice" and the failure count of "alice" stays 0
-
-### Requirement: Signed-in session
-
-WHEN a sign-in succeeds THEN the system SHALL record the user name and the account's role in the visitor's session and SHALL mark the session as signed in for the rest of its life.
-
-#### Scenario: Session after a customer signs in
-
-- **GIVEN** an unlocked CUSTOMER account "alice"
-- **WHEN** "alice" signs in successfully
-- **THEN** the session is marked signed in with user name "alice" and role CUSTOMER
-
-### Requirement: Return to the requested page after sign-in
-
-WHEN a sign-in succeeds THEN the system SHALL send the user to the sign-in-only page they asked for earlier in the same session, and SHALL send them to the home page when no such page was recorded.
-
-#### Scenario: Sign-in requested by a protected page
-
-- **GIVEN** an anonymous visitor who opened My Account and was shown the Sign In page
-- **WHEN** the visitor signs in successfully
-- **THEN** the visitor is taken to My Account
-
-#### Scenario: No page was requested
-
-- **GIVEN** an anonymous visitor who opened the Sign In page with no sign-in-only page recorded in the session
-- **WHEN** the visitor signs in successfully
-- **THEN** the visitor is taken to the home page
+- **GIVEN** the account store is unavailable
+- **WHEN** a sign-in is submitted for "alice" with the correct password
+- **THEN** the visitor is not signed in and a general server error is returned instead of the Sign-in Error page
 
 ### Requirement: Remember my user name
 
-WHEN a sign-in is submitted with "Remember My User Name" ticked THEN the system SHALL store the typed user name in the browser for 2 678 400 seconds (31 days); WHEN it is submitted unticked THEN the system SHALL delete any stored user name. The system SHALL do this on every attempt, whatever its outcome (accepted, wrong password, unknown user or locked account).
+ID: SWHR5-R-0217
+Recovered from: SIGN-REQ-0005
+WHEN the user submits the sign-in form with "Remember My User Name" ticked, THEN the system SHALL store the typed user name in a browser cookie that lasts 31 days (2 678 400 seconds). WHEN it is not ticked, THEN the system SHALL delete any such cookie.
 
-#### Scenario: Ticked on a successful sign-in
+#### Scenario: Ticked
 
 - **GIVEN** the Sign In page with no remembered user name
-- **WHEN** "alice" signs in successfully with "Remember My User Name" ticked
+- **WHEN** "alice" signs in with "Remember My User Name" ticked
 - **THEN** the browser keeps the user name "alice" for 31 days
-
-#### Scenario: Ticked on a refused sign-in
-
-- **GIVEN** no account named "nobody" exists
-- **WHEN** a sign-in is submitted for "nobody" with "Remember My User Name" ticked
-- **THEN** the sign-in error page is shown and the browser keeps the user name "nobody" for 31 days
 
 #### Scenario: Unticked
 
@@ -132,9 +378,59 @@ WHEN a sign-in is submitted with "Remember My User Name" ticked THEN the system 
 - **WHEN** a sign-in is submitted with "Remember My User Name" unticked
 - **THEN** the remembered user name is deleted from the browser
 
+### Requirement: User name remembered whatever the outcome
+
+ID: SWHR5-R-0214
+Recovered from: SIGN-REQ-0006
+GIVEN "Remember My User Name" is ticked, WHEN a sign-in attempt is submitted, THEN the system SHALL store the typed user name in the cookie whatever the outcome of the attempt (success, wrong password, unknown user or locked account).
+
+#### Scenario: Unknown user with the box ticked
+
+- **GIVEN** no account named "nobody" exists
+- **WHEN** a sign-in is submitted for "nobody" with "Remember My User Name" ticked
+- **THEN** the sign-in error page is shown and the browser keeps the user name "nobody"
+
+#### Scenario: Locked account with the box ticked
+
+- **GIVEN** a locked account "bob"
+- **WHEN** a sign-in is submitted for "bob" with "Remember My User Name" ticked
+- **THEN** the sign-in is refused and the browser keeps the user name "bob"
+
+### Requirement: Remembered user name stored or deleted on every attempt
+
+ID: SWHR5-R-0130
+Recovered from: SIGN-RUL-0001
+GIVEN a sign-in attempt, WHEN "Remember My User Name" is ticked THEN the system SHALL store the typed user name in the browser for 31 days (2 678 400 seconds); WHEN it is not ticked THEN the system SHALL delete any stored user name. This SHALL happen whether or not the sign-in succeeds.
+
+#### Scenario: Unticked on a refused sign-in
+
+- **GIVEN** the browser holds the remembered user name "alice"
+- **WHEN** a sign-in for "alice" with a wrong password is submitted with the box unticked
+- **THEN** the sign-in is refused and the remembered user name is deleted
+
+### Requirement: Remembered user name pre-fills the sign-in form
+
+ID: SWHR5-R-0213
+Recovered from: SIGN-BR-0002
+WHEN a user signs in with "Remember My User Name" selected THEN the system SHALL store the user name in a browser cookie that expires after 2 678 400 seconds (31 days), and SHALL pre-fill the sign-in user name from it.
+
+#### Scenario: Returning within 31 days
+
+- **GIVEN** "alice" signed in with "Remember My User Name" selected 10 days ago
+- **WHEN** the Sign In page is opened in the same browser
+- **THEN** the User Name field is pre-filled with "alice"
+
+#### Scenario: Returning after 31 days
+
+- **GIVEN** "alice" signed in with "Remember My User Name" selected 32 days ago and has not signed in since
+- **WHEN** the Sign In page is opened in the same browser
+- **THEN** the User Name field is not pre-filled with "alice"
+
 ### Requirement: Session inactivity timeout
 
-The system SHALL end a session after 15 minutes without a request from the visitor, after which the visitor MUST be treated as not signed in.
+ID: SWHR5-R-0131
+Recovered from: SIGN-RUL-0002
+The system SHALL end a visitor's session after 15 minutes without activity, after which the visitor MUST be treated as not signed in.
 
 #### Scenario: Idle beyond 15 minutes
 
@@ -148,89 +444,11 @@ The system SHALL end a session after 15 minutes without a request from the visit
 - **WHEN** the visitor opens My Account
 - **THEN** My Account is shown without a new sign-in
 
-### Requirement: Sign out
-
-ID: SWHR5-R-0009
-Recovered from: SIGNON-REQ-0005
-WHEN a user signs out, the system SHALL record the sign-out against the signed-in user name (if any), end the user's session, and show the "You are signed out" page. Signing out without a session or without a signed-in user SHALL still show that page.
-
-#### Scenario: Signed-in user signs out
-
-- **GIVEN** a visitor signed in as "alice"
-- **WHEN** the visitor chooses Sign out
-- **THEN** a sign-off event is recorded for "alice", the session ends and the "You are signed out" page is shown
-
-#### Scenario: Sign out with no signed-in user
-
-- **GIVEN** a visitor who is not signed in
-- **WHEN** the sign-out address is requested
-- **THEN** the "You are signed out" page is shown and no sign-off event is recorded
-
-#### Scenario: Sign out by form submission
-
-- **GIVEN** a visitor signed in as "alice"
-- **WHEN** the sign-out address is submitted as a form post rather than followed as a link
-- **THEN** the outcome is the same as choosing the Sign out link
-
-### Requirement: Account store failure during sign-in
-
-WHEN the account store cannot be reached or fails during a sign-in attempt THEN the system SHALL NOT sign the user in and SHALL end the request with a general server error rather than the sign-in error page.
-
-#### Scenario: Database unavailable
-
-- **GIVEN** the account store is unavailable
-- **WHEN** a sign-in is submitted for "alice" with the correct password
-- **THEN** the visitor is not signed in and a general server error is returned instead of the Sign-in Error page
-
-### Requirement: UTF-8 request decoding before sign-in
-
-The system SHALL decode the text of every incoming request (form fields and query parameters) as UTF-8 before any sign-in or access check reads it, so that user names, passwords and other submitted text containing non-ASCII characters MUST be received intact.
-
-#### Scenario: Non-ASCII password
-
-- **GIVEN** an unlocked account "jose" whose stored password is "contraseña"
-- **WHEN** a sign-in is submitted for "jose" with the password "contraseña"
-- **THEN** the sign-in is accepted
-
-### Requirement: Passwords stored and compared as entered
-
-The system SHALL store account passwords exactly as entered, in readable form, and SHALL compare the submitted password with the stored value as entered at sign-in.
-
-#### Scenario: Stored password matches the entered text
-
-- **GIVEN** an account created with the password "Pa55word"
-- **WHEN** the account record is read
-- **THEN** its stored password is "Pa55word"
-
-### Requirement: Account sign-on timestamps
-
-The system SHALL keep on every account the time the account was created, which MUST be present and SHALL default to the current time, and the time of its most recent successful sign-in, which SHALL be empty until the first successful sign-in and SHALL equal the time of the account's latest successful sign-in event in the audit trail.
-
-#### Scenario: New account never signed in
-
-- **GIVEN** an account created at 2024-02-01 08:00 that has never signed in
-- **WHEN** the account record is read
-- **THEN** its creation time is 2024-02-01 08:00 and its last sign-in time is empty
-
-#### Scenario: Last sign-in agrees with the audit trail
-
-- **GIVEN** an account whose latest successful sign-in event is at 2024-03-05 10:15
-- **WHEN** the account record is read
-- **THEN** its last sign-in time is 2024-03-05 10:15
-
-### Requirement: Existing user names containing a full stop
-
-The system SHALL hold existing accounts whose user names contain "." and SHALL let them sign in, even though the self-registration rule does not permit "." in a new user name.
-
-#### Scenario: Migrated account with a dotted user name
-
-- **GIVEN** a migrated, unlocked account "al.khan" with a known password
-- **WHEN** a sign-in is submitted for "al.khan" with that password
-- **THEN** the sign-in is accepted
-
 ### Requirement: Sign In page returning-customer form
 
-The Sign In page SHALL carry the page title "Sign On" and the heading "Sign In", and SHALL offer a returning-customer form with a User Name field, a masked Password field, a "Remember My User Name" checkbox and a Sign In button. WHEN a remembered user name is stored in the browser the User Name field SHALL be pre-filled with it and the checkbox ticked; otherwise the User Name field SHALL be pre-filled with "j2ee" and the checkbox unticked. The Password field MUST always start empty.
+ID: SWHR5-R-0095
+Recovered from: SIGN-SCR-0001
+The Sign In page SHALL show a returning-customer form with a User Name field, a Password field, a "Remember My User Name" checkbox and a Sign In button. GIVEN a remembered user name is stored in the browser, the User Name field SHALL be pre-filled with it and the checkbox ticked; otherwise the User Name field SHALL be pre-filled with "j2ee" and the checkbox unticked. The Password field MUST start empty.
 
 #### Scenario: No remembered user name
 
@@ -252,13 +470,21 @@ The Sign In page SHALL carry the page title "Sign On" and the heading "Sign In",
 
 ### Requirement: Sign-in Error page
 
-The Sign-in Error page SHALL carry the page title "Sign On Error" and the heading "Sign-in Error", SHALL state that the user name and password entered were not found, SHALL offer a "try again" link that leads back to the Sign In page, and SHALL state that an account is locked after 3 failed attempts in a row.
+ID: SWHR5-R-0134
+Recovered from: SIGN-SCR-0002
+GIVEN a sign-in with a wrong user name or password on an unlocked account, the system SHALL show a Sign-in Error page that says the user name and password were not found, offers a "try again" link to sign in, and states that 3 failed attempts in a row lock the account.
 
 #### Scenario: Error page after a refused sign-in
 
 - **GIVEN** an unlocked account "alice" and a sign-in with a wrong password that does not lock it
 - **WHEN** the Sign-in Error page is displayed
 - **THEN** it shows the heading "Sign-in Error", the not-found message, the 3-attempt lock warning and a "try again" link
+
+### Requirement: Sign-in Error page try-again link
+
+ID: SWHR5-R-0099
+Recovered from: SIGNON-SCR-0004
+WHEN the user name or password is wrong THEN the system SHALL show the Sign-in Error page with a "try again" link that leads back to signing in.
 
 #### Scenario: Try again
 
@@ -268,7 +494,9 @@ The Sign-in Error page SHALL carry the page title "Sign On Error" and the headin
 
 ### Requirement: Signed-out page
 
-The signed-out page SHALL carry the page title "Sign Off" and the heading "You are signed out.", SHALL thank the visitor for visiting the Pet Store, and SHALL offer a link to sign in again that leads to the Sign In page.
+ID: SWHR5-R-0135
+Recovered from: SIGN-SCR-0003
+WHEN a signed-in visitor chooses Sign out THEN the system SHALL end their session and show a "You are signed out." page that thanks them and offers a link to sign in again.
 
 #### Scenario: Page after sign-out
 
@@ -284,7 +512,9 @@ The signed-out page SHALL carry the page title "Sign Off" and the heading "You a
 
 ### Requirement: Banner sign-in status
 
-The banner on every page SHALL show "Signed in as <user name>" and a "Sign out" link WHILE the visitor is signed in, and SHALL show a "Sign in" link instead, with no signed-in text, WHILE the visitor is not signed in.
+ID: SWHR5-R-0096
+Recovered from: SIGN-SCR-0004
+WHILE a visitor is signed in the system SHALL show "Signed in as <user name>" and a "Sign out" link in the banner; WHILE the visitor is not signed in it SHALL show a "Sign in" link instead.
 
 #### Scenario: Signed-in visitor
 
@@ -297,25 +527,3 @@ The banner on every page SHALL show "Signed in as <user name>" and a "Sign out" 
 - **GIVEN** a visitor who is not signed in
 - **WHEN** any page is displayed
 - **THEN** the banner shows a "Sign in" link and no "Signed in as" text
-
-#### Scenario: Sign out from the banner
-
-- **GIVEN** a visitor signed in as "alice"
-- **WHEN** the visitor follows the banner "Sign out" link
-- **THEN** the visitor is signed out and the signed-out page is shown
-
-### Requirement: Sign-in Welcome page
-
-The banner "Sign in" link SHALL open a sign-in-only Welcome page: an anonymous visitor following it MUST first be shown the Sign In page and, after signing in, SHALL land on the Welcome page, which carries the page title "Welcome" and shows the home page content on the shared layout.
-
-#### Scenario: Signing in from the banner link
-
-- **GIVEN** an anonymous visitor on a catalog page
-- **WHEN** the visitor follows the banner "Sign in" link and signs in successfully
-- **THEN** the Welcome page is displayed with the home page content and the banner shows "Signed in as <user name>"
-
-#### Scenario: Already signed in
-
-- **GIVEN** a visitor signed in as "alice"
-- **WHEN** the Welcome page address is opened
-- **THEN** the Welcome page is displayed without a sign-in prompt

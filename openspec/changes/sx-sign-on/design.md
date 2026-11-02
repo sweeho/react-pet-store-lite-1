@@ -89,15 +89,16 @@ latest `SIGNON_OK` time for every account sampled.
 
 ## Evidence quality and open points
 
-- **Approved-key ambiguity.** Record keys repeat across modules. `SIGNON-REQ-0003` exists in
-  the signon module (pass b, error page wording) and in docs/guides (pass a, Remember My User
-  Name); `SIGNON-REQ-0005` exists in the signon module (pass b, sign-out) and in docs/guides
-  (pass a, 15-minute timeout). The keyed requirements in the spec were written from the
-  signon-module records, because the third approved key, `SIGN-REQ-0004`, is the signon
-  module's pass a record and pairs with `SIGNON-REQ-0003` (pass b) on the same behaviour. If
-  the approvals were meant for the docs/guides records, the `ID:` lines for
-  `SWHR5-R-0024` and `SWHR5-R-0009` move to "Remember my user name" and "Session inactivity
-  timeout".
+- **Approved-key ambiguity.** Record keys repeat across modules, and the platform holds one
+  record per key. Where a key has several pass-file variants, `spec.md` uses the variant that
+  matches the cluster the key was approved in: `SIGN-ENT-0001`, `SIGNON-REQ-0001`,
+  `SIGNON-REQ-0003` and `SIGNON-REQ-0005` from the signon module; `SIGN-BR-0001` from
+  docs/guides pass b and `SIGN-BR-0002` from conf pass a; `SIGNON-BR-0002`, `-0003`, `-0004`
+  and `SIGNON-ENT-0001` from data/migration pass a; `SIGNON-BR-0001` and `SIGNON-REQ-0006`
+  from docs/guides pass a; `SIGN-SCR-0001` from webapp pass a (the Sign In form, not the waf
+  page-title list). If an SME meant a different variant, only that requirement's text moves.
+  Behaviour of the unused variants (UTF-8 request decoding, the signed-in session holding
+  user name and role, unknown-user audit events) is not specified in this change.
 - **Readable passwords** (`SIGNON-BR-0004`, `SIGNON-BR-0007`, `SIGN-ENT-0001` docs/guides):
   the admin guide states it and the code compares with `String.equals`. Whether the rebuild
   keeps it is a Business Owner decision through Intent; migrating the existing passwords
