@@ -1,0 +1,111 @@
+# SX-0001 extract-a, shard j2ee-pet-store-lite/pom.xml
+# No legacy-analysis/sources/**/extracted.md exists in this tree, so no document traces.
+# The POM is build configuration. Its only behaviour-bearing content is the set of
+# database tool libraries it ships into the container for the batch jobs; everything
+# else (servlet/JSP/JSTL versions, Java 8, WAR packaging) is stack identity and is not
+# a business requirement.
+records:
+  - record_key: BATCH-INT-0001
+    kind: integration
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL install, alongside the store application, the database client and
+      command-line SQL tools that the nightly batch jobs use to run their SQL scripts
+      (backup, audit extract, audit purge, sign-on report, account unlock, catalog check)
+      against the live store database.
+      GIVEN the database tool libraries are absent or at a different version than the batch
+      environment expects WHEN any batch job runs its SQL script THEN the job fails.
+    plain_text: >
+      The shop's server comes with the database tools the nightly jobs need. Every nightly
+      job (backup, audit export and clean-up, sign-on report, account unlock, catalog check)
+      depends on them; without them none of those jobs can run.
+    technical_note: >
+      pom.xml binds maven-dependency-plugin goal copy (execution copy-derby, phase package)
+      to copy derby, derbynet, derbyclient and derbytools at ${derby.version}=10.14.2.0 into
+      target/container-lib. The Dockerfile copies container-lib/*.jar into
+      /usr/local/tomcat/lib. conf/env.sh psl_ij() runs org.apache.derby.tools.ij with a
+      classpath of $DERBY_LIB/derbytools-10.14.2.0.jar and derbyclient-10.14.2.0.jar
+      (DERBY_LIB defaults to /usr/local/tomcat/lib); every batch/*.sh script calls psl_ij.
+      derbynet provides the DRDA network server Tomcat starts on port 1527.
+    interface: true
+    risk_class: operational
+    confidence: high
+    confidence_basis: >
+      The chain is visible end to end in three files: the POM copy execution, the
+      Dockerfile COPY into the Tomcat lib folder, and the psl_ij classpath in conf/env.sh
+      that names the same jar files. The failure edge case is inferred from the hard-coded
+      classpath, not observed in a run.
+    basis: >
+      The POM ships derbytools and derbyclient into container-lib; env.sh builds the ij
+      classpath from exactly those jars in the Tomcat lib folder, and the batch scripts
+      (e.g. psl_db_backup.sh, psl_audit_purge.sh) exit 8 when psl_ij fails.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/pom.xml
+        line_start: 69
+        line_end: 105
+        excerpt: |
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>copy-derby</id>
+                <phase>package</phase>
+                <goals><goal>copy</goal></goals>
+                ...
+                <outputDirectory>${project.build.directory}/container-lib</outputDirectory>
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 16
+        line_end: 16
+        excerpt: |
+          COPY --from=war /src/target/container-lib/*.jar /usr/local/tomcat/lib/
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 17
+        line_end: 26
+        excerpt: |
+          # Run a SQL script with Derby ij against the store database.
+          # Usage: psl_ij <script.sql>   Fails when ij reports an ERROR line.
+          psl_ij() {
+            out=$("$JAVA_CMD" -cp "$DERBY_LIB/derbytools-10.14.2.0.jar:$DERBY_LIB/derbyclient-10.14.2.0.jar" \
+                  -Dij.connection.psl="$PSL_DB_URL" -Dij.outfile=/dev/stdout \
+                  org.apache.derby.tools.ij "$1" 2>&1)
+            echo "$out"
+            echo "$out" | grep -q "^ERROR" && return 1
+            return 0
+          }
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 8
+        line_end: 8
+        excerpt: |
+          psl_ij "$PSL_SQL/db_backup.sql" > /dev/null || { psl_log "FAILED: backup"; exit 8; }
+    stack_metadata:
+      framework: maven/war
+      db.object: derby-10.14.2.0
+      batch.trigger: conf/env.sh psl_ij
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/pom.xml
+    description: >
+      project.build.sourceEncoding is ISO-8859-1 (line 18) and the TLD/screen-definition XML
+      files declare ISO-8859-1. Whether the store's character handling of user input and
+      catalog text is meant to be ISO-8859-1 end to end is not decidable from the POM; it
+      belongs to the encoding filter / web.xml shards. No record emitted from the POM alone.
+suspected_defects:
+  - capability_key: batch-operations
+    record_keys: [BATCH-INT-0001]
+    severity: low
+    category: other
+    title: Database tool version is pinned in two places that must be changed together
+    description: >
+      The POM sets the database library version through the derby.version property, but the
+      batch environment names the jar files with the literal version 10.14.2.0. Changing the
+      property alone would ship differently named jars and every nightly job (including the
+      backup) would fail with exit code 8 while the store itself keeps working.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/pom.xml
+        line_start: 21
+        line_end: 21
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 20
+        line_end: 20
