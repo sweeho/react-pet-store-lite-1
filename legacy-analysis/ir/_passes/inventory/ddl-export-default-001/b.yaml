@@ -1,0 +1,366 @@
+records:
+  - record_key: CDI-ENT-0001
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: |
+      The system SHALL hold each pet category as a record identified by a mandatory category code of at most 10 characters, and SHALL refuse a second category with the same code.
+    plain_text: |
+      Every pet category (for example Fish or Dogs) has a short code of up to 10 characters; the code is required and no two categories may share it.
+    technical_note: |
+      Table CATEGORY has a single column CATID, NOT NULL, primary key PK_CATEGORY. Derby declares it CHAR(10), Oracle VARCHAR(10). The table holds the key only; all display text lives in CATEGORY_DETAILS. Identical DDL appears in db/schema and vortex/inputs/02-database.
+    confidence: high
+    confidence_basis: |
+      Primary key and NOT NULL are declared in both the Derby and the Oracle schema (and duplicated in the vortex inputs copies); the database itself enforces them. Not higher-risk than that because the two dialects disagree on fixed vs variable length, which is noted separately.
+    risk_class: operational
+    interface: false
+    basis: |
+      CREATE TABLE category declares catid not null with constraint pk_category primary key (catid); the header comment lists the categories FISH, DOGS, REPTILES, CATS, BIRDS.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: category
+        line_start: 11
+        line_end: 12
+        excerpt: |
+          CREATE TABLE category (catid char(10) not null,
+            constraint pk_category primary key (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: category
+        line_start: 11
+        line_end: 12
+        excerpt: |
+          CREATE TABLE category (catid char(10) not null,
+            constraint pk_category primary key (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: category
+        line_start: 11
+        line_end: 12
+        excerpt: |
+          CREATE TABLE category (catid varchar(10) not null,
+            constraint pk_category primary key (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: category
+        line_start: 11
+        line_end: 12
+        excerpt: |
+          CREATE TABLE category (catid varchar(10) not null,
+            constraint pk_category primary key (catid));
+    stack_metadata:
+      db.object: "CATEGORY"
+      db.kind: "table"
+      db.schema: "ESTOREUSER"
+      db.constraints: "PK_CATEGORY(catid)"
+      db.column_type.derby: "CHAR(10)"
+      db.column_type.oracle: "VARCHAR(10)"
+  - record_key: CDI-ENT-0002
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: |
+      The system SHALL hold the display text of a category per locale: each entry SHALL carry the category code, a mandatory locale code of at most 10 characters, a mandatory name of at most 80 characters, and an optional image reference and optional description of at most 255 characters each.
+    plain_text: |
+      A category's name, picture and description are stored separately for each language/region. The name and the language/region are required; the picture and description are optional. Names are limited to 80 characters, picture references and descriptions to 255.
+    technical_note: |
+      Table CATEGORY_DETAILS(catid, name, image, descn, locale). NOT NULL on catid, name, locale; image and descn nullable. Derby uses VARCHAR/CHAR, Oracle VARCHAR2/VARCHAR.
+    confidence: high
+    confidence_basis: |
+      Column nullability and lengths are declared identically (modulo dialect type names) in both the Derby and Oracle schemas and enforced by the database.
+    risk_class: presentational
+    interface: false
+    basis: |
+      name varchar(80) not null, image varchar(255), descn varchar(255), locale char(10) not null in CREATE TABLE category_details.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: category_details
+        line_start: 15
+        line_end: 17
+        excerpt: |
+          CREATE TABLE category_details (catid char(10) not null,
+            name varchar(80) not null, image varchar(255),
+            descn varchar(255), locale char(10) not null,
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: category_details
+        line_start: 15
+        line_end: 17
+        excerpt: |
+          CREATE TABLE category_details (catid char(10) not null,
+            name varchar(80) not null, image varchar(255),
+            descn varchar(255), locale char(10) not null,
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: category_details
+        line_start: 15
+        line_end: 17
+        excerpt: |
+          CREATE TABLE category_details (catid varchar(10) not null,
+            name varchar2(80) not null, image varchar2(255),
+            descn varchar2(255), locale varchar(10) not null,
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: category_details
+        line_start: 15
+        line_end: 17
+        excerpt: |
+          CREATE TABLE category_details (catid varchar(10) not null,
+            name varchar2(80) not null, image varchar2(255),
+            descn varchar2(255), locale varchar(10) not null,
+    stack_metadata:
+      db.object: "CATEGORY_DETAILS"
+      db.kind: "table"
+      db.schema: "ESTOREUSER"
+  - record_key: CDI-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: |
+      The system SHALL allow at most one set of display text per category and locale.
+      GIVEN a category already has text for a locale
+      WHEN a second text entry is stored for the same category and the same locale
+      THEN the system SHALL refuse it.
+    plain_text: |
+      A category can have only one name/description per language; adding a second one for the same language is rejected.
+    technical_note: |
+      Composite primary key PK_CATEGORY_DETAILS(catid, locale) on CATEGORY_DETAILS, in both Derby and Oracle schemas.
+    confidence: high
+    confidence_basis: |
+      Composite primary key is declared in both dialect schemas and enforced by the database.
+    risk_class: operational
+    interface: false
+    basis: |
+      constraint pk_category_details primary key (catid, locale).
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: category_details
+        line_start: 18
+        line_end: 18
+        excerpt: |
+            constraint pk_category_details primary key (catid, locale),
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: category_details
+        line_start: 18
+        line_end: 18
+        excerpt: |
+            constraint pk_category_details primary key (catid, locale),
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: category_details
+        line_start: 18
+        line_end: 18
+        excerpt: |
+            constraint pk_category_details primary key (catid, locale),
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: category_details
+        line_start: 18
+        line_end: 18
+        excerpt: |
+            constraint pk_category_details primary key (catid, locale),
+    stack_metadata:
+      db.object: "CATEGORY_DETAILS"
+      db.kind: "table"
+      db.constraints: "PK_CATEGORY_DETAILS(catid, locale)"
+  - record_key: CDI-BR-0002
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: |
+      The system SHALL refuse category display text whose category code does not identify an existing category, and SHALL refuse to remove a category while display text for it still exists.
+    plain_text: |
+      Category names and descriptions can only be stored for a category that exists, and a category cannot be deleted while it still has names or descriptions attached.
+    technical_note: |
+      Foreign key FK_CATEGORY_DETAILS_1 (catid) REFERENCES CATEGORY(catid), no ON DELETE clause (default restrict / no action) in both dialects. The populate tool therefore has to drop/insert in dependency order.
+    confidence: high
+    confidence_basis: |
+      Foreign key declared in both dialect schemas. The delete-restrict half is the default behaviour of a foreign key with no ON DELETE clause rather than an explicit statement, but that default is the same in Derby and Oracle.
+    risk_class: operational
+    interface: false
+    basis: |
+      constraint fk_category_details_1 foreign key (catid) references category (catid), with no cascade option.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: category_details
+        line_start: 19
+        line_end: 20
+        excerpt: |
+              constraint fk_category_details_1 foreign key (catid)
+              references category (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: category_details
+        line_start: 19
+        line_end: 20
+        excerpt: |
+              constraint fk_category_details_1 foreign key (catid)
+              references category (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: category_details
+        line_start: 19
+        line_end: 20
+        excerpt: |
+              constraint fk_category_details_1 foreign key (catid)
+              references category (catid));
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: category_details
+        line_start: 19
+        line_end: 20
+        excerpt: |
+              constraint fk_category_details_1 foreign key (catid)
+              references category (catid));
+    stack_metadata:
+      db.object: "CATEGORY_DETAILS"
+      db.kind: "table"
+      db.constraints: "FK_CATEGORY_DETAILS_1 -> CATEGORY(catid)"
+      db.reads: "category"
+  - record_key: CB-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: |
+      The system SHALL support looking up the products of a category and the items of a product by their parent code without scanning the whole catalog.
+    plain_text: |
+      Listing the products in a category, and the items for a product, must stay fast as the catalog grows.
+    technical_note: |
+      Non-unique indexes IDX_PRODUCT_CATID on PRODUCT(catid) and IDX_ITEM_PRODUCTID on ITEM(productid), present in both Derby and Oracle schemas. They back the category -> product -> item browse queries in the catalog DAO.
+    confidence: low
+    confidence_basis: |
+      An index states a performance intent, not a business rule; the requirement is inferred from the index existing, not read from any stated target. Present in both dialects, but there is no response-time figure anywhere in this unit.
+    risk_class: operational
+    interface: false
+    basis: |
+      CREATE INDEX idx_product_catid ON product (catid); CREATE INDEX idx_item_productid ON item (productid).
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: idx_product_catid
+        line_start: 96
+        line_end: 96
+        excerpt: |
+          CREATE INDEX idx_product_catid ON product (catid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: idx_product_catid
+        line_start: 96
+        line_end: 96
+        excerpt: |
+          CREATE INDEX idx_product_catid ON product (catid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: idx_product_catid
+        line_start: 107
+        line_end: 107
+        excerpt: |
+          CREATE INDEX idx_product_catid ON product (catid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: idx_product_catid
+        line_start: 107
+        line_end: 107
+        excerpt: |
+          CREATE INDEX idx_product_catid ON product (catid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: idx_item_productid
+        line_start: 97
+        line_end: 97
+        excerpt: |
+          CREATE INDEX idx_item_productid ON item (productid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: idx_item_productid
+        line_start: 97
+        line_end: 97
+        excerpt: |
+          CREATE INDEX idx_item_productid ON item (productid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: idx_item_productid
+        line_start: 108
+        line_end: 108
+        excerpt: |
+          CREATE INDEX idx_item_productid ON item (productid);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: idx_item_productid
+        line_start: 108
+        line_end: 108
+        excerpt: |
+          CREATE INDEX idx_item_productid ON item (productid);
+    stack_metadata:
+      db.object: "IDX_PRODUCT_CATID, IDX_ITEM_PRODUCTID"
+      db.kind: "index"
+      db.reads: "product, item"
+  - record_key: SOA-REQ-0001
+    kind: requirement
+    capability_key: sign-on-audit
+    requirement: |
+      The system SHALL support selecting sign-on audit events by event time range across all users without scanning the whole audit trail.
+    plain_text: |
+      Pulling the sign-on history for a period (for example yesterday's events, or everything older than the retention limit) must be efficient regardless of which user the events belong to.
+    technical_note: |
+      Index IDX_SIGNON_AUDIT_TS on SIGNON_AUDIT(event_ts) in both dialects; it serves the date-window predicates in db/batch/audit_extract.sql (previous calendar day) and db/batch/audit_purge.sql (older than 90 days). A separate (username, event_ts) index covers per-user views and is outside this unit.
+    confidence: low
+    confidence_basis: |
+      Inferred from an index whose only stated purpose is access by event_ts; the consumers (extract and purge batch scripts) were read only to confirm the predicate shape, not as part of this unit.
+    risk_class: operational
+    interface: false
+    basis: |
+      CREATE INDEX idx_signon_audit_ts ON signon_audit (event_ts); batch scripts filter signon_audit on event_ts ranges.
+    traces:
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        anchor: idx_signon_audit_ts
+        line_start: 99
+        line_end: 99
+        excerpt: |
+          CREATE INDEX idx_signon_audit_ts ON signon_audit (event_ts);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_derby.sql
+        anchor: idx_signon_audit_ts
+        line_start: 99
+        line_end: 99
+        excerpt: |
+          CREATE INDEX idx_signon_audit_ts ON signon_audit (event_ts);
+      - kind: db_object
+        path: j2ee-pet-store-lite/db/schema/petstore_oracle.sql
+        anchor: idx_signon_audit_ts
+        line_start: 110
+        line_end: 110
+        excerpt: |
+          CREATE INDEX idx_signon_audit_ts ON signon_audit (event_ts);
+      - kind: db_object
+        path: j2ee-pet-store-lite/vortex/inputs/02-database/petstore_oracle.sql
+        anchor: idx_signon_audit_ts
+        line_start: 110
+        line_end: 110
+        excerpt: |
+          CREATE INDEX idx_signon_audit_ts ON signon_audit (event_ts);
+    stack_metadata:
+      db.object: "IDX_SIGNON_AUDIT_TS"
+      db.kind: "index"
+      db.reads: "signon_audit"
+findings:
+  - kind: conflict
+    record_key: CDI-ENT-0001
+    path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+    description: >
+      The category code (and the locale code of category text) is CHAR(10) in the
+      Derby runtime schema and VARCHAR(10) in the Oracle reference-production schema.
+      CHAR pads short codes with trailing blanks; VARCHAR does not. Codes such as
+      FISH or en_US are shorter than 10, so a value read back may differ by trailing
+      spaces between the two databases. A human should confirm the target semantics
+      (codes compared trimmed) before the data model is rebuilt.
+  - kind: ambiguity
+    path: j2ee-pet-store-lite/db/schema/petstore_derby.sql
+    description: >
+      Nothing in the category tables requires a category to have text in the default
+      locale (en_US). The nightly catalog check (db/batch/catalog_check.sql, check C4)
+      enforces en_US text for items only, not for categories. Whether a category with
+      no en_US name is acceptable is not stated; an SME should decide whether the
+      en_US-presence rule covers categories too.
+suspected_defects: []
