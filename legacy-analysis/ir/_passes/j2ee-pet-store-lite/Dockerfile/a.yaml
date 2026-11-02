@@ -1,0 +1,306 @@
+# SX-0001 extract-a, shard j2ee-pet-store-lite/Dockerfile
+# No legacy-analysis/sources/**/extracted.md exists in this tree; the operations
+# runbook HTML source is cited as a code-path trace with line numbers instead.
+records:
+  - record_key: BATCH-REQ-0001
+    kind: integration
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL make the live store database reachable to the nightly batch jobs
+      while the store application is running, so that the batch jobs read and write the
+      same database the store uses without stopping the store.
+      GIVEN the store application is not running WHEN a batch job starts THEN the job
+      cannot reach the database and fails.
+    plain_text: >
+      The nightly jobs work on the same live database as the shop, while the shop stays
+      open. If the shop's server is down, the nightly jobs cannot run.
+    technical_note: >
+      Derby runs embedded inside Tomcat (derby.system.home=/var/petstore/db) and Tomcat is
+      also told to start the Derby DRDA network server on 0.0.0.0:1527 (CATALINA_OPTS in
+      the Dockerfile, port 1527 exposed). The batch scripts connect with the Derby client
+      URL jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB (conf/env.sh). The
+      runbook's exit-code 8 guidance tells operators to check Tomcat is up because the
+      network server runs inside it.
+    interface: true
+    risk_class: operational
+    confidence: high
+    confidence_basis: >
+      Stated in three independent places: the Dockerfile comment and CATALINA_OPTS, the
+      batch connection URL in conf/env.sh, and the operations runbook system overview and
+      exit-code table. The failure-when-Tomcat-down edge case is stated by the runbook,
+      not observed.
+    basis: >
+      The Dockerfile comment states Derby runs embedded in Tomcat and listens on 1527 so
+      the batch jobs can connect; the batch environment uses the network URL on port 1527.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 22
+        line_end: 24
+        excerpt: |
+          # Derby runs embedded in Tomcat and also listens on 1527 so the batch jobs can connect
+          ENV CATALINA_OPTS="-Dderby.system.home=/var/petstore/db -Dderby.drda.startNetworkServer=true -Dderby.drda.host=0.0.0.0 -Dderby.drda.portNumber=1527"
+          EXPOSE 8080 1527
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 10
+        line_end: 11
+        excerpt: |
+          petstore.db.url.embedded=jdbc:derby:/var/petstore/db/PetStoreDB
+          petstore.db.url.network=jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 19
+        line_end: 19
+        excerpt: |
+          <tr><td>Database</td><td>Apache Derby 10.14 (formerly Cloudscape), database <code>PetStoreDB</code> in <code>/var/petstore/db</code>, schema ESTOREUSER. Runs inside Tomcat; batch jobs connect through the Derby network server on port 1527.</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 79
+        line_end: 79
+        excerpt: |
+          <tr><td>8</td><td>SQL or file error</td><td>Read <code>batch.log</code> and the job log. Check that Tomcat is up (the Derby network server runs inside it) and that port 1527 answers. Rerun.</td></tr>
+    stack_metadata:
+      framework: docker/tomcat-9/derby-10.14
+      db.object: PetStoreDB
+      derby.drda.port: 1527
+      derby.drda.host: 0.0.0.0
+
+  - record_key: BATCH-REQ-0002
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL provide three separate, pre-existing output locations for batch
+      work: one for database backups, one for extract files, and one for job logs, and
+      SHALL keep the live database in its own location apart from them.
+    plain_text: >
+      Backups, export files and job logs each have their own folder, separate from the
+      live database, and those folders exist before any job runs.
+    technical_note: >
+      The runtime image creates /var/petstore/db, /var/petstore/backup,
+      /var/petstore/extract and /var/petstore/log at build time (Dockerfile line 15).
+      The same paths appear as batch.backup.dir / batch.extract.dir / batch.log.dir in
+      conf/petstore.properties and as PSL_*_DIR defaults in conf/env.sh, and the runbook
+      lists them as the output folders.
+    interface: false
+    risk_class: operational
+    confidence: high
+    confidence_basis: >
+      The same four paths are declared in the Dockerfile, the batch properties file and
+      the operations runbook. Whether the separation is a business need or only a
+      packaging choice is not stated anywhere.
+    basis: >
+      Dockerfile mkdir of the four directories; properties and runbook name the same
+      directories as the batch output folders.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 13
+        line_end: 15
+        excerpt: |
+          RUN rm -rf /usr/local/tomcat/webapps/* \
+           && sed -i 's/^tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/&derby*.jar,/' /usr/local/tomcat/conf/catalina.properties \
+           && mkdir -p /var/petstore/db /var/petstore/backup /var/petstore/extract /var/petstore/log
+      - path: legacy-source/j2ee-pet-store-lite/conf/petstore.properties
+        line_start: 32
+        line_end: 35
+        excerpt: |
+          batch.backup.dir=/var/petstore/backup
+          batch.backup.keepDays=7
+          batch.extract.dir=/var/petstore/extract
+          batch.log.dir=/var/petstore/log
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 21
+        line_end: 22
+        excerpt: |
+           <tr><td>Output folders</td><td><code>/var/petstore/backup</code>, <code>/var/petstore/extract</code>, <code>/var/petstore/log</code></td></tr>
+           <tr><td>Job log</td><td><code>/var/petstore/log/batch.log</code>, one line per job start and end</td></tr>
+    stack_metadata:
+      framework: docker
+      fs.paths: [/var/petstore/db, /var/petstore/backup, /var/petstore/extract, /var/petstore/log]
+
+  - record_key: BATCH-REQ-0003
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL install every batch job, its SQL and its settings together with the
+      store in one deployable unit, with every batch job runnable on demand inside that
+      unit.
+    plain_text: >
+      The nightly jobs ship with the shop and can be started by hand at any time on the
+      shop's server.
+    technical_note: >
+      The Dockerfile copies conf/, batch/ and db/ to /opt/petstore and marks
+      /opt/petstore/batch/*.sh executable. The image starts no scheduler: the jobs are
+      triggered externally (Control-M DEFTABLE scheduler/control-m/PSL_PETSTORE.xml uses
+      MEMLIB /opt/petstore/batch) or by hand with docker exec, as the README shows.
+    interface: false
+    risk_class: operational
+    confidence: medium
+    confidence_basis: >
+      The packaging is explicit in the Dockerfile and matched by the README and runbook
+      batch-home row; that this is a requirement rather than a deployment convenience is
+      inferred.
+    basis: >
+      COPY of conf, batch and db plus chmod of batch scripts; README "Run a batch job"
+      instruction runs a script inside the container.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 18
+        line_end: 21
+        excerpt: |
+          COPY conf/ /opt/petstore/conf/
+          COPY batch/ /opt/petstore/batch/
+          COPY db/ /opt/petstore/db/
+          RUN chmod +x /opt/petstore/batch/*.sh
+      - path: legacy-source/j2ee-pet-store-lite/README.md
+        line_start: 42
+        line_end: 42
+        excerpt: |
+          Run a batch job: `docker exec psl /opt/petstore/batch/psl_acct_unlock.sh`
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 20
+        line_end: 20
+        excerpt: |
+           <tr><td>Batch home</td><td><code>/opt/petstore</code>: <code>batch/</code> scripts, <code>db/batch/</code> SQL, <code>conf/</code> settings</td></tr>
+    stack_metadata:
+      framework: docker
+      batch.trigger: external (Control-M) or manual docker exec
+
+  - record_key: SIGNON-AUDIT-INT-0001
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL provide a fixed, dedicated location to which the daily sign-on
+      audit extract file is written for collection by its consumer.
+    plain_text: >
+      The daily sign-in history export is always written to the same dedicated export
+      folder, where whoever collects it expects to find it.
+    technical_note: >
+      The Dockerfile creates /var/petstore/extract; db/batch/audit_extract.sql exports to
+      /var/petstore/extract/signon_audit_extract.csv. The consumer and collection method
+      are described in the sign-on-audit batch files, not here.
+    interface: true
+    risk_class: regulated
+    confidence: medium
+    confidence_basis: >
+      The directory is created in the Dockerfile and the export SQL writes into it, which
+      is two places; graded medium because this shard only sees the location, not the
+      consumer contract or the file format.
+    basis: >
+      mkdir of /var/petstore/extract and the export target in audit_extract.sql.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 15
+        line_end: 15
+        excerpt: |
+           && mkdir -p /var/petstore/db /var/petstore/backup /var/petstore/extract /var/petstore/log
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_extract.sql
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          -- security team. Output: /var/petstore/extract/signon_audit_extract.csv
+    stack_metadata:
+      framework: docker
+      fs.paths: [/var/petstore/extract]
+
+  - record_key: ACCESS-REQ-0001
+    kind: requirement
+    capability_key: access-control
+    requirement: >
+      The system SHALL serve the store as the only web application on its server, under
+      the single path /petstore, and SHALL expose no other web application alongside it.
+    plain_text: >
+      The shop is the only web application on its server, reached at the /petstore
+      address; no other web consoles or sample apps are reachable.
+    technical_note: >
+      The runtime stage deletes everything under /usr/local/tomcat/webapps (removing the
+      Tomcat ROOT, manager, host-manager, docs and examples apps) before deploying
+      petstore.war, which Tomcat serves at context /petstore on port 8080. The runbook
+      states the same context and port.
+    interface: false
+    risk_class: operational
+    confidence: medium
+    confidence_basis: >
+      The removal of the default applications is one clear statement in the Dockerfile;
+      the /petstore context is confirmed by the runbook and the Dockerfile header comment.
+      Filed under access-control because removing the default consoles is the only
+      access-relevant effect; no listed capability covers deployment shape.
+    basis: >
+      rm -rf of the webapps directory followed by copying only petstore.war; header
+      comment and runbook name http://localhost:8080/petstore/.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 3
+        line_end: 3
+        excerpt: |
+          # Run:    docker run -p 8080:8080 petstore-lite   then open http://localhost:8080/petstore/
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 13
+        line_end: 13
+        excerpt: |
+          RUN rm -rf /usr/local/tomcat/webapps/* \
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 17
+        line_end: 17
+        excerpt: |
+          COPY --from=war /src/target/petstore.war /usr/local/tomcat/webapps/petstore.war
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 18
+        line_end: 18
+        excerpt: |
+           <tr><td>Application server</td><td>Apache Tomcat 9 on Java 8, web application <code>petstore.war</code> at context <code>/petstore</code>, port 8080</td></tr>
+    stack_metadata:
+      framework: tomcat-9
+      http.port: 8080
+      context.path: /petstore
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/Dockerfile
+    description: >
+      The runtime image starts no scheduler and declares no VOLUME. Whether production runs
+      this image (with Control-M triggering jobs via docker exec and an external mount for
+      /var/petstore) or a differently provisioned host is not stated. An operations owner
+      needs to say how the nightly chain is triggered and where database and backup files
+      persist in the live environment.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/Dockerfile
+    description: >
+      The README sample run maps only port 8080, yet the image exposes 1527 and binds the
+      database network server to all interfaces. Whether any system outside the container
+      (reporting, the security team, Control-M agents on another host) connects to the
+      database on 1527 is not stated; if none does, the exposure is not a requirement.
+
+suspected_defects:
+  - capability_key: batch-operations
+    record_keys: [BATCH-REQ-0001]
+    severity: medium
+    category: other
+    title: Database network server listens on all interfaces
+    description: >
+      The database network server is started on every network interface and its port is
+      exposed, although the only documented client (the batch jobs) connects from the same
+      host via localhost. Anyone able to reach port 1527 can attempt to connect to the
+      store database, which holds customer accounts and sign-on history; the batch
+      connection credentials are stored in plain text in the batch settings file.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 23
+        line_end: 24
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 10
+        line_end: 10
+  - capability_key: batch-operations
+    record_keys: [BATCH-REQ-0002]
+    severity: medium
+    category: data-corruption
+    title: Backups are kept on the same filesystem as the database, with no persistent volume
+    description: >
+      Database backups are written to a folder in the same container filesystem as the
+      live database, and the image declares no persistent volume for either. Removing or
+      rebuilding the container deletes the database and all of its backups together, so
+      the backup does not protect against loss of the server it backs up. The runbook's
+      restore procedure assumes the backup folder survives.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/Dockerfile
+        line_start: 15
+        line_end: 15
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 85
+        line_end: 85
