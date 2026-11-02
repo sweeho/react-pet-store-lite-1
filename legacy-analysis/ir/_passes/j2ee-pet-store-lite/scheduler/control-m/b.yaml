@@ -1,0 +1,641 @@
+# Pass B, independent reading of legacy-source/j2ee-pet-store-lite/scheduler/control-m
+# Sources read: PSL_PETSTORE.xml (the only file in the shard); corroborated against
+# batch/*.sh, conf/env.sh, docs/guides/operations-runbook.html, docs/guides/admin-guide.html.
+# No legacy-analysis/sources/**/extracted.md exists in the tree, so the HTML guides are
+# cited directly by path and line range.
+records:
+  - record_key: BATCH-WFL-0001
+    kind: workflow
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL run the nightly chain in this order: database backup, then the
+      sign-on audit extract, then (in parallel) the sign-on report and, on Sundays, the
+      audit purge; the audit extract SHALL start only after that day's database backup has
+      completed successfully, and the report and the purge SHALL start only after that
+      day's audit extract has completed successfully.
+    plain_text: >
+      Every night the database is backed up first. Only after a good backup is the
+      sign-on audit file produced, and only after that file is produced do the daily
+      sign-on report and the Sunday audit clean-up run.
+    technical_note: >
+      Control-M folder PSL_PETSTORE_DAILY. PSL_DB_BACKUP sets condition PSL_DB_BACKUP-OK;
+      PSL_AUDIT_EXTRACT has INCOND PSL_DB_BACKUP-OK and sets PSL_AUDIT_EXTRACT-OK;
+      PSL_SIGNON_REPORT and PSL_AUDIT_PURGE both have INCOND PSL_AUDIT_EXTRACT-OK. All
+      conditions are dated ODAT, so a dependency only resolves within the same order date.
+      The extract deletes PSL_DB_BACKUP-OK on success, the purge deletes
+      PSL_AUDIT_EXTRACT-OK on success (see suspected defect on that).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The ordering is declared in the scheduler conditions and stated identically in the
+      runbook table and diagram, and in the script header comments. Two independent
+      places (configuration and documentation) agree.
+    risk_class: operational
+    basis: >
+      INCOND/OUTCOND pairs in PSL_PETSTORE.xml; runbook section 2 table and diagram.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 21
+        line_end: 21
+        excerpt: |
+                <OUTCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" SIGN="+" />
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 33
+        line_end: 35
+        excerpt: |
+                <INCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" SIGN="-" />
+                <OUTCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" SIGN="+" />
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 47
+        line_end: 48
+        excerpt: |
+                <INCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_SIGNON_REPORT-OK" ODATE="ODAT" SIGN="+" />
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 57
+        line_end: 59
+        excerpt: |
+                <INCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" SIGN="-" />
+                <OUTCOND NAME="PSL_AUDIT_PURGE-OK" ODATE="ODAT" SIGN="+" />
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 36
+        line_end: 38
+        excerpt: |
+          <pre>01:00 PSL_DB_BACKUP --> 01:30 PSL_AUDIT_EXTRACT --+--> 01:45 PSL_SIGNON_REPORT
+                                                            +--> 02:00 PSL_AUDIT_PURGE (Sundays)
+          06:00 PSL_CATALOG_CHECK            every 15 min  PSL_ACCT_UNLOCK</pre>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "folder PSL_PETSTORE_DAILY, condition chain (ODAT)"
+      control_m.datacenter: DC_PSL_PRD
+      control_m.node: psl-app01
+      control_m.run_as: tomcat
+
+  - record_key: BATCH-REQ-0002
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL start the database backup every day of the week no earlier than
+      01:00, and GIVEN a backup run fails WHEN fewer than 2 reruns have been made THEN it
+      SHALL rerun the backup automatically 10 minutes later.
+    plain_text: >
+      The database is backed up every night from 1 am. If the backup fails it is retried
+      automatically, at most twice, ten minutes apart.
+    technical_note: >
+      PSL_DB_BACKUP: TIMEFROM=0100, WEEKDAYS=ALL, MAXRERUN=2, INTERVAL=00010M,
+      CRITICAL=1, PRIORITY=AA, script /opt/petstore/batch/psl_db_backup.sh. Also carries
+      DAYSCAL=PSL_CAL, a calendar not present in the source (see finding).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Time, rerun count and interval are declared in the scheduler job and repeated in
+      runbook 3.1 ("up to 2 reruns 10 minutes apart"). Not graded lower despite the
+      unknown PSL_CAL calendar, because WEEKDAYS=ALL and the runbook "Daily 01:00" agree.
+    risk_class: operational
+    basis: >
+      Job attributes of PSL_DB_BACKUP; runbook sections 2 and 3.1.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 15
+        line_end: 20
+        excerpt: |
+              <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="DATABASE" JOBNAME="PSL_DB_BACKUP"
+                   DESCRIPTION="Online backup of PetStoreDB, keep 7 days"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_db_backup.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA" CRITICAL="1"
+                   TIMEFROM="0100" WEEKDAYS="ALL" DAYSCAL="PSL_CAL" MAXRERUN="2" INTERVAL="00010M"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 44
+        line_end: 44
+        excerpt: |
+          Critical job: up to 2 reruns 10 minutes apart; on failure Control-M mails psl-ops and PSL_AUDIT_EXTRACT stays waiting.</p>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_DB_BACKUP TIMEFROM=0100 WEEKDAYS=ALL DAYSCAL=PSL_CAL"
+      control_m.maxrerun: 2
+      control_m.interval: 00010M
+      control_m.critical: 1
+
+  - record_key: BATCH-REQ-0003
+    kind: requirement
+    capability_key: batch-operations
+    requirement: >
+      GIVEN the database backup ends in failure WHEN its run completes THEN the system
+      SHALL send an urgent alert to the operations team stating that the backup failed
+      and that the audit extract is held, and SHALL NOT start that day's audit extract.
+    plain_text: >
+      If the nightly backup fails, operations gets an urgent e-mail, and the sign-on audit
+      file is not produced until the backup succeeds.
+    technical_note: >
+      PSL_DB_BACKUP <ON STMT="*" CODE="NOTOK"> DOMAIL URGENCY="U" to
+      psl-ops@example.invalid. Because PSL_DB_BACKUP-OK is never added, PSL_AUDIT_EXTRACT
+      stays waiting on its INCOND. The ON block fires per failed run, so each of the up to
+      3 attempts may mail.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Declared in the scheduler and restated in runbook 3.1. Whether a mail is sent per
+      rerun or only after the last rerun depends on Control-M ON semantics not visible in
+      the source; the record does not claim either.
+    risk_class: operational
+    basis: >
+      DOMAIL action on NOTOK for PSL_DB_BACKUP; INCOND on PSL_AUDIT_EXTRACT; runbook 3.1.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 22
+        line_end: 24
+        excerpt: |
+                <ON STMT="*" CODE="NOTOK">
+                  <DOMAIL URGENCY="U" DEST="psl-ops@example.invalid" SUBJECT="PSL_DB_BACKUP failed" MESSAGE="Petstore DB backup failed, audit extract is held" />
+                </ON>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 44
+        line_end: 44
+        excerpt: |
+          Critical job: up to 2 reruns 10 minutes apart; on failure Control-M mails psl-ops and PSL_AUDIT_EXTRACT stays waiting.</p>
+    stack_metadata:
+      framework: control-m
+      control_m.on: "STMT=* CODE=NOTOK DOMAIL URGENCY=U"
+      alert.dest: psl-ops@example.invalid
+
+  - record_key: BATCH-RULE-0004
+    kind: business-rule
+    capability_key: batch-operations
+    requirement: >
+      The system SHALL keep database backups for 7 days and delete older backups as part of
+      the nightly backup.
+    plain_text: >
+      A week of nightly database backups is kept; older ones are deleted.
+    technical_note: >
+      Stated in the PSL_DB_BACKUP job description ("keep 7 days"). Enforced by
+      psl_db_backup.sh with `find ... -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf`, where
+      conf/env.sh sets PSL_BACKUP_KEEP_DAYS=7. `-mtime +7` deletes only directories more
+      than 7 full days old, so 8 dated backups can coexist; the exact boundary belongs to
+      the batch shard.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The value 7 appears in the scheduler description, the script header, conf/env.sh and
+      runbook settings table. The exact day boundary is not graded here.
+    risk_class: operational
+    basis: >
+      Job DESCRIPTION, env setting and runbook 3.1 / section 5.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 16
+        line_end: 16
+        excerpt: |
+                   DESCRIPTION="Online backup of PetStoreDB, keep 7 days"
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_db_backup.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          find "$PSL_BACKUP_DIR" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PSL_BACKUP_KEEP_DAYS -exec rm -rf {} \;
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 12
+        line_end: 12
+        excerpt: |
+          PSL_BACKUP_KEEP_DAYS=7
+    stack_metadata:
+      framework: control-m
+      batch.trigger: PSL_DB_BACKUP
+
+  - record_key: AUDIT-INT-0001
+    kind: integration
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL, every day no earlier than 01:30 and after that day's successful
+      backup, export the previous calendar day's sign-on audit events to a file named
+      signon_audit_YYYYMMDD.csv for the security team, and GIVEN the export fails WHEN it
+      has not yet been rerun THEN it SHALL be rerun once.
+    plain_text: >
+      Each night, after the backup, yesterday's sign-on events are written to a dated file
+      for the security team. A failed export is retried once.
+    technical_note: >
+      PSL_AUDIT_EXTRACT: TIMEFROM=0130, WEEKDAYS=ALL, MAXRERUN=1 (no INTERVAL), script
+      psl_audit_extract.sh; output in /var/petstore/extract. File layout (no header,
+      TRAILER line) is defined by the batch script and runbook 3.2, not by the scheduler.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Schedule, dependency and file name are declared in the scheduler and match runbook
+      sections 2 and 3.2 and the script header.
+    risk_class: regulated
+    basis: >
+      PSL_AUDIT_EXTRACT job attributes and description; runbook 3.2 says it is for the
+      security team. Classed regulated because it is a security audit feed.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 27
+        line_end: 33
+        excerpt: |
+              <JOB JOBISN="2" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_AUDIT_EXTRACT"
+                   DESCRIPTION="Export yesterday SIGNON_AUDIT rows to signon_audit_YYYYMMDD.csv"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_audit_extract.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AB"
+                   TIMEFROM="0130" WEEKDAYS="ALL" MAXRERUN="1"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <INCOND NAME="PSL_DB_BACKUP-OK" ODATE="ODAT" AND_OR="A" />
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 47
+        line_end: 48
+        excerpt: |
+          <p>Exports yesterday's rows of SIGNON_AUDIT (00:00 to 24:00) to <code>/var/petstore/extract/signon_audit_YYYYMMDD.csv</code>
+          for the security team (<code>db/batch/audit_extract.sql</code>).</p>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_AUDIT_EXTRACT TIMEFROM=0130 INCOND PSL_DB_BACKUP-OK"
+      db.object: SIGNON_AUDIT
+      control_m.maxrerun: 1
+
+  - record_key: AUDIT-REQ-0002
+    kind: requirement
+    capability_key: sign-on-audit
+    requirement: >
+      GIVEN the sign-on audit extract ends in failure WHEN its run completes THEN the system
+      SHALL send a regular-urgency alert to the security team stating that the sign-on audit
+      extract was not produced.
+    plain_text: >
+      If the nightly sign-on audit file cannot be produced, the security team is e-mailed.
+    technical_note: >
+      PSL_AUDIT_EXTRACT <ON STMT="*" CODE="NOTOK"> DOMAIL URGENCY="R" to
+      psl-security@example.invalid. Fires only if the job runs and fails; a job held
+      because the backup failed never runs, so no mail reaches security in that case.
+    interface: true
+    confidence: medium
+    confidence_basis: >
+      One clear declarative place (the ON/DOMAIL block). The runbook does not mention this
+      alert, so there is no second source.
+    risk_class: regulated
+    basis: >
+      DOMAIL block of PSL_AUDIT_EXTRACT.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 36
+        line_end: 38
+        excerpt: |
+                <ON STMT="*" CODE="NOTOK">
+                  <DOMAIL URGENCY="R" DEST="psl-security@example.invalid" SUBJECT="PSL_AUDIT_EXTRACT failed" MESSAGE="Sign-on audit extract not produced" />
+                </ON>
+    stack_metadata:
+      framework: control-m
+      control_m.on: "STMT=* CODE=NOTOK DOMAIL URGENCY=R"
+      alert.dest: psl-security@example.invalid
+
+  - record_key: AUDIT-REQ-0003
+    kind: requirement
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL produce the daily sign-on statistics report every day no earlier
+      than 01:45, and only after that day's sign-on audit extract has completed
+      successfully.
+    plain_text: >
+      A daily sign-on statistics report is produced each night from 1:45 am, once the
+      audit file for the day is done.
+    technical_note: >
+      PSL_SIGNON_REPORT: TASKTYPE=Command, CMDLINE /opt/petstore/batch/psl_signon_report.sh,
+      TIMEFROM=0145, WEEKDAYS=ALL, INCOND PSL_AUDIT_EXTRACT-OK. No MAXRERUN and no ON/DOMAIL
+      block: a failure is neither retried nor alerted (see suspected defect).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Declared in the scheduler and stated in runbook sections 2 and 3.3 and the script
+      header.
+    risk_class: operational
+    basis: >
+      PSL_SIGNON_REPORT job definition; runbook 3.3.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 41
+        line_end: 49
+        excerpt: |
+              <JOB JOBISN="3" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_SIGNON_REPORT"
+                   DESCRIPTION="Daily sign-on statistics report"
+                   TASKTYPE="Command" CMDLINE="/opt/petstore/batch/psl_signon_report.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AC"
+                   TIMEFROM="0145" WEEKDAYS="ALL"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <INCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+                <OUTCOND NAME="PSL_SIGNON_REPORT-OK" ODATE="ODAT" SIGN="+" />
+              </JOB>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 60
+        line_end: 61
+        excerpt: |
+          <p>Writes yesterday's counts per event type, the number of locked accounts and accounts per role to
+          <code>/var/petstore/extract/signon_report_YYYYMMDD.txt</code>.</p>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_SIGNON_REPORT TIMEFROM=0145 INCOND PSL_AUDIT_EXTRACT-OK"
+
+  - record_key: AUDIT-RULE-0004
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL purge sign-on audit events older than 90 days once a week, on
+      Sunday, no earlier than 02:00, and only after that Sunday's audit extract has
+      completed successfully, so that no event is deleted before it has been extracted.
+    plain_text: >
+      Every Sunday night, sign-on events older than 90 days are deleted, but only after
+      that night's audit file has been produced.
+    technical_note: >
+      PSL_AUDIT_PURGE: WEEKDAYS="0" (Sunday in Control-M), TIMEFROM=0200, INCOND
+      PSL_AUDIT_EXTRACT-OK, script psl_audit_purge.sh; retention from conf/env.sh
+      PSL_AUDIT_RETENTION_DAYS=90. On success it deletes the PSL_AUDIT_EXTRACT-OK
+      condition. No ON/DOMAIL and no MAXRERUN.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Sunday schedule, 90-day retention and the extract dependency are in the scheduler,
+      and the same three facts appear in runbook 3.4 and conf/env.sh. WEEKDAYS=0 is read as
+      Sunday per Control-M convention, confirmed by the job description "(Sundays)".
+    risk_class: regulated
+    basis: >
+      PSL_AUDIT_PURGE job definition; runbook 3.4; conf/env.sh retention setting.
+      Regulated because it governs retention of a security audit trail.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 51
+        line_end: 57
+        excerpt: |
+              <JOB JOBISN="4" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_AUDIT_PURGE"
+                   DESCRIPTION="Delete SIGNON_AUDIT rows older than 90 days (Sundays)"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_audit_purge.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AD"
+                   TIMEFROM="0200" WEEKDAYS="0"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <INCOND NAME="PSL_AUDIT_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 64
+        line_end: 64
+        excerpt: |
+          <p>Sundays only. Deletes SIGNON_AUDIT rows older than 90 days. It waits for that day's extract so no row is deleted before it is extracted.</p>
+      - path: legacy-source/j2ee-pet-store-lite/conf/env.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          PSL_AUDIT_RETENTION_DAYS=90
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_AUDIT_PURGE WEEKDAYS=0 TIMEFROM=0200 INCOND PSL_AUDIT_EXTRACT-OK"
+      db.object: SIGNON_AUDIT
+
+  - record_key: CATINT-REQ-0001
+    kind: requirement
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL run the catalog integrity check every day no earlier than 06:00,
+      independently of the nightly backup and audit chain, and GIVEN the check ends with
+      the "bad catalog data" result WHEN the run completes THEN it SHALL send an urgent
+      alert to the catalog team pointing to the check log.
+    plain_text: >
+      Every morning at 6 am, before the store opens, the catalog is checked. If the check
+      finds bad data the catalog team gets an urgent e-mail.
+    technical_note: >
+      PSL_CATALOG_CHECK: TASKTYPE=Command, TIMEFROM=0600, WEEKDAYS=ALL, CRITICAL=1, no
+      INCOND. <ON STMT="*" CODE="COMPSTAT=4"> DOMAIL URGENCY="U" to
+      psl-catalog@example.invalid, message "See /var/petstore/log/catalog_check.log".
+      psl_catalog_check.sh exits 4 when a check C1-C4 returns rows, and also performs a
+      first load (Populate?forcefully=false) when the catalog tables are missing; that
+      logic belongs to the batch shard. The alert is bound to exit code 4 only.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      Schedule and alert are declared in the scheduler; exit code 4 meaning and the
+      catalog-team mail are restated in runbook 3.5 and section 4, and the script exits 4.
+    risk_class: operational
+    basis: >
+      PSL_CATALOG_CHECK job definition and its ON block; runbook 3.5.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 62
+        line_end: 71
+        excerpt: |
+              <JOB JOBISN="5" APPLICATION="PETSTORE" SUB_APPLICATION="CATALOG" JOBNAME="PSL_CATALOG_CHECK"
+                   DESCRIPTION="Catalog integrity check before the store opens; first load when empty"
+                   TASKTYPE="Command" CMDLINE="/opt/petstore/batch/psl_catalog_check.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA" CRITICAL="1"
+                   TIMEFROM="0600" WEEKDAYS="ALL"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+                <OUTCOND NAME="PSL_CATALOG_CHECK-OK" ODATE="ODAT" SIGN="+" />
+                <ON STMT="*" CODE="COMPSTAT=4">
+                  <DOMAIL URGENCY="U" DEST="psl-catalog@example.invalid" SUBJECT="Petstore catalog integrity check failed" MESSAGE="See /var/petstore/log/catalog_check.log" />
+                </ON>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 67
+        line_end: 69
+        excerpt: |
+          <p>Runs catalog checks C1 to C4 (see the Administrator Guide). If the catalog tables do not exist it calls
+          <code>http://localhost:8080/petstore/Populate?forcefully=false</code> to load the sample data, then checks again.
+          Exit code 4 means a check found rows; Control-M mails psl-catalog. Details are in <code>/var/petstore/log/catalog_check.log</code>.</p>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_CATALOG_CHECK TIMEFROM=0600 WEEKDAYS=ALL"
+      control_m.on: "STMT=* CODE=COMPSTAT=4 DOMAIL URGENCY=U"
+      alert.dest: psl-catalog@example.invalid
+
+  - record_key: POP-REQ-0001
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      GIVEN the daily 06:00 catalog check finds the catalog empty WHEN it runs THEN the
+      system SHALL perform a first load of the sample data (not a forced reload) and then
+      check the catalog again.
+    plain_text: >
+      If the morning catalog check finds no catalog at all, it loads the starter catalog
+      once, without wiping anything, and checks again.
+    technical_note: >
+      The scheduler only states "first load when empty" in the PSL_CATALOG_CHECK
+      description. psl_catalog_check.sh detects "does not exist" in the check output, calls
+      $PSL_STORE_URL/Populate?forcefully=false, and re-runs catalog_check.sql; it exits 8 if
+      the populate call fails.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Stated in the scheduler description, the script header, the script body and runbook
+      3.5. "Empty" is detected as missing tables, not as tables with no rows; that nuance is
+      the batch shard's to grade.
+    risk_class: operational
+    basis: >
+      Job description; psl_catalog_check.sh lines 10-14; runbook 3.5.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 63
+        line_end: 63
+        excerpt: |
+                   DESCRIPTION="Catalog integrity check before the store opens; first load when empty"
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 10
+        line_end: 14
+        excerpt: |
+          if echo "$OUT" | grep -q "does not exist"; then
+            psl_log "catalog tables missing, requesting first load"
+            curl -sf -o /dev/null "$PSL_STORE_URL/Populate?forcefully=false" || { psl_log "FAILED: populate"; exit 8; }
+            OUT=$(psl_ij "$PSL_SQL/catalog_check.sql")
+          fi
+    stack_metadata:
+      framework: control-m
+      batch.trigger: PSL_CATALOG_CHECK
+
+  - record_key: LOCK-RULE-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL check for locked sign-on accounts every 15 minutes, around the clock,
+      and unlock every account that has been locked for more than 30 minutes; GIVEN an
+      account was locked at time T WHEN no other unlock happens THEN it SHALL become usable
+      again at the first 15-minute check after T + 30 minutes, which is between 30 and 45
+      minutes after T.
+    plain_text: >
+      A locked account unlocks itself automatically after about half an hour; because the
+      unlock check runs every 15 minutes, in practice that takes 30 to 45 minutes.
+    technical_note: >
+      Control-M folder PSL_PETSTORE_CYCLIC, job PSL_ACCT_UNLOCK: CYCLIC=1,
+      CYCLIC_TYPE=Interval, INTERVAL=00015M, IND_CYCLIC=START (interval measured from job
+      start), TIMEFROM=0000 TIMETO=2359, WEEKDAYS=ALL. The 30-minute threshold lives in the
+      job description and in db/batch/acct_unlock.sql (batch shard); the runbook and admin
+      guide (R5) state it too and add that failed attempts are reset and ACCOUNT_UNLOCKED
+      is audited. No ON/DOMAIL block.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Interval declared in the scheduler; 15 min and 30 min stated in the job description,
+      script header, runbook 3.6 and section 5, and admin guide R5. The 30-45 minute window
+      is derived from those two numbers, not read anywhere.
+    risk_class: operational
+    basis: >
+      PSL_ACCT_UNLOCK job definition; runbook 3.6; admin guide R5.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 78
+        line_end: 85
+        excerpt: |
+              <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_ACCT_UNLOCK"
+                   DESCRIPTION="Unlock sign-on accounts locked for more than 30 minutes"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_acct_unlock.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA"
+                   TIMEFROM="0000" TIMETO="2359" WEEKDAYS="ALL"
+                   CYCLIC="1" CYCLIC_TYPE="Interval" INTERVAL="00015M" IND_CYCLIC="START"
+                   CREATED_BY="psl_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+              </JOB>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 54
+        line_end: 54
+        excerpt: |
+           <tr><td>R5</td><td>Batch job PSL_ACCT_UNLOCK runs every 15 minutes and unlocks accounts locked more than 30 minutes ago. It sets failed attempts to 0 and records ACCOUNT_UNLOCKED.</td></tr>
+    stack_metadata:
+      framework: control-m
+      batch.trigger: "PSL_PETSTORE_CYCLIC PSL_ACCT_UNLOCK CYCLIC Interval 00015M IND_CYCLIC=START"
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+    description: >
+      PSL_DB_BACKUP (line 19) references calendar DAYSCAL="PSL_CAL" alongside WEEKDAYS="ALL".
+      The calendar definition is not in the source tree, so it cannot be determined whether
+      it excludes any days (holidays, maintenance) from the nightly backup, and therefore
+      from the whole dependent chain. An operations SME should supply PSL_CAL. BATCH-REQ-0002
+      records "every day", which is what WEEKDAYS and the runbook state.
+  - kind: ambiguity
+    path: legacy-analysis/sources
+    description: >
+      No legacy-analysis/sources/**/extracted.md exists, so no document trace with an
+      anchor could be written. The operations runbook and admin guide under
+      legacy-source/j2ee-pet-store-lite/docs/guides were cited directly by path and line.
+
+suspected_defects:
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-REQ-0003, AUDIT-RULE-0004, BATCH-WFL-0001]
+    severity: medium
+    category: other
+    title: On Sundays the purge can consume the condition the sign-on report still needs
+    description: >
+      Both the sign-on report and the Sunday purge wait on the same "extract OK" condition,
+      and the purge deletes that condition when it finishes. Normally the report (01:45)
+      starts before the purge (02:00). If the extract finishes after 02:00 on a Sunday (for
+      example after backup reruns), both become eligible together; if the purge completes
+      before the report is submitted, the report waits indefinitely, and because the report
+      has no failure alert nobody is told. The runbook describes the two jobs as parallel
+      successors and does not mention this.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 47
+        line_end: 47
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 57
+        line_end: 58
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 36
+        line_end: 37
+  - capability_key: catalog-data-integrity
+    record_keys: [CATINT-REQ-0001, POP-REQ-0001]
+    severity: medium
+    category: error-swallowed
+    title: Catalog check alerts only on exit code 4; a failed first load or SQL error (exit 8) mails nobody
+    description: >
+      The catalog check's alert is bound to completion code 4 only. The script exits 8 when
+      the first-load call fails or a SQL/file error occurs, and the runbook lists 8 as an
+      error needing action. On exit 8 the job ends not-OK but no mail is sent, so the store
+      can open with no catalog or an unchecked catalog without the catalog team knowing.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 69
+        line_end: 71
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 12
+        line_end: 12
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 79
+        line_end: 79
+  - capability_key: account-lockout
+    record_keys: [LOCK-RULE-0001]
+    severity: medium
+    category: error-swallowed
+    title: Account unlock job has no failure alert, so locked accounts can stay locked unnoticed
+    description: >
+      The every-15-minutes unlock job has no failure notification. The script exits 8 on a
+      SQL error, but nothing is mailed, so locked customers stay locked beyond the
+      documented 30 minutes until someone looks at the scheduler or logs. The admin guide
+      presents automatic unlock after 30 minutes as a rule (R5).
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 78
+        line_end: 85
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_acct_unlock.sh
+        line_start: 6
+        line_end: 6
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 54
+        line_end: 54
+  - capability_key: sign-on-audit
+    record_keys: [AUDIT-REQ-0003, AUDIT-RULE-0004]
+    severity: low
+    category: error-swallowed
+    title: Sign-on report and audit purge failures are neither retried nor alerted
+    description: >
+      Unlike the backup and the extract, the sign-on report and the Sunday audit purge have
+      no rerun setting and no failure mail. A failed purge leaves audit events beyond the
+      90-day retention for at least another week; a failed report is simply missing.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 41
+        line_end: 60
+  - capability_key: sign-on-audit
+    record_keys: [BATCH-REQ-0003, AUDIT-REQ-0002]
+    severity: low
+    category: other
+    title: When the backup fails the security team is not told the audit extract is missing
+    description: >
+      A failed backup holds the audit extract, and the only mail goes to operations. The
+      extract's own failure mail to security never fires because the extract never runs, so
+      the recipients of the audit feed learn of a missing file only by its absence.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 22
+        line_end: 24
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 33
+        line_end: 38
