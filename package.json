@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "test": "NODE_ENV=test bun --bun vitest run",
     "test:watch": "NODE_ENV=test bun --bun vitest",
+    "test:mutation": "NODE_ENV=test bun --bun --preload ./scripts/stryker-bun-preload.mjs node_modules/.bin/stryker run",
     "pretest:e2e": "node scripts/ensure-playwright-browser.mjs",
     "test:e2e": "playwright test",
     "pree2e": "node scripts/ensure-playwright-browser.mjs",
@@ -47,6 +48,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "~1.60.0",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
