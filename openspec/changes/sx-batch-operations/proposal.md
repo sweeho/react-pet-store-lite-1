@@ -4,23 +4,23 @@
 
 The legacy Petstore Lite store depends on a set of scheduled batch jobs that nobody documents as product behaviour: a nightly online database backup with 7-day retention, a sign-on audit extract and report chained behind it, a weekly audit purge, a morning catalog integrity check and a 15-minute account unlock. Their ordering, retry limits, exit-code contract, alert routing and logging are operational requirements the rebuild must reproduce or consciously replace. Today they are spread across a scheduler export, six shell scripts, a shared environment file, six SQL scripts, the container image and the operations runbook.
 
-This change records those behaviours as draft requirements extracted by SX-0001, so an SME can approve, edit or reject each one before the target design is drawn.
+This change records those behaviours as draft requirements extracted by SX-0001, as requirements approved by an SME, ahead of the target design.
 
 ## What changes
 
-- Adds the `batch-operations` capability with draft requirements for:
+- Adds the `batch-operations` capability with requirements for:
   - the nightly job chain (backup, then audit extract, then sign-on report and Sunday audit purge) and its start times;
   - the jobs that run independently of the chain (06:00 catalog check, 15-minute account unlock);
   - the daily online backup, its dated naming, same-day replacement and 7-day retention;
   - automatic retry limits per job;
   - holding the dependent chain when the backup fails;
   - the job exit-code contract (0 / 4 / 8) and how a database step's failure is detected;
-  - the shared batch log;
+  - the shared batch log and the start and end lines each job writes;
   - which failures raise a mail alert, at what urgency and to whom;
   - the audit extract's covered day and rerun rules;
   - output locations, database and store connectivity, packaging and persistent working areas;
   - the manual restore-from-backup procedure.
-- No requirement carries an `ID:`; none of the 21 ingested records is approved yet.
+- All 21 ingested records are approved; each requirement carries its minted `ID:` and the record it was recovered from. Records not in the approved set (the operator rerun after a fix, per-job detail logs and the other pending records) are left out of the spec and carry recommendations in `legacy-analysis/ir/_recommendations/batch-operations.yaml`.
 
 ## Out of scope
 

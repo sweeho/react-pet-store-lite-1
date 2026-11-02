@@ -27,13 +27,11 @@
 - [ ] 4.2 Treat a database step as failed when its tool reports a line beginning with "ERROR"
 - [ ] 4.3 Decide with the Business Owner whether a non-zero tool exit status without an ERROR line must also fail the step
 - [ ] 4.4 Decide with the Business Owner whether unchecked file steps (rename, line count) must end with code 8
-- [ ] 4.5 Support an operator rerun of any job on demand after a code 4 or code 8 ending
 
 ## 5. Logging
 
 - [ ] 5.1 Append a time-stamped start line naming the job to the shared batch log
 - [ ] 5.2 Append a time-stamped end line stating OK or FAILED with a reason
-- [ ] 5.3 Keep detail logs for the unlock, the purge and the catalog check
 
 ## 6. Alerting
 

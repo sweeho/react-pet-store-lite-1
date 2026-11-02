@@ -51,6 +51,10 @@ Restore (runbook 4.1) is manual: stop Tomcat, move `/var/petstore/db/PetStoreDB`
 
 The extract and the report cover "yesterday" computed at run time: the SQL uses the database's `CURRENT_DATE` and the file name uses the shell's `date -d yesterday`. A rerun on the same day overwrites the day's file. Re-extracting an older day means editing `audit_extract.sql` dates by hand (runbook 4.2).
 
+## Record keys reused across passes
+
+Several record keys were emitted by more than one pass with different content (BAT-BR-0001, BAT-BR-0002, BATCH-BR-0001, BATCH-INT-0001, BATCH-REQ-0001 to 0003, BATCH-REQ-0005, BATCH-REQ-0006, BATCH-WF-0001). Each approved key appears once in the spec. The requirement is written from the variant that no other approved key covers: BATCH-REQ-0001 from `conf/a` (locations and shared log), BATCH-REQ-0002 from `Dockerfile/a` and `Dockerfile/b` (working areas), BATCH-REQ-0003 from `Dockerfile/a` (packaging), BATCH-REQ-0005 and BATCH-REQ-0006 from `batch/a`, BATCH-INT-0001 from `Dockerfile/b` and `conf/a`, BAT-BR-0002 from `db/batch/a` (whole-day age counting), BATCH-BR-0001 from `conf/a`. The `pom.xml` variants of BATCH-INT-0001 (Derby client and `ij` jars at server level; a jar version mismatch fails every job) are covered in this design only, under SD10. The backup-failure variants of BATCH-REQ-0002 and 0003 duplicate BAT-WF-0003, BAT-BR-0005 and BATCH-REQ-0005.
+
 ## Open questions and disputes (for the SME)
 
 - **Q1 Backup retention.** The scheduler description, runbook 3.1 and settings say "older than 7 days are deleted". `find -mtime +7` matches only folders 8 or more whole days old, so about 8 (sometimes 9) dated backups remain. Recorded as `conflicting-sources` / `contradicts-docs`. The spec states the 7-day setting and gives scenarios only for ages outside the 7-to-8-day band.
