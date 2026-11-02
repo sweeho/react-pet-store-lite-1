@@ -1,0 +1,202 @@
+# Recommendations for access-control records not in the approved table.
+# Approved (not listed): ACC-BR-0001 from inventory/ddl-export-default-003 (SWHR5-R-0001),
+# ACL-REQ-0002 from j2ee-pet-store-lite/docs/guides (SWHR5-R-0002).
+# Record keys repeat across modules; each entry's reason names the module it came from.
+# No record carries a dispute block.
+recommendations:
+  # ---- role domain (duplicates of the approved SWHR5-R-0001) ----
+  - record_key: ACCESS-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Modules data/migration (passes a and c). The role domain duplicates SWHR5-R-0001; the
+      added clause "self-registered accounts are CUSTOMER" is confirmed by code
+      (UserDAO.createUser inserts ROLE_CUSTOMER), not only by the 40/40 data pattern. Spec
+      carries it as "Self-registered accounts are customers".
+  - record_key: ACC-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Module data/migration (pass b). The rule duplicates SWHR5-R-0001; the account counts
+      (42 CUSTOMER, 1 ADMIN) describe the extract, not behaviour, and pass a counts 43.
+      Merge into SWHR5-R-0001 without the counts.
+    edited_requirement: >
+      The system SHALL give every account exactly one role, CUSTOMER or ADMIN, with
+      CUSTOMER as the default.
+  - record_key: AC-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module db/schema (pass a). Same rule as SWHR5-R-0001, backed by the CHECK constraint
+      and default in three DDL sources; accept as a duplicate merged into it.
+  - record_key: AC-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Modules webapp/populate (a and b) and db/schema (b): the role domain again, from DDL in
+      both dialects and seed data. Merge into SWHR5-R-0001. (For the AC-BR-0001 records in
+      webapp and docs/guides, see the entries below.)
+  - record_key: ACL-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Role domain plus "read at sign-in"; code agrees
+      (SignOnFilter reads UserDAO.getRole once on SIGNON_OK). Spec carries it across
+      SWHR5-R-0001 and "Role held for the session".
+  # ---- page protection ----
+  - record_key: ACC-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a): the exhaustive protected page set. signon-config.xml declares
+      exactly these three pages and the Admin Guide configuration table agrees. Spec carries
+      it as "Protected page set".
+  - record_key: ACC-RUL-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass a). Same protected set as signon pass a, confirmed by the filter
+      code and Admin Guide matrix. Merge into "Protected page set".
+  - record_key: ACC-RUL-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass a). ADMIN-only Catalog Administration with Access Denied for a
+      signed-in non-admin and Sign In for anonymous; covered by SWHR5-R-0002 and the
+      interception requirement. Merge.
+  - record_key: AC-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass b): page access matrix. Config, filter and Admin Guide agree; it
+      restates SWHR5-R-0002 plus the sign-in welcome page. Merge into "Protected page set".
+  - record_key: ACC-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). Same protected set as signon pass a ACC-BR-0001; the two passes
+      used different keys for one rule. Merge into "Protected page set".
+  - record_key: ACC-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass b). A composite of role domain, page matrix, interception and
+      Access Denied; every part is confirmed by code elsewhere. Accept as covered by
+      SWHR5-R-0001, SWHR5-R-0002 and the interception requirement rather than as a separate
+      requirement.
+  - record_key: AC-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass c). Page matrix from the guides; matches SWHR5-R-0002 and the
+      signon-config.xml declarations. Merge.
+  # ---- interception and role check ----
+  - record_key: ACC-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (passes a and b agree). Filter code stores j_signon_original_url and
+      forwards to the Sign In page; config and Admin Guide agree. Spec: "Sign-in
+      interception and return".
+  - record_key: AC-WF-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass b). Adds the return after account creation, which CreateUserServlet
+      lines 91-93 confirm. Merge into "Sign-in interception and return".
+  - record_key: ACL-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). Same as ACC-REQ-0001, from the guides; code agrees.
+      Merge.
+  - record_key: ACC-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass a). isRoleAllowed (SignOnFilter 244-246) implements exactly this,
+      and pass b's ACC-BR-0002 states the same. Spec: "Role check on a protected page".
+  - record_key: ACC-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b): the role check, identical to ACC-REQ-0002 from pass a. Merge.
+      (Module signon pass a's ACC-BR-0002 is the role-held-for-session rule: also accept,
+      code at SignOnFilter line 210 confirms the role is set once at sign-in.)
+  - record_key: ACC-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module signon (pass b). Role read at sign-in and held for the session; code, DDL and
+      Admin Guide agree. Spec: "Role held for the session".
+  # ---- sample-data reload ----
+  - record_key: ACC-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module petstore/tools/populate (pass a): forced reload requires ADMIN. PopulateServlet
+      113-125 checks before invalidating the session or populating, and doGet delegates to
+      doPost; Admin Guide matrix agrees. Spec: "Forced sample-data reload restricted to
+      administrators".
+  - record_key: ACC-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module petstore/tools/populate (pass a): first load open to anyone. Code comment, the
+      conditional check and Admin Guide 3.1 agree. Note for the Business Owner: a non-forced
+      load on a populated store is also reachable anonymously; what it does then belongs to
+      the population capability.
+  # ---- deployment ----
+  - record_key: ACCESS-REQ-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Module Dockerfile (pass a). The Dockerfile removes Tomcat's default apps and the
+      runbook confirms /petstore, but this is deployment shape, not an authorisation rule;
+      the pass itself filed it here only for lack of a deployment capability. Recommend
+      keeping only the access-relevant part and moving it if a deployment capability exists.
+    edited_requirement: >
+      The system SHALL NOT expose a server administration console or sample application
+      alongside the store.
+  # ---- screens ----
+  - record_key: ACC-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Modules webapp (pass a) and waf (pass b): the Access Denied page. access_denied.jsp,
+      its screen definition and both callers agree. Spec: "Access Denied page display".
+      (Module docs/guides pass b reuses this key for the banner Admin link; accept that one
+      too, merged into "Banner Admin link".)
+  - record_key: AC-SCR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass b). Access Denied page content plus its two entry points (filter
+      role check, forced reload); both confirmed in code. Merged into "Access Denied page
+      display" and the forced-reload requirement. The copy says "administrators only", true
+      only while ADMIN is the sole restricted role.
+  - record_key: ACL-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module docs/guides (pass a). States when Access Denied appears rather than what it
+      shows; covered by "Role check on a protected page". Merge.
+  - record_key: ACC-SCR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass a). banner.jsp shows the Admin link only for j_signon_role ADMIN
+      and the Account link unconditionally; Admin Guide 1.1 agrees. Spec: "Banner Admin
+      link" and "Banner Account link".
+  - record_key: AC-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Module webapp (pass b). Same banner rule as ACC-SCR-0002. Merge.
+  - record_key: AC-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Module docs/guides (pass c): role domain plus the banner Admin link, from the guides
+      only (banner.jsp not read in that pass); the webapp passes confirm both from code.
+      Merge into SWHR5-R-0001 and "Banner Admin link".
