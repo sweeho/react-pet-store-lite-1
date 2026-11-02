@@ -1,0 +1,326 @@
+records:
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL lock an account when its third consecutive sign-on with a wrong password
+      fails, recording the failed attempt and then an account-locked event, and SHALL reset the
+      consecutive-failure count to zero on a successful sign-on.
+      GIVEN an account with two consecutive failed sign-ons WHEN a third sign-on fails THEN the
+      account is locked, the lock time is recorded, and a sign-on failure event followed by an
+      account-locked event is written to the sign-on audit trail.
+    plain_text: >
+      Three wrong passwords in a row lock the account. A successful sign-in clears the count of
+      wrong attempts.
+    technical_note: >
+      Enforced in UserDAO.authenticate (MAX_FAILED_ATTEMPTS = 3; UPDATE_FAILURE sets locked='Y' and
+      locked_ts; UPDATE_SUCCESS resets failed_attempts = 0). The synthetic history generator
+      data/generate_history.py models the same rule: after 3 SIGNON_FAIL events it emits
+      ACCOUNT_LOCKED, and the two accounts left locked at period end are written with
+      failed_attempts=3, locked='Y', locked_ts set. The schema comment on SIGNON says the same thing.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Production code (UserDAO), the schema comment and the generator's docstring and logic all
+      state 3 consecutive failures. The generator is test tooling, so it corroborates the rule but
+      does not enforce it.
+    risk_class: regulated
+    basis: >
+      The generator docstring states "3 failures in a row lock an account"; lines 65-69 and 86-89
+      emit three SIGNON_FAIL then ACCOUNT_LOCKED; UserDAO lines 141-153 enforce it.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 1
+        line_end: 6
+        excerpt: |
+          """Generate 90 days of synthetic sign-on history for Petstore Lite.
+
+          Writes data/seed/signon_history.sql: extra customer accounts and SIGNON_AUDIT
+          events that follow the application rules (3 failures in a row lock an account,
+          PSL_ACCT_UNLOCK clears the lock 30+ minutes later, a sign-on usually ends in a
+          sign-off). Deterministic: the same seed gives the same file.
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 65
+        line_end: 69
+        excerpt: |
+            for _ in range(fails):
+                events.append((ts, name, "SIGNON_FAIL", ip))
+                ts += timedelta(seconds=rnd.randint(8, 60))
+            if fails == 3:
+                events.append((ts, name, "ACCOUNT_LOCKED", ip))
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 86
+        line_end: 89
+        excerpt: |
+              for i in range(3):
+                  events.append((ts + timedelta(seconds=20 * i), name, "SIGNON_FAIL", ip))
+              events.append((ts + timedelta(seconds=60), name, "ACCOUNT_LOCKED", ip))
+              accounts[name].update(failed=3, locked="Y", locked_ts=ts + timedelta(seconds=60))
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/signon/dao/UserDAO.java
+        line_start: 141
+        line_end: 153
+        excerpt: |
+                failedAttempts++;
+                boolean lockNow = failedAttempts >= MAX_FAILED_ATTEMPTS;
+                PreparedStatement update = connection.prepareStatement(UPDATE_FAILURE);
+                update.setInt(1, failedAttempts);
+                update.setString(2, lockNow ? "Y" : "N");
+                update.setTimestamp(3, lockNow ? now : null);
+                update.setString(4, userName);
+                update.executeUpdate();
+                update.close();
+                audit(connection, userName, EVENT_SIGNON_FAIL, remoteAddr);
+                if (lockNow) {
+                    audit(connection, userName, EVENT_ACCOUNT_LOCKED, remoteAddr);
+                    return SIGNON_LOCKED;
+    stack_metadata:
+      framework: python-script (test-data generator)
+      job.entrypoint: data/generate_history.py
+      db.model: SIGNON, SIGNON_AUDIT
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL refuse sign-on to a locked account, recording a locked-attempt event, and
+      SHALL automatically unlock an account whose lock is more than 30 minutes old, through a check
+      that runs every 15 minutes; each automatic unlock SHALL clear the failure count and lock time
+      and record an account-unlocked event attributed to the unlock job rather than to a network
+      address.
+    plain_text: >
+      A locked account cannot sign in. Every 15 minutes the system unlocks any account that has been
+      locked for more than 30 minutes and records that it did so.
+    technical_note: >
+      The generator emits SIGNON_LOCKED for a sign-on attempt against a locked account and places
+      ACCOUNT_UNLOCKED on the first quarter-hour boundary at least 30 minutes after the lock, with
+      remote_addr 'batch:PSL_ACCT_UNLOCK'. Production: db/batch/acct_unlock.sql (locked_ts older than
+      CURRENT_TIMESTAMP - 30 min), scheduled by Control-M job PSL_ACCT_UNLOCK, INTERVAL 00015M.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The generator's quarter-hour model, the unlock SQL and the Control-M definition all agree on a
+      30-minute age and a 15-minute cycle. Whether a lock exactly 30 minutes old is cleared depends
+      on the strict "<" in the SQL. That is read from the SQL, not from the generator.
+    risk_class: regulated
+    basis: >
+      Generator lines 70-74 model the locked-attempt event and the unlock timing. acct_unlock.sql
+      lines 6-15 and the PSL_ACCT_UNLOCK job definition are the live enforcement.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 70
+        line_end: 75
+        excerpt: |
+                if rnd.random() < 0.5:
+                    events.append((ts + timedelta(minutes=rnd.randint(2, 20)), name, "SIGNON_LOCKED", ip))
+                unlock = ts + timedelta(minutes=30)
+                unlock = unlock + timedelta(minutes=15 - unlock.minute % 15, seconds=-unlock.second)
+                events.append((unlock, name, "ACCOUNT_UNLOCKED", "batch:PSL_ACCT_UNLOCK"))
+                ts = unlock + timedelta(minutes=rnd.randint(5, 240))
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 15
+        excerpt: |
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'
+              FROM signon
+             WHERE locked = 'Y'
+               AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+             AND locked_ts < {fn TIMESTAMPADD(SQL_TSI_MINUTE, -30, CURRENT_TIMESTAMP)};
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 78
+        line_end: 83
+        excerpt: |
+              <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="SECURITY" JOBNAME="PSL_ACCT_UNLOCK"
+                   DESCRIPTION="Unlock sign-on accounts locked for more than 30 minutes"
+                   TASKTYPE="Job" MEMLIB="/opt/petstore/batch" MEMNAME="psl_acct_unlock.sh"
+                   RUN_AS="tomcat" NODEID="psl-app01" PRIORITY="AA"
+                   TIMEFROM="0000" TIMETO="2359" WEEKDAYS="ALL"
+                   CYCLIC="1" CYCLIC_TYPE="Interval" INTERVAL="00015M" IND_CYCLIC="START"
+    stack_metadata:
+      job.entrypoint: psl_acct_unlock.sh
+      schedule.trigger: Control-M cyclic 15 minutes
+
+  - record_key: AUDIT-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on audit event with the user name, an event type taken from
+      the fixed set sign-on succeeded, sign-on failed, sign-on attempted while locked, account
+      locked, signed off, user created and account unlocked, the event time to the second, and the
+      originating network address (or the name of the batch job for system-originated events).
+    plain_text: >
+      The sign-on history keeps, for every event, who it was, what happened (one of seven event
+      kinds), when, and where it came from.
+    technical_note: >
+      The generator writes INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+      using exactly the seven types allowed by the ck_signon_audit_event check constraint in
+      db/schema/petstore_derby.sql. Timestamps are formatted '%Y-%m-%d %H:%M:%S'.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The schema check constraint and the generator's output use the same columns and the same
+      event vocabulary.
+    risk_class: regulated
+    basis: >
+      Generator lines 111-113 write audit rows. Schema lines 84-94 define the table and constrain
+      event_type.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 111
+        line_end: 113
+        excerpt: |
+                for ts, name, typ, ip in events:
+                    f.write("INSERT INTO signon_audit (username, event_type, event_ts, remote_addr) VALUES (%s, '%s', %s, %s);\n"
+                            % (q(name), typ, t(ts), q(ip)))
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 85
+        line_end: 94
+        excerpt: |
+          CREATE TABLE signon_audit (
+            audit_id bigint generated always as identity,
+            username varchar(25) not null,
+            event_type varchar(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar(45),
+            constraint pk_signon_audit primary key (audit_id),
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+          );
+    stack_metadata:
+      db.model: SIGNON_AUDIT
+
+  - record_key: SEED-REQ-0001
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      The test-data tooling SHALL produce, from a fixed seed, the same 90-day synthetic sign-on
+      history every time: 40 additional customer accounts with user names of 3 to 25 characters,
+      and their audit events ending on a given end date (default 30 October 2026). The history
+      SHALL be loaded only after the store's first sample-data load, and SHALL also back-date the
+      creation and last sign-on times of the three standard sample accounts.
+      GIVEN the history has been loaded WHEN the period ends THEN exactly two customer accounts are
+      left locked with a lock less than 30 minutes old, waiting for the automatic unlock.
+    plain_text: >
+      Demonstration data includes a repeatable three-month sign-in history for 40 extra customers,
+      loaded after the store's sample data. It leaves two accounts locked at the end so the
+      automatic unlock can be shown.
+    technical_note: >
+      data/generate_history.py with SEED=1302 and DAYS=90 writes data/seed/signon_history.sql: SIGNON
+      inserts (role CUSTOMER, plain-text password "pw"+4 digits), UPDATEs created_ts and last_signon
+      for j2ee/shopper/admin, then SIGNON_AUDIT inserts, in one transaction (AUTOCOMMIT OFF ... COMMIT).
+      The README loads it with psl_ij after the first populate. It is a developer and demo tool and no
+      runtime path calls it.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Read directly from one script and its README usage. Nothing enforces it at runtime, and it is
+      unclear whether the business considers demo history a requirement at all.
+    risk_class: operational
+    basis: >
+      Generator constants (lines 15-16), the user loop (30-41), the end-of-period locks (82-89) and
+      the load instruction (97). The README describes loading after the first load.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 23
+        line_end: 41
+        excerpt: |
+          def main():
+              rnd = random.Random(SEED)
+              end = datetime.strptime(sys.argv[1], "%Y-%m-%d") if len(sys.argv) > 1 else datetime(2026, 10, 30)
+              start = end - timedelta(days=DAYS)
+              out = Path(__file__).parent / "seed" / "signon_history.sql"
+              out.parent.mkdir(exist_ok=True)
+
+              users = {}
+              while len(users) < 40:
+                  name = rnd.choice(GIVEN) + rnd.choice(["", ".", "_"]) + rnd.choice(FAMILY)
+                  if rnd.random() < 0.35:
+                      name += str(rnd.randint(1, 99))
+                  if name in users or not (3 <= len(name) <= 25):
+                      continue
+                  created = start + timedelta(days=rnd.randint(0, DAYS - 10), minutes=rnd.randint(480, 1320))
+                  users[name] = {"created": created, "pw": "pw" + str(rnd.randint(1000, 9999)),
+                                 "ip": "10.%d.%d.%d" % (rnd.randint(1, 40), rnd.randint(0, 255), rnd.randint(2, 254))}
+              for seeded in ("j2ee", "shopper", "admin"):
+                  users[seeded] = {"created": None, "pw": None, "ip": "10.0.0.%d" % rnd.randint(2, 254)}
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 94
+        line_end: 109
+        excerpt: |
+              with out.open("w") as f:
+                  f.write("-- Generated by data/generate_history.py (seed %d). %d accounts, %d audit events, %s to %s.\n"
+                          % (SEED, len(accounts), len(events), start.date(), end.date()))
+                  f.write("-- Load after the first populate: ij data/seed/signon_history.sql\nAUTOCOMMIT OFF;\n\n")
+                  for name in sorted(accounts):
+                      a = accounts[name]
+                      f.write("INSERT INTO signon (username, password, role, failed_attempts, locked, locked_ts, last_signon, created_ts) "
+                              "VALUES (%s, %s, 'CUSTOMER', %d, %s, %s, %s, %s);\n"
+                              % (q(name), q(users[name]["pw"]), a["failed"], q(a["locked"]), t(a["locked_ts"]), t(a["last"]), t(users[name]["created"])))
+                  last_ok = {}
+                  for ts, name, typ, ip in events:
+                      if typ == "SIGNON_OK":
+                          last_ok[name] = ts
+                  for name in ("j2ee", "shopper", "admin"):
+                      f.write("UPDATE signon SET created_ts = %s, last_signon = %s WHERE username = '%s';\n"
+                              % (t(start), t(last_ok.get(name)), name))
+      - path: legacy-source/j2ee-pet-store-lite/README.md
+        line_start: 34
+        line_end: 38
+        excerpt: |
+          Load 90 days of sign-on history after the first load:
+
+          ```sh
+          docker cp data/seed/signon_history.sql psl:/tmp/h.sql
+          docker exec psl sh -c '. /opt/petstore/conf/env.sh; psl_ij /tmp/h.sql'
+    stack_metadata:
+      framework: python-script (test-data generator)
+      job.entrypoint: data/generate_history.py
+      config.key: SEED=1302, DAYS=90
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+    description: >
+      This file is a developer/demo data generator that no runtime path, batch job or schedule calls.
+      Its rules duplicate production rules (UserDAO, acct_unlock.sql). The records above cite it as
+      corroboration. A human should decide whether SEED-REQ-0001 (demo history) belongs in the
+      target specification at all. No document sources (legacy-analysis/sources/**/extracted.md) exist
+      in this tree, so no document traces were possible.
+
+suspected_defects:
+  - capability_key: account-lockout
+    record_keys: [LOCK-BR-0002]
+    severity: low
+    category: other
+    title: Synthetic unlock time can be 15 minutes later than the real job would unlock
+    description: >
+      The generator rounds the unlock time up to the next quarter hour after lock+30 minutes. When
+      lock+30 minutes already falls exactly on a quarter-hour minute, it still adds a full 15
+      minutes. The real job runs every 15 minutes from its start time, not on wall-clock quarter
+      hours, and clears locks older than 30 minutes. The demo history can therefore show unlock
+      delays that do not match the live behaviour. Only the test data is affected.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 72
+        line_end: 74
+      - path: legacy-source/j2ee-pet-store-lite/scheduler/control-m/PSL_PETSTORE.xml
+        line_start: 78
+        line_end: 83
+  - capability_key: sample-data-population
+    record_keys: [SEED-REQ-0001]
+    severity: low
+    category: other
+    title: Generated accounts carry plain-text passwords in a committed file
+    description: >
+      The generator writes customer passwords in clear text into a seed SQL file that is committed
+      to the repository. This matches how the live table stores passwords (plain varchar), so it
+      reproduces the legacy practice. The vortex README warns about plain-text passwords in the
+      migration extracts.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/generate_history.py
+        line_start: 38
+        line_end: 38
