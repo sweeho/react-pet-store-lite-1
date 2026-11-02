@@ -50,7 +50,7 @@ records:
       - path: legacy-source/j2ee-pet-store-lite/pom.xml
         line_start: 85
         line_end: 101
-        excerpt: |
+        excerpt: |2
                           <artifactItem>
                             <groupId>org.apache.derby</groupId>
                             <artifactId>derbynet</artifactId>
