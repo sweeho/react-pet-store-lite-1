@@ -1,0 +1,1027 @@
+records:
+  - record_key: SDP-WF-0001
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL, on a first-load (non-forced) population request, check
+      whether the category, category details, product, product details, item,
+      item details and sign-on tables each hold at least one row; WHEN every one
+      of them does THEN the system SHALL change nothing; OTHERWISE the system
+      SHALL drop, recreate and reload every catalog and sign-on table from the
+      sample data file.
+    plain_text: >
+      When someone enters the store, the store checks whether its catalog and
+      user accounts are already loaded. If they are, nothing happens. If any part
+      is empty or missing, the whole store (catalog, accounts and sign-in
+      history) is wiped and reloaded from the sample data.
+    technical_note: >
+      PopulateServlet.populate(false) calls CatalogPopulator.check (category,
+      product, item and their *_details tables) AND UserPopulator.check (signon).
+      Each check runs the table's CheckStatement from PopulateSQL.xml
+      ("select * from <table>") and returns true when the result set has a row.
+      signon_audit is not checked. Triggered from populating.jsp (meta refresh
+      to Populate?success_page=main.screen&forcefully=false) and from the batch
+      job PSL_CATALOG_CHECK.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The check-then-reload logic is read directly in the servlet and each
+      populator, and the Administrator Guide section 3.1 states the same
+      behaviour ("If the catalog and SIGNON tables already hold data nothing
+      happens. Otherwise every table is dropped, created and loaded").
+    risk_class: operational
+    basis: >
+      populate() computes alreadyPopulated from the catalog and user checks and
+      only drops/creates/loads when forcefully || !alreadyPopulated. The check
+      statements are plain "select * from" queries, so "populated" means "at
+      least one row".
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 162
+        line_end: 172
+        excerpt: |2
+                if (!forcefully) {
+                  try {
+                    alreadyPopulated = catalogPopulator.check(connection) && userPopulator.check(connection);
+                  } catch (PopulateException exception) {}
+                  //System.err.println("Already populated: " + alreadyPopulated);
+                }
+                if (forcefully || !alreadyPopulated) {
+                  catalogPopulator.dropTables(connection);
+                  userPopulator.dropTables(connection);
+                  catalogPopulator.createTables(connection);
+                  userPopulator.createTables(connection);
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/CatalogPopulator.java
+        line_start: 71
+        line_end: 73
+        excerpt: |2
+            public boolean check(Connection connection) throws PopulateException {
+              return categoryPopulator.check(connection) && productPopulator.check(connection) && itemPopulator.check(connection);
+            }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateUtils.java
+        line_start: 74
+        line_end: 76
+        excerpt: |2
+                  statement.execute();
+                  ResultSet resultSet = statement.getResultSet();
+                  boolean result = resultSet != null ? resultSet.next() : statement.getUpdateCount() > 0;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 145
+        line_end: 147
+        excerpt: |2
+                <CheckStatement>
+                  select * from signon
+                </CheckStatement>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 76
+        line_end: 77
+        excerpt: |2
+          <p>When a user clicks <i>enter the store</i>, the store calls <code>Populate?forcefully=false</code>. If the catalog and SIGNON tables
+          already hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populating.jsp
+        line_start: 8
+        line_end: 8
+        excerpt: |2
+          <META HTTP-EQUIV=REFRESH CONTENT="0; URL=Populate?success_page=main.screen&forcefully=false">
+    stack_metadata:
+      framework: servlet
+      db.object: category, category_details, product, product_details, item, item_details, signon
+      jsp.page: populating.jsp
+
+  - record_key: SDP-BR-0002
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      GIVEN a first-load request WHEN the "already loaded" check itself fails
+      (for example because a table does not exist) THEN the system SHALL treat
+      the store as not loaded and perform the full drop, recreate and reload.
+    plain_text: >
+      If the store cannot even tell whether it is loaded (for instance a table is
+      missing), it assumes it is empty and reloads everything.
+    technical_note: >
+      The PopulateException thrown by any check (SQL error on a missing table,
+      or a missing CheckStatement) is caught and discarded; alreadyPopulated
+      stays false. The PSL_CATALOG_CHECK batch relies on this when catalog
+      tables "do not exist".
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code (the empty catch). The batch script and runbook
+      depend on it for the missing-tables case, but do not state the rule
+      itself, so not graded high.
+    risk_class: operational
+    basis: >
+      The catch block around the check is empty and alreadyPopulated is
+      initialised to false.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 157
+        line_end: 165
+        excerpt: |2
+              boolean alreadyPopulated = false;
+              try {
+                connection = getConnection();
+                CatalogPopulator catalogPopulator = new CatalogPopulator(sqlStatements);
+                UserPopulator userPopulator = new UserPopulator(sqlStatements);
+                if (!forcefully) {
+                  try {
+                    alreadyPopulated = catalogPopulator.check(connection) && userPopulator.check(connection);
+                  } catch (PopulateException exception) {}
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-BR-0003
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL accept a forced reload of the sample data only from a
+      signed-on user whose role is ADMIN. GIVEN a forced reload request WHEN the
+      requester is not signed on as ADMIN THEN the system SHALL redirect to the
+      access-denied page and SHALL NOT drop, recreate or load any table, and
+      SHALL NOT end the requester's session.
+    plain_text: >
+      Only an administrator who is signed in can force the store to wipe and
+      reload its sample data. Anyone else asking for it is shown "access denied"
+      and nothing is changed.
+    technical_note: >
+      PopulateServlet.doPost compares the session attribute j_signon_role (set by
+      SignOnFilter) to "ADMIN" before anything else when forcefully is true, and
+      redirects to /access_denied.screen. Separately, the admin form page
+      populate_admin.screen is protected for role ADMIN in signon-config.xml; the
+      /Populate URL itself is not in signon-config, so the servlet check is the
+      only gate on the endpoint.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Enforced in the servlet code and corroborated by a declarative ADMIN
+      constraint on the admin screen plus the Administrator Guide (reload steps
+      begin with "Sign in as an ADMIN user").
+    risk_class: operational
+    basis: >
+      The force branch redirects to the access-denied page and returns before
+      the session is invalidated and before populate() runs.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 118
+        line_end: 125
+        excerpt: |2
+              // Petstore Lite: the first load is open to anyone so the store can start
+              // on an empty database. A forced repopulate drops every table, sign-ons
+              // included, so only a signed on ADMIN may ask for it.
+              boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();
+              if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {
+                redirect(request, response, ACCESS_DENIED_PAGE);
+                return;
+              }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/signon-config.xml
+        line_start: 41
+        line_end: 49
+        excerpt: |2
+           <security-constraint>
+             <web-resource-collection>
+              <web-resource-name>Populate Admin Screen</web-resource-name>
+              <url-pattern>populate_admin.screen</url-pattern>
+             </web-resource-collection>
+             <auth-constraint>
+              <role-name>ADMIN</role-name>
+             </auth-constraint>
+           </security-constraint>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 79
+        line_end: 83
+        excerpt: |2
+          <h2>3.2 Reload the sample data</h2>
+          <ol>
+           <li>Sign in as an ADMIN user.</li>
+           <li>Click <b>Admin</b> in the banner. The page <i>Catalog Administration</i> opens.</li>
+           <li>Click <b>Reload Sample Data</b>.</li>
+    stack_metadata:
+      framework: servlet
+      session.scope: j_signon_role
+
+  - record_key: SDP-BR-0004
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL allow a first-load (non-forced) population request from
+      any caller, signed on or not.
+    plain_text: >
+      Anyone, without signing in, can trigger the first load of an empty store.
+    technical_note: >
+      The role check in PopulateServlet.doPost only applies when force is true;
+      the non-forced path has no authorisation. Documented in admin guide 3.1.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Code comment, code branch and the Administrator Guide all say the same
+      thing.
+    risk_class: operational
+    basis: >
+      The guard condition is "force && !ADMIN"; with force false it never
+      redirects.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 118
+        line_end: 122
+        excerpt: |2
+              // Petstore Lite: the first load is open to anyone so the store can start
+              // on an empty database. A forced repopulate drops every table, sign-ons
+              // included, so only a signed on ADMIN may ask for it.
+              boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();
+              if (force && !ADMIN_ROLE.equals(request.getSession().getAttribute(SIGNED_ON_ROLE))) {
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 77
+        line_end: 77
+        excerpt: |2
+          already hold data nothing happens. Otherwise every table is dropped, created and loaded. No sign-in is needed for the first load.</p>
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-BR-0005
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      WHEN a population (forced reload, or a first load that finds the store not
+      loaded) runs THEN the system SHALL delete every user account and the whole
+      sign-on audit history, and SHALL recreate only the accounts listed in the
+      sample data file, each with the user name, password and role given there.
+    plain_text: >
+      Reloading the sample data deletes every customer account created in the
+      store and all sign-in history. Only the sample accounts from the data file
+      exist afterwards.
+    technical_note: >
+      UserPopulator.dropTables drops signon_audit then signon; createTables
+      recreates signon then signon_audit (empty). Users are inserted from the
+      Users/User elements of Populate-UTF8.xml with "insert into signon
+      (username, password, role) values (?, ?, ?)"; the password value is stored
+      exactly as it appears in the file (no transformation in this module).
+      Other signon columns take their DDL defaults (failed_attempts 0, locked N,
+      created_ts now). The admin page and Administrator Guide warn about this.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Drop/create/insert logic in code, the warning text on the admin page and
+      the Administrator Guide warning all agree.
+    risk_class: regulated
+    basis: >
+      Sign-on audit history is destroyed by this operation, which bears on the
+      audit trail and its retention; hence regulated rather than operational.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/UserPopulator.java
+        line_start: 93
+        line_end: 111
+        excerpt: |2
+            public void dropTables(Connection connection) {
+              try {
+                PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.DROP_OPERATION, "signon_audit"), null, null);
+              } catch (PopulateException exception) {
+                // System.err.println(exception.getRootCause().getMessage());
+              }
+              try {
+                PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.DROP_OPERATION, "signon"), null, null);
+              } catch (PopulateException exception) {
+                // System.err.println(exception.getRootCause().getMessage());
+              }
+              return;
+            }
+
+            public void createTables(Connection connection) throws PopulateException {
+              PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.CREATE_OPERATION, "signon"), null, null);
+              PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.CREATE_OPERATION, "signon_audit"), null, null);
+              return;
+            }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/UserPopulator.java
+        line_start: 75
+        line_end: 83
+        excerpt: |2
+            public XMLFilter setup(XMLReader reader, final Connection connection) {
+              return new XMLDBHandler(reader, rootTag, XML_USER) {
+                public void update() throws PopulateException {}
+                public void create() throws PopulateException {
+                  if (connection == null) {
+                    PopulateUtils.printSQLStatement(sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.INSERT_OPERATION, "signon"), PARAMETER_NAMES, this);
+                  } else {
+                    PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.INSERT_OPERATION, "signon"), PARAMETER_NAMES, this);
+                  }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/PopulateSQL.xml
+        line_start: 163
+        line_end: 165
+        excerpt: |2
+                <InsertStatement>
+                  insert into signon (username, password, role) values (?, ?, ?)
+                </InsertStatement>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate_admin.jsp
+        line_start: 9
+        line_end: 10
+        excerpt: |2
+          <p class="petstore_error">All accounts created in the store and all sign-in
+          history are deleted. You will be signed out.</p>
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 84
+        line_end: 87
+        excerpt: |2
+           <li>The store drops and recreates CATEGORY, CATEGORY_DETAILS, PRODUCT, PRODUCT_DETAILS, ITEM, ITEM_DETAILS, SIGNON and SIGNON_AUDIT,
+           loads the file, ends your session and shows the home page.</li>
+          </ol>
+          <div class="warn">A reload deletes every account created in the store and all sign-in history. Take a backup first (job PSL_DB_BACKUP).</div>
+    stack_metadata:
+      framework: servlet
+      db.object: signon, signon_audit
+
+  - record_key: SDP-BR-0006
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL end the requester's session on every accepted population
+      request (any first-load request, and a forced reload by an ADMIN), before
+      the load runs and whether or not any data is actually reloaded.
+    plain_text: >
+      Asking the store to load its data signs the person out, even when the
+      store was already loaded and nothing changed.
+    technical_note: >
+      PopulateServlet.doPost calls request.getSession().invalidate() after the
+      ADMIN check and before populate(force), unconditionally. The comment gives
+      the reason: cached catalog and sign-on state are no longer valid.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code. The admin page and guide confirm the session ends
+      on a forced reload, but nothing documents that a no-op first load also
+      ends the session, so that half is read from code only.
+    risk_class: operational
+    basis: >
+      invalidate() is not conditional on whether populate() reloads anything.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 126
+        line_end: 129
+        excerpt: |2
+              // kill the Servlet Session because the cached catalog and sign-on state are no longer valid
+              request.getSession().invalidate();
+              try {
+                populate(force);
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate_admin.jsp
+        line_start: 9
+        line_end: 10
+        excerpt: |2
+          <p class="petstore_error">All accounts created in the store and all sign-in
+          history are deleted. You will be signed out.</p>
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-WF-0007
+    kind: workflow
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL perform a population in this order: drop item details,
+      items, product details, products, category details, categories, sign-on
+      audit, sign-on; then create categories, category details, products,
+      product details, items, item details, sign-on, sign-on audit; then load
+      the sample data file. A failure to drop a table SHALL be ignored; a failure
+      to create a table or to load the data SHALL stop the population and report
+      a failure. Tables dropped and rows inserted before a failure SHALL NOT be
+      restored.
+    plain_text: >
+      A reload first removes all the old tables (detail records before the
+      records they belong to), then builds them again and loads the file. If
+      removing an old table fails it carries on; if building or loading fails
+      it stops and reports an error, leaving whatever was already done in place.
+    technical_note: >
+      Drop order: CatalogPopulator.dropTables (item -> ItemPopulator drops
+      item_details then item; product likewise; category likewise), then
+      UserPopulator.dropTables (signon_audit, signon); every drop failure is
+      caught and discarded. Create order: CatalogPopulator.createTables
+      (category, category_details, product, product_details, item, item_details)
+      then UserPopulator.createTables (signon, signon_audit); failures propagate
+      as PopulateException. No transaction or rollback is used; the connection
+      is closed in finally.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Ordering is read directly from statement sequence in the code; it is
+      implicit (no comment states the ordering is required). The admin guide
+      lists the tables but not the order.
+    risk_class: operational
+    basis: >
+      Statement order in populate(), CatalogPopulator.dropTables/createTables and
+      the per-entity populators; empty catch blocks on the drop side only.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/CatalogPopulator.java
+        line_start: 75
+        line_end: 98
+        excerpt: |2
+            public void dropTables(Connection connection) {
+              try {
+                itemPopulator.dropTables(connection);
+              } catch (PopulateException exception) {
+                // System.err.println(exception.getRootCause().getMessage());
+              }
+              try {
+                productPopulator.dropTables(connection);
+              } catch (PopulateException exception) {
+                // System.err.println(exception.getRootCause().getMessage());
+              }
+              try {
+                categoryPopulator.dropTables(connection);
+              } catch (PopulateException exception) {
+                // System.err.println(exception.getRootCause().getMessage());
+              }
+              return;
+            }
+
+            public void createTables(Connection connection) throws PopulateException {
+              categoryPopulator.createTables(connection);
+              productPopulator.createTables(connection);
+              itemPopulator.createTables(connection);
+              return;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/ItemPopulator.java
+        line_start: 90
+        line_end: 101
+        excerpt: |2
+            public void dropTables(Connection connection) throws PopulateException {
+              try {
+                itemDetailsPopulator.dropTables(connection);
+              } catch (PopulateException exception) {}
+              PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.DROP_OPERATION, "item"), null, null);
+              return;
+            }
+
+            public void createTables(Connection connection) throws PopulateException {
+              PopulateUtils.executeSQLStatement(connection, sqlStatements, PopulateUtils.makeSQLStatementKey(PopulateUtils.CREATE_OPERATION, "item"), null, null);
+              itemDetailsPopulator.createTables(connection);
+              return;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 168
+        line_end: 187
+        excerpt: |2
+                if (forcefully || !alreadyPopulated) {
+                  catalogPopulator.dropTables(connection);
+                  userPopulator.dropTables(connection);
+                  catalogPopulator.createTables(connection);
+                  userPopulator.createTables(connection);
+                  try {
+                    catalogPopulator.setup(userPopulator.setup(reader, connection), connection)
+                      .parse(new InputSource(getResource(populateDataPath)));
+                    //.parse(new InputSource(getServletConfig().getServletContext().getRealPath(populateDataPath)));
+                  } catch (Exception exception) {
+                    throw new PopulateException(exception);
+                  }
+                }
+              } finally {
+                try {
+                  if (connection != null) {
+                    connection.close();
+                  }
+                } catch (Exception exception) {}
+              }
+    stack_metadata:
+      framework: servlet
+      ejb.transaction: none (plain JDBC, no explicit transaction)
+
+  - record_key: SDP-ENT-0008
+    kind: entity
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL load from the sample data file, in file order: each
+      category (identifier) with its localised details (name, image,
+      description, locale); each product (identifier, owning category) with its
+      localised details (locale, name, image, description); and each item
+      (identifier, owning product) with its localised details (list price, unit
+      cost, locale, up to five attributes, image, description). A details record
+      SHALL take its identifier from the enclosing category, product or item.
+    plain_text: >
+      The sample catalog is loaded from a data file: categories, products and
+      items, each with a name or description, a picture and a language; items
+      also carry a list price, a cost and up to five descriptive attributes.
+    technical_note: >
+      Category/Product/ItemPopulator insert the parent row when the start tag is
+      read (lazyInstantiation=true in XMLDBHandler) so the parent exists before
+      its *Details rows; *DetailsPopulator insert on the end tag. Parameter order
+      is fixed by each PARAMETER_NAMES array and must match the INSERT statements
+      in PopulateSQL.xml. Price and cost are passed as strings (setString);
+      the item_details table has a check constraint listprice >= unitcost, so a
+      file row violating it fails the load. Admin guide: 5 categories,
+      16 products, 28 items in the shipped file.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Field lists and parent/child wiring are read from one place each (the
+      populator classes); the admin guide confirms the file content at a summary
+      level only.
+    risk_class: operational
+    basis: >
+      PARAMETER_NAMES arrays in each populator and the insert-on-start-tag
+      behaviour of XMLDBHandler.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/CategoryDetailsPopulator.java
+        line_start: 53
+        line_end: 58
+        excerpt: |2
+            // The INSERT statement expects parameters to be passed in the same order as below
+            private static final String[] PARAMETER_NAMES = { CategoryPopulator.XML_ID,
+                                                              XML_NAME,
+                                                              XML_IMAGE,
+                                                              XML_DESCRIPTION,
+                                                              XML_LOCALE };
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/ProductPopulator.java
+        line_start: 50
+        line_end: 53
+        excerpt: |2
+            static final String XML_ID = "Product/@id";
+            public static final String XML_CATEGORY = "Product/@category";
+            // The INSERT statement expects parameters to be passed in the same order as below
+            private static final String[] PARAMETER_NAMES = { XML_ID, XML_CATEGORY };
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/ProductDetailsPopulator.java
+        line_start: 53
+        line_end: 58
+        excerpt: |2
+            // The INSERT statement expects parameters to be passed in the same order as below
+            private static final String[] PARAMETER_NAMES = { ProductPopulator.XML_ID,
+                                                              XML_LOCALE,
+                                                              XML_NAME,
+                                                              XML_IMAGE,
+                                                              XML_DESCRIPTION };
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/ItemPopulator.java
+        line_start: 50
+        line_end: 53
+        excerpt: |2
+            static final String XML_ID = "Item/@id";
+            private static final String XML_PRODUCT = "Item/@product";
+            // The INSERT statement expects parameters to be passed in the same order as below
+            private static final String[] PARAMETER_NAMES = { XML_ID, XML_PRODUCT };
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/ItemDetailsPopulator.java
+        line_start: 59
+        line_end: 70
+        excerpt: |2
+            // The INSERT statement expects parameters to be passed in the same order as below
+            private static final String[] PARAMETER_NAMES = { ItemPopulator.XML_ID,
+                                                              XML_LISTPRICE,
+                                                              XML_UNITCOST,
+                                                              XML_LOCALE,
+                                                              XML_ATTRIBUTE1,
+                                                              XML_ATTRIBUTE2,
+                                                              XML_ATTRIBUTE3,
+                                                              XML_ATTRIBUTE4,
+                                                              XML_ATTRIBUTE5,
+                                                              XML_IMAGE,
+                                                              XML_DESCRIPTION };
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/XMLDBHandler.java
+        line_start: 92
+        line_end: 95
+        excerpt: |2
+                  try {
+                    if (lazyInstantiation) {
+                      create();
+                    }
+    stack_metadata:
+      framework: servlet
+      db.object: category, category_details, product, product_details, item, item_details
+
+  - record_key: SDP-BR-0009
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL store a language code from the sample data file with any
+      hyphen replaced by an underscore (for example "en-US" is stored as
+      "en_US").
+    plain_text: >
+      Language codes in the sample data such as "en-US" are saved as "en_US".
+    technical_note: >
+      XMLDBHandler.normalizeValue rewrites the value of any xml:lang attribute
+      with replace('-', '_'). The shipped data file uses xml:lang="en-US"; the
+      catalog data rules in the admin guide refer to "en_US".
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code; the data file and the admin guide's "en_US" rule
+      are consistent with it but do not state the conversion.
+    risk_class: presentational
+    basis: >
+      normalizeValue applies only to attributes named xml:lang.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/XMLDBHandler.java
+        line_start: 178
+        line_end: 183
+        excerpt: |2
+            private String normalizeValue(String attributeName, String attributeValue) {
+              if (attributeName.equals("xml:lang")) {
+                return attributeValue.replace('-', '_');
+              }
+              return attributeValue;
+            }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 86
+        line_end: 86
+        excerpt: |2
+          	  <CategoryDetails xml:lang="en-US">
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-REQ-0010
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      WHEN a population request completes without error THEN the system SHALL
+      send the requester to the success page named in the request; IF none is
+      named, to the referring page; IF neither is available, it SHALL return an
+      empty successful response.
+    plain_text: >
+      After a successful load the user is taken to the page the request asked
+      for (the store home page in practice), or back where they came from.
+    technical_note: >
+      success_page request parameter, then the Referer header, via
+      PopulateServlet.redirect (context-relative path; a path starting with
+      "//" is resolved against the request URL). populating.jsp and
+      populate_admin.jsp both pass success_page=main.screen. The batch call
+      passes neither, so it gets an empty 200.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code; the two calling pages confirm the main.screen
+      target.
+    risk_class: presentational
+    basis: >
+      doPost redirect chain after populate().
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 138
+        line_end: 143
+        excerpt: |2
+              if (successPageURL != null) {
+                redirect(request, response, successPageURL);
+              } else if (refererURL != null) {
+                redirect(request, response, refererURL);
+              }
+              return;
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate_admin.jsp
+        line_start: 11
+        line_end: 14
+        excerpt: |2
+          <form action="Populate" method="POST">
+           <input type="hidden" name="forcefully" value="true">
+           <input type="hidden" name="success_page" value="main.screen">
+           <input class="petstore_form" type="submit" value="Reload Sample Data">
+    stack_metadata:
+      framework: servlet
+      jsp.page: populating.jsp, populate_admin.jsp
+
+  - record_key: SDP-REQ-0011
+    kind: requirement
+    capability_key: sample-data-population
+    requirement: >
+      WHEN a population fails THEN the system SHALL log the underlying cause and,
+      IF the request names an error page, redirect to it; OTHERWISE it SHALL fail
+      the request with a server error.
+    plain_text: >
+      If loading fails, the cause is logged and the user is sent to the error
+      page given in the request, or sees a server error if none was given.
+    technical_note: >
+      doPost catches PopulateException, prints the root cause to stderr, then
+      redirects to error_page or throws ServletException (HTTP 500). Neither
+      calling page passes error_page, so in practice the user gets a 500. See
+      suspected defect on the fall-through after the error redirect.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code; no document describes the failure behaviour.
+    risk_class: operational
+    basis: >
+      The catch block in doPost.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 130
+        line_end: 137
+        excerpt: |2
+              } catch(PopulateException exception) {
+                System.err.println(exception.getRootCause().getMessage());
+                if (errorPageURL == null) {
+                  throw new ServletException("Populate exception occured :" + exception.getMessage(), exception.getRootCause());
+                } else {
+                  redirect(request, response, errorPageURL);
+                }
+              }
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-INT-0012
+    kind: integration
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL expose the first-load request at a fixed address that the
+      daily catalog-check job can call without signing in, and SHALL answer it
+      with a success status when the load succeeds or was not needed and with a
+      failure status when the load fails, so that the job can detect failure.
+    plain_text: >
+      The morning catalog-check job asks the store to load itself when the
+      catalog tables are missing, and treats an error answer as a failed job.
+    technical_note: >
+      batch/psl_catalog_check.sh runs curl -sf "$PSL_STORE_URL/Populate?forcefully=false"
+      and exits 8 when curl fails (non-2xx). /Populate is mapped to
+      PopulateServlet in web.xml; GET is delegated to POST. With no success_page,
+      error_page or Referer, success is an empty 200 and failure a 500 from the
+      ServletException. Runbook section 3.5 documents the call.
+    interface: true
+    confidence: high
+    confidence_basis: >
+      The caller (batch script), the servlet mapping and code, and the
+      operations runbook all agree.
+    risk_class: operational
+    basis: >
+      The batch script depends on this endpoint's status code; doGet delegates
+      to doPost.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 10
+        line_end: 14
+        excerpt: |2
+          if echo "$OUT" | grep -q "does not exist"; then
+            psl_log "catalog tables missing, requesting first load"
+            curl -sf -o /dev/null "$PSL_STORE_URL/Populate?forcefully=false" || { psl_log "FAILED: populate"; exit 8; }
+            OUT=$(psl_ij "$PSL_SQL/catalog_check.sql")
+          fi
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 107
+        line_end: 111
+        excerpt: |2
+            public void doGet(HttpServletRequest request, HttpServletResponse response)
+              throws java.io.IOException, javax.servlet.ServletException {
+                doPost(request, response);
+                return;
+            }
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 67
+        line_end: 68
+        excerpt: |2
+          <p>Runs catalog checks C1 to C4 (see the Administrator Guide). If the catalog tables do not exist it calls
+          <code>http://localhost:8080/petstore/Populate?forcefully=false</code> to load the sample data, then checks again.
+    stack_metadata:
+      framework: servlet
+      batch.trigger: PSL_CATALOG_CHECK (daily 06:00)
+
+  - record_key: SDP-BR-0013
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL treat a population request as forced only when its
+      "forcefully" value is "true" (in any letter case); any other or absent
+      value SHALL be handled as a first-load request.
+    plain_text: >
+      Only an explicit "true" asks for a forced reload; anything else is an
+      ordinary first-load request.
+    technical_note: >
+      Boolean.valueOf(forcefully) is true only for a case-insensitive "true".
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code.
+    risk_class: operational
+    basis: >
+      The force flag is derived with Boolean.valueOf on the request parameter.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 121
+        line_end: 121
+        excerpt: |2
+              boolean force = forcefully != null && Boolean.valueOf(forcefully).booleanValue();
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-BR-0014
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL take the location of the sample data file, the location
+      of the table statement file, and the database dialect (default "derby",
+      alternative "oracle") from deployment configuration, and SHALL use only
+      the statements declared for the configured dialect.
+    plain_text: >
+      Which database type is used, and where the sample data and table
+      definitions come from, are set in configuration, not in the code.
+    technical_note: >
+      PopulateServlet.init reads init-params PopulateSQL, PopulateData and
+      Database (defaults /populate/PopulateSQL.xml, /populate/Populate-UTF8.xml,
+      derby) and parses only the DatabaseStatements element whose database
+      attribute matches, keyed "<table>.<operation>". A missing statement fails
+      the step with "No statement found for: ...". web.xml sets derby.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Defaults in code and identical values declared in web.xml; the admin guide
+      configuration table lists derby (or oracle).
+    risk_class: operational
+    basis: >
+      init() defaults and the SAX handler that keeps the matching dialect only.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 86
+        line_end: 99
+        excerpt: |2
+                String database = config.getInitParameter(DATABASE_PARAM);
+                if (database == null) {
+                  database = DEFAULT_DATABASE;
+                }
+                populateDataPath = config.getInitParameter(POPULATE_DATA_PATH_PARAM);
+                if (populateDataPath == null) {
+                  populateDataPath = DEFAULT_POPULATE_DATA_PATH;
+                }
+                String populateSQLPath = config.getInitParameter(POPULATE_SQL_PATH_PARAM);
+                if (populateSQLPath == null) {
+                  populateSQLPath = DEFAULT_POPULATE_SQL_PATH;
+                }
+                loadSQLStatements(parserFactory.newSAXParser(), database,
+                                  new InputSource(getResource(populateSQLPath)));
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/WEB-INF/web.xml
+        line_start: 95
+        line_end: 99
+        excerpt: |2
+              <init-param>
+                <param-name>Database</param-name>
+                <param-value>derby</param-value>
+                <!--param-value>oracle</param-value-->
+              </init-param>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateUtils.java
+        line_start: 54
+        line_end: 60
+        excerpt: |2
+            public static boolean executeSQLStatement(Connection connection, Map sqlStatements, String sqlStatementKey, String[] parameterNames, XMLDBHandler handler)
+              throws PopulateException {
+                String statement = (String) sqlStatements.get(sqlStatementKey);
+                if (statement != null) {
+                  return executeSQLStatement(connection, statement, parameterNames, handler);
+                }
+                throw new PopulateException("No statement found for: " + sqlStatementKey);
+    stack_metadata:
+      framework: servlet
+
+  - record_key: SDP-BR-0015
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system SHALL validate the sample data file against its declared
+      structure while loading; GIVEN a malformed file THEN the load SHALL fail;
+      GIVEN a well-formed file that breaks the declared structure THEN the system
+      SHALL log the problem and continue loading.
+    plain_text: >
+      A broken data file stops the load, but a file that is readable yet does
+      not follow the expected layout is only logged and still loaded.
+    technical_note: >
+      The SAX parser is created with setValidating(true) against the DTD in
+      Populate-UTF8.xml. XMLDBHandler.fatalError rethrows; error() and warning()
+      only print to stderr, so DTD validity errors do not stop the load.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place in code; no document states how invalid data is handled.
+    risk_class: operational
+    basis: >
+      fatalError throws; error and warning return normally.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/XMLDBHandler.java
+        line_start: 163
+        line_end: 176
+        excerpt: |2
+            public void warning(SAXParseException exception) {
+              System.err.println("[Warning]: " + exception.getMessage());
+              return;
+            }
+
+            public void error(SAXParseException exception) {
+              System.err.println("[Error]: " + exception.getMessage());
+              return;
+            }
+
+            public void fatalError(SAXParseException exception) throws SAXException {
+              System.err.println("[Fatal Error]: " + exception.getMessage());
+              throw exception;
+            }
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 149
+        line_end: 152
+        excerpt: |2
+                SAXParserFactory parserFactory = SAXParserFactory.newInstance();
+                parserFactory.setValidating(true);
+                parserFactory.setNamespaceAware(true);
+                reader = parserFactory.newSAXParser().getXMLReader();
+    stack_metadata:
+      framework: servlet
+
+findings:
+  - kind: unparseable
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateUtils.java
+    description: >
+      The printSQLStatement path (used by every populator's create() when the
+      connection is null) prints SQL to stdout instead of executing it. The only
+      caller in this module, PopulateServlet, always passes a non-null connection
+      (getConnection throws rather than returning null), so this "dry run" path
+      appears unreachable. No record was emitted. A human should confirm no
+      other tool or script constructs the populators with a null connection.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/CatalogPopulator.java
+    description: >
+      CatalogPopulator declares a hard-coded database user name and password
+      constant (lines 50-51, value redacted by the scanner) that nothing in this
+      module reads; PopulateUtils likewise declares an unused DATABASE_DRIVER
+      constant (RmiJdbc.RJDriver). They produce no behaviour. A human should
+      confirm they are dead and that the credential is not live (the admin guide
+      names the same database user for the data source).
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/UserPopulator.java
+    description: >
+      Sample user passwords are written to the sign-on table exactly as they
+      appear in the data file; this module applies no hashing. Whether the
+      sign-on component expects plain-text passwords (and so whether this is a
+      requirement to preserve) is outside this shard and needs confirming
+      against the sign-on capability.
+
+suspected_defects:
+  - capability_key: sample-data-population
+    record_keys: [SDP-WF-0001, SDP-BR-0002, SDP-BR-0004, SDP-BR-0005, SDP-INT-0012]
+    severity: high
+    category: data-corruption
+    title: An unauthenticated first load can wipe all customer accounts and sign-in history
+    description: >
+      Wiping accounts and audit history is restricted to a signed-in ADMIN on
+      the forced path, and the admin guide warns about it. The first-load path
+      does the same full drop with no sign-in whenever any one catalog table is
+      missing or empty, or the check errors. Anyone visiting the "enter the
+      store" link, or the daily PSL_CATALOG_CHECK job when catalog tables are
+      missing, therefore deletes every customer account and all sign-on audit
+      rows, even though the sign-on table still held data.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 162
+        line_end: 170
+      - path: legacy-source/j2ee-pet-store-lite/batch/psl_catalog_check.sh
+        line_start: 10
+        line_end: 12
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 76
+        line_end: 87
+  - capability_key: sample-data-population
+    record_keys: [SDP-WF-0007, SDP-WF-0001]
+    severity: medium
+    category: data-corruption
+    title: A failed load leaves the store partly loaded and may never be repaired
+    description: >
+      Drops, creates and inserts run without a transaction. If the load fails
+      part way, the tables already dropped stay dropped and the rows already
+      inserted stay. On the next first-load request the store counts as loaded
+      as soon as every checked table has at least one row, so a partly loaded
+      catalog can stay in place until an administrator forces a reload. Drop
+      failures are also swallowed, so a create can then fail on a table that
+      still exists.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 168
+        line_end: 187
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/CatalogPopulator.java
+        line_start: 75
+        line_end: 92
+  - capability_key: sample-data-population
+    record_keys: [SDP-REQ-0011, SDP-REQ-0010]
+    severity: medium
+    category: other
+    title: After redirecting to the error page the code also redirects to the success page
+    description: >
+      When a load fails and an error page was given, the code redirects to the
+      error page and then continues into the success redirect (success page or
+      referring page). A second redirect on a response that has already been
+      redirected raises a server error, so the user may see a server error
+      instead of the error page.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 130
+        line_end: 142
+  - capability_key: sample-data-population
+    record_keys: [SDP-BR-0006]
+    severity: medium
+    category: other
+    title: Every "enter the store" visit signs the user out, even when nothing is reloaded
+    description: >
+      The session is ended on every accepted request, before the code knows
+      whether a reload is needed. The "enter the store" page always calls the
+      load in first-load mode, so a signed-in user who follows that link loses
+      their session even though the store was already loaded and nothing
+      changed. The code comment justifies ending the session only because the
+      cached catalog and sign-on state are no longer valid, which is untrue when
+      nothing was reloaded.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+        line_start: 126
+        line_end: 129
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populating.jsp
+        line_start: 8
+        line_end: 8
+  - capability_key: sample-data-population
+    record_keys: [SDP-BR-0015]
+    severity: low
+    category: error-swallowed
+    title: Data-file validation errors are logged and ignored
+    description: >
+      The parser validates the sample data against its declared structure, but
+      validity errors are only printed and the load continues. A data file that
+      does not follow the expected layout can be loaded with no visible failure.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/petstore/tools/populate/XMLDBHandler.java
+        line_start: 168
+        line_end: 171
