@@ -1,0 +1,179 @@
+# Recommendations for catalog-search records not yet approved (SX-0001 synthesize).
+# Approved and keyed already: SRCH-REQ-0001, SEARCH-BR-0002, SRCH-BR-0005 — not repeated here.
+# Several keys were minted independently by different pass files; where one key names two
+# different records the reason covers both.
+recommendations:
+  - record_key: SEARCH-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      User Guide, SEARCH_ITEMS SQL and the DAO's %kw% binding agree. Duplicates the approved
+      SRCH-REQ-0001; merge into it.
+  - record_key: CS-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      The fields, locale and any-word rule are confirmed by the SQL. "case-insensitive" comes only from the
+      User Guide and is contradicted by the code and the Bulldog sample. The case question goes to Intent and
+      is kept out of the matching rule.
+    edited_requirement: The system SHALL split the search text on spaces and return every en_US item where any word appears as a substring in the product name, the category code or the item description.
+  - record_key: SRCH-BR-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      Same as CS-BR-0001. "ignoring case" is the User Guide's claim and conflicts with the code and the
+      captured sample. The case conflict goes to Intent.
+    edited_requirement: Keyword search SHALL match an item when a search word appears anywhere (substring) in the product name, the category code or the item description; when several space-separated words are given, items matching ANY word SHALL be returned.
+  - record_key: CS-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: SQL and DAO tokenisation agree with the User Guide. Duplicates SRCH-REQ-0001 and SEARCH-BR-0002.
+  - record_key: CATSEARCH-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Samples ("dog" matching via description, "large"/"adult male" returning nothing) and the WHERE clause
+      agree. The attribute exclusion overlaps SRCH-BR-0003.
+  - record_key: CATSEARCH-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      StringTokenizer into a HashSet plus the VARIABLE OR fragment states this directly. The sample neither
+      confirms nor refutes it, but the code is unambiguous. Duplicates SEARCH-BR-0002.
+  - record_key: SRCH-RUL-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Composite of matching, de-duplication and case handling, all confirmed by code and the Bulldog sample.
+      The case clause contradicts the User Guide, and that conflict goes to Intent. Consider splitting it into
+      the matching and case records instead of keeping a composite.
+  - record_key: SEARCH-RULE-0002
+    recommendation: accept
+    confidence: high
+    reason: The fragment assembly in CatalogDAOSQL.xml and buildSQLStatement state it. Duplicates SEARCH-BR-0002.
+  - record_key: SEARCH-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Code (lower() on the columns only, keyword bound as typed) and the captured sample ("Bulldog" -> 0, "dog" -> 13)
+      show this is today's production behaviour. The User Guide says the opposite. That conflict goes to Intent,
+      and whether it is a defect is the Business Owner's call in the defect register.
+  - record_key: CATSEARCH-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: Same evidence as SEARCH-BR-0003, which it duplicates. The conflict goes to Intent.
+  - record_key: CS-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: Same evidence as SEARCH-BR-0003, which it duplicates. The conflict goes to Intent.
+  - record_key: SEARCH-RULE-0003
+    recommendation: accept
+    confidence: high
+    reason: Code-only statement of the same case behaviour, which the sample confirms. Duplicates SEARCH-BR-0003. The conflict goes to Intent.
+  - record_key: SRCH-RULE-0002
+    recommendation: accept
+    confidence: high
+    reason: Duplicates SEARCH-BR-0003. The code and sample confirm it. The conflict goes to Intent.
+  - record_key: SRCH-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Two records share this key. The samples pass (case: "Bulldog" -> 0) duplicates SEARCH-BR-0003 and goes to
+      Intent with it. The docs/guides pass (no-results message, two at a time) duplicates SRCH-BR-0004 and the
+      Search page screen. Accept both, re-keyed so they do not collide.
+  - record_key: SRCH-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Two captured samples return 0 for attribute-only words, and the WHERE clause omits attr1..attr5. The code
+      and samples agree, so the record's medium confidence can be raised.
+  - record_key: CATSEARCH-BR-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      SEARCH_ITEMS binds b.locale = ? and joins on equal locale. search.jsp hard-codes en_US, so no other locale
+      is reachable today and the samples cannot test the restriction.
+  - record_key: SRCH-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: The DAO returns Page.EMPTY_PAGE before opening a connection, and the samples ("" -> 0) agree.
+  - record_key: SEARCH-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: Duplicates SRCH-RULE-0001 and CATSEARCH-BR-0003. It also cites StringTokenizer's default delimiters.
+  - record_key: SRCH-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: The samples ("", "zzz"), the search.jsp empty-branch test and the User Guide §4/§6 all agree.
+  - record_key: CATSEARCH-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: Duplicates SRCH-BR-0004 with the same sample evidence.
+  - record_key: SEARCH-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Two records share this key. The docs/guides pass (no-results message) duplicates SRCH-BR-0004. The catalog
+      Java pass (result fields, two per page, no defined order) matches the SEARCH_ITEMS select list and
+      search.jsp defaults. Accept both, re-keyed so they do not collide.
+  - record_key: CS-BR-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The no-results part is confirmed by search.jsp and a whitespace-only sample. The missing-parameter path
+      (StringTokenizer(null) -> general error page) was read and never executed. Confirm against a running
+      instance. Whether to keep it is a defect-register decision for the Business Owner.
+  - record_key: SRCH-RULE-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The keyword is bound into LIKE unescaped, so this follows from the code, but no sample exercises it.
+      It is a suspected legacy defect: confirm what the code does, and the Business Owner decides in the
+      defect register whether the rebuild keeps it.
+  - record_key: CS-BR-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      There is no ORDER BY in either SQL dialect, and keywords are unescaped. This combines SRCH-RULE-0004
+      (no order) and SRCH-RULE-0003 (wildcards). The wildcard half is a suspected defect for the defect register.
+  - record_key: SRCH-RULE-0004
+    recommendation: accept
+    confidence: high
+    reason: Both SQL dialects lack ORDER BY, and the absolute() paging loop is the same as the browse queries'.
+  - record_key: CATSEARCH-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: Duplicates the approved SRCH-BR-0005. All 17 captured cases satisfy pages = ceil(count/2).
+  - record_key: SEARCH-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      The User Guide §4 and search.jsp (count 2, item.screen links) agree. The page size comes from search.jsp
+      itself; conf/petstore.properties catalog.pageSize is not read on this path. Covered by the Search page screen.
+  - record_key: CS-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: Duplicates SEARCH-REQ-0005 and SRCH-BR-0004. search.jsp confirms the paging and the empty branch.
+  - record_key: CATSRCH-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      EncodingFilter and its web.xml mapping (/*, UTF-8, first in the chain) state it declaratively. It is cross-
+      cutting, so an SME may prefer to move it to a platform capability rather than catalog-search.
+  - record_key: CS-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: The banner.jsp form and the banner parameter on every screen definition agree with User Guide §4 step 1.
+  - record_key: CS-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      search.jsp lines 45-110 confirm every field, including unitCost rather than listCost and the escaped echo.
+      Same screen as SRCH-SCR-0001; merge into it.
+  - record_key: SRCH-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Two passes share this key for the same Search page. The waf pass gives the title "Search" from
+      screendefinitions_en_US.xml, and the webapp pass gives the body from search.jsp. They are consistent, so
+      merge them into one screen record.
