@@ -1,0 +1,738 @@
+# SX-0001 extract-b, module j2ee-pet-store-lite/data/migration
+# Independent second reading. The module is 8 CSV full-table extracts (header row,
+# one file per table). Records describe the data shape and the invariants the
+# extracted data carries, corroborated against the runtime DDL, the batch SQL and
+# the guides. Checks were run over the CSVs with a throwaway script (not committed):
+# referential integrity, C1-C4 catalog checks, lockout replay of the audit log,
+# last_signon / created_ts against audit events, audit_id contiguity.
+# No legacy-analysis/sources/**/extracted.md exists in this tree; documents are
+# cited by their HTML source path and line range instead.
+records:
+  - record_key: CDI-ENT-0001
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL hold pet categories as a key-only category record and a
+      localised category text record (name required; image and description optional)
+      keyed by category and locale, where every text record refers to an existing
+      category.
+    plain_text: >
+      Each pet category (Birds, Cats, Dogs, Fish, Reptiles) has a short code and, per
+      language, a display name and optional icon and description.
+    technical_note: >
+      Tables CATEGORY (catid char(10) PK) and CATEGORY_DETAILS (PK catid+locale, FK to
+      CATEGORY, name not null). The extract holds 5 categories and 5 detail rows, all
+      locale en_US; every description is empty.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Shape is stated in the DDL and borne out by the extract (5 keys, 5 en_US detail
+      rows, no orphan). Two independent places agree.
+    risk_class: operational
+    basis: >
+      DDL defines the two tables and the foreign key; the CSV extracts contain exactly
+      the matching rows.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 10
+        line_end: 20
+        excerpt: |
+          -- CATEGORY: Pet categories (FISH, DOGS, REPTILES, CATS, BIRDS). Key only; text is in CATEGORY_DETAILS.
+          CREATE TABLE category (catid char(10) not null,
+            constraint pk_category primary key (catid));
+
+          -- CATEGORY_DETAILS: Localised name, image and description of a category. One row per category and locale.
+          CREATE TABLE category_details (catid char(10) not null,
+            name varchar(80) not null, image varchar(255),
+            descn varchar(255), locale char(10) not null,
+            constraint pk_category_details primary key (catid, locale),
+              constraint fk_category_details_1 foreign key (catid)
+              references category (catid));
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/category_details.csv
+        line_start: 1
+        line_end: 6
+        excerpt: |
+          catid,name,image,descn,locale
+          FISH,Fish,fish_icon.gif,,en_US
+          DOGS,Dogs,dogs_icon.gif,,en_US
+          REPTILES,Reptiles,reptiles_icon.gif,,en_US
+          CATS,Cats,cats_icon.gif,,en_US
+          BIRDS,Birds,birds_icon.gif,,en_US
+    stack_metadata:
+      db.model: CATEGORY, CATEGORY_DETAILS
+      migration.file: category.csv, category_details.csv
+
+  - record_key: CDI-ENT-0002
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL hold products as a record belonging to exactly one existing
+      category, with a localised product text record (name required; image and
+      description optional) keyed by product and locale.
+    plain_text: >
+      Each kind of pet (for example Bulldog) belongs to one category and has a name,
+      picture and description per language.
+    technical_note: >
+      PRODUCT (productid char(10) PK, catid FK not null) and PRODUCT_DETAILS (PK
+      productid+locale, name not null). Extract: 16 products, 16 en_US detail rows; no
+      product refers to a missing category.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL constraints plus a clean referential check over the extract.
+    risk_class: operational
+    basis: >
+      DDL foreign key product.catid -> category; product.csv maps every product to one
+      of the five categories.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 22
+        line_end: 39
+        excerpt: |
+          -- PRODUCT: A kind of pet within a category, for example K9-BD-01 Bulldog in DOGS.
+          CREATE TABLE product (
+            productid char(10) not null,
+            catid char(10) not null,
+            constraint pk_product primary key (productid),
+              constraint fk_product_1 foreign key (catid)
+              references category (catid));
+
+          -- PRODUCT_DETAILS: Localised name, image and description of a product.
+          CREATE TABLE product_details (
+            productid char(10) not null,
+            locale char(10) not null,
+            name varchar(80) not null,
+            image varchar(255),
+            descn varchar(255),
+            constraint pk_product_details primary key (productid, locale),
+              constraint fk_product_details_1 foreign key (productid)
+              references product (productid));
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product.csv
+        line_start: 1
+        line_end: 3
+        excerpt: |
+          productid,catid
+          FI-SW-01,FISH
+          FI-SW-02,FISH
+    stack_metadata:
+      db.model: PRODUCT, PRODUCT_DETAILS
+      migration.file: product.csv, product_details.csv
+
+  - record_key: CDI-ENT-0003
+    kind: entity
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL hold sellable items as a record belonging to exactly one existing
+      product, with a localised item record carrying a list price and a unit cost (both
+      required, two decimal places), a required image and description, and up to five
+      optional free-text attributes.
+    plain_text: >
+      Each item for sale (for example a male adult Bulldog) belongs to one kind of pet
+      and has a selling price, a cost price, a picture, a description and up to five
+      descriptive attributes such as "Adult Male".
+    technical_note: >
+      ITEM (itemid char(10) PK, productid FK) and ITEM_DETAILS (PK itemid+locale,
+      listprice/unitcost decimal(10,2) not null, image and descn not null, attr1..attr5
+      varchar(80) nullable). Extract: 28 items, 28 en_US detail rows, all prices written
+      with exactly 2 decimals; attributes used are attr1 and attr2 only.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL column definitions and the extract agree on every row checked.
+    risk_class: financial
+    basis: >
+      Prices are money columns; DDL fixes their precision and nullability.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 41
+        line_end: 67
+        excerpt: |
+          -- ITEM: A sellable variant of a product, for example EST-6 Male Adult Bulldog.
+          CREATE TABLE item (
+            itemid char(10) not null,
+            productid char(10) not null,
+            constraint pk_item primary key (itemid),
+              constraint fk_item_1 foreign key (productid)
+              references product (productid)
+          );
+
+          -- ITEM_DETAILS: Localised price, cost, image, description and up to 5 attributes of an item. List price must not be below unit cost.
+          CREATE TABLE item_details (
+            itemid char(10) not null,
+            listprice decimal(10,2) not null,
+            unitcost decimal(10,2) not null,
+            locale char(10) not null,
+            image varchar(255) not null,
+            descn varchar(255) not null,
+            attr1 varchar(80),
+            attr2 varchar(80),
+            attr3 varchar(80),
+            attr4 varchar(80),
+            attr5 varchar(80),
+            constraint pk_item_details primary key (itemid, locale),
+                constraint fk_item_details_1 foreign key (itemid)
+                references item (itemid),
+                constraint ck_item_details_price check (listprice >= unitcost)
+          );
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          itemid,listprice,unitcost,locale,image,descn,attr1,attr2,attr3,attr4,attr5
+          EST-1,16.50,10.00,en_US,fish3.gif,Fresh Water fish from Japan,Large,Cuddly,,,
+    stack_metadata:
+      db.model: ITEM, ITEM_DETAILS
+      migration.file: item.csv, item_details.csv
+
+  - record_key: CDI-BR-0001
+    kind: business-rule
+    capability_key: catalog-data-integrity
+    requirement: >
+      The system SHALL keep the catalog such that every category has at least one
+      product, every product has at least one item, no item's list price is below its
+      unit cost, and every item has an en_US description; migrated catalog data SHALL
+      satisfy all four conditions.
+    plain_text: >
+      No empty categories, no kinds of pet with nothing to buy, nothing priced below
+      what it cost, and every item has English text. The data being migrated meets all
+      four today.
+    technical_note: >
+      Enforced by the PSL_CATALOG_CHECK queries C1-C4 (fail the job on any row) and, for
+      price, also by the DDL check constraint ck_item_details_price. Over the extract
+      C1-C4 each return zero rows. Tightest margin: EST-13 list 12.50 vs cost 11.10.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      The price rule is enforced in two places (DDL check and batch query); the other
+      three are stated in the batch query and verified true over the extract.
+    risk_class: financial
+    basis: >
+      catalog_check.sql states the four conditions; the extract was checked against
+      them and passes.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/catalog_check.sql
+        line_start: 3
+        line_end: 13
+        excerpt: |
+          -- C1: categories with no product
+          SELECT 'C1' AS chk, c.catid FROM category c
+           WHERE NOT EXISTS (SELECT 1 FROM product p WHERE p.catid = c.catid);
+          -- C2: products with no item
+          SELECT 'C2' AS chk, p.productid FROM product p
+           WHERE NOT EXISTS (SELECT 1 FROM item i WHERE i.productid = p.productid);
+          -- C3: items priced below cost
+          SELECT 'C3' AS chk, itemid FROM item_details WHERE listprice < unitcost;
+          -- C4: items without an en_US description
+          SELECT 'C4' AS chk, i.itemid FROM item i
+           WHERE NOT EXISTS (SELECT 1 FROM item_details d WHERE d.itemid = i.itemid AND d.locale = 'en_US');
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 66
+        line_end: 66
+        excerpt: |
+                constraint ck_item_details_price check (listprice >= unitcost)
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 14
+        line_end: 14
+        excerpt: |
+          EST-13,12.50,11.10,en_US,lizard2.gif,Friendly green friend,Green Adult,,,,
+    stack_metadata:
+      job.entrypoint: PSL_CATALOG_CHECK
+      db.constraint: ck_item_details_price
+
+  - record_key: SDP-BR-0001
+    kind: business-rule
+    capability_key: sample-data-population
+    requirement: >
+      The system's catalog of record SHALL be the sample catalog of 5 categories, 16
+      products and 28 items, with every price, cost, attribute, image and description
+      identical to the sample-data load file; only en_US text exists.
+    plain_text: >
+      The live catalog is exactly the shipped sample catalog: 5 categories, 16 kinds of
+      pet, 28 items, English only. Nothing has been added or changed in production.
+    technical_note: >
+      Every item_details and product_details row in the extract was compared field by
+      field with populate/Populate-UTF8.xml: no difference. Admin guide states the same
+      5/16/28 counts. Consequence for migration: the catalog can be reloaded from the
+      sample file or from the CSVs with the same result.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Extract, populate file and admin guide agree on counts, and a field-by-field
+      comparison found no difference.
+    risk_class: operational
+    basis: >
+      Counts and content match the sample data file named in the admin guide.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 71
+        line_end: 71
+        excerpt: |
+           <tr><td><code>populate/Populate-UTF8.xml</code></td><td>Users (id, password, role) and the catalog: 5 categories, 16 products, 28 items</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/src/main/webapp/populate/Populate-UTF8.xml
+        line_start: 231
+        line_end: 240
+        excerpt: |
+          	<Item id="EST-1" product="FI-SW-01">
+          	  <ItemDetails xml:lang="en-US">
+          	    <ListPrice>16.50</ListPrice>
+          	    <UnitCost>10.00</UnitCost>
+          	    <Attribute>Large</Attribute>
+          	    <Attribute>Cuddly</Attribute>
+          	    <Image>fish3.gif</Image>
+          	    <Description>Fresh Water fish from Japan</Description>
+          	  </ItemDetails>
+          	</Item>
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          EST-1,16.50,10.00,en_US,fish3.gif,Fresh Water fish from Japan,Large,Cuddly,,,
+    stack_metadata:
+      migration.file: category*.csv, product*.csv, item*.csv
+
+  - record_key: SIGN-ENT-0001
+    kind: entity
+    capability_key: sign-on
+    requirement: >
+      The system SHALL hold one sign-on account per unique user name (up to 25
+      characters) with a password (up to 25 characters), a role, a count of consecutive
+      failed sign-ins (default 0), a locked flag Y/N (default N), the time the lock was
+      set, the time of the last successful sign-in, and the time the account was
+      created.
+    plain_text: >
+      Each user account has a unique user name, a password, a role, a failed-sign-in
+      counter, a locked flag with the time it was locked, the last successful sign-in
+      time and the creation time.
+    technical_note: >
+      Table SIGNON (PK username). Extract: 43 accounts (3 sample accounts plus 40
+      registered customers); user names 4-11 characters. Timestamps exported as
+      'YYYY-MM-DD HH:MM:SS.f'.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL and extract header match column for column; defaults are in the DDL.
+    risk_class: regulated
+    basis: >
+      Personal account data including credentials; DDL defines every column.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 69
+        line_end: 82
+        excerpt: |
+          -- SIGNON: Sign-on accounts. Role is CUSTOMER or ADMIN. Locked after 3 failed sign-ons in a row; unlocked by PSL_ACCT_UNLOCK after 30 minutes.
+          CREATE TABLE signon (
+            username varchar(25) not null,
+            password varchar(25) not null,
+            role varchar(10) default 'CUSTOMER' not null,
+            failed_attempts integer default 0 not null,
+            locked char(1) default 'N' not null,
+            locked_ts timestamp,
+            last_signon timestamp,
+            created_ts timestamp default current_timestamp not null,
+            constraint pk_signon primary key (username),
+            constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+            constraint ck_signon_locked check (locked in ('Y', 'N'))
+          );
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          username,password,role,failed_attempts,locked,locked_ts,last_signon,created_ts
+    stack_metadata:
+      db.model: SIGNON
+      migration.file: signon.csv
+
+  - record_key: SIGN-BR-0001
+    kind: business-rule
+    capability_key: sign-on
+    requirement: >
+      The system SHALL record on each account the time of its most recent successful
+      sign-in, equal to the time of that account's latest successful sign-in event in
+      the audit trail.
+    plain_text: >
+      An account's "last signed in" time is the time of its latest successful sign-in.
+    technical_note: >
+      For all 43 accounts in the extract, signon.last_signon equals the event_ts of the
+      account's last SIGNON_OK row in signon_audit.csv (0 mismatches). Example jo.khan:
+      2026-10-29 17:38:47.0 in both. The write itself lives in the sign-on code (other
+      shard); this module only shows the resulting state.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Inferred from consistency of two extracts, not read from the code that writes the
+      value; the data set appears synthetic (see findings), so it confirms intent rather
+      than production behaviour.
+    risk_class: operational
+    basis: >
+      Cross-table check over the extract.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1669
+        line_end: 1669
+        excerpt: |
+          1668,jo.khan,SIGNON_OK,2026-10-29 17:38:47.0,10.15.152.66
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          username,password,role,failed_attempts,locked,locked_ts,last_signon,created_ts
+    stack_metadata:
+      db.model: SIGNON.last_signon
+
+  - record_key: ACC-BR-0001
+    kind: business-rule
+    capability_key: access-control
+    requirement: >
+      The system SHALL give every account exactly one role, CUSTOMER or ADMIN, with
+      CUSTOMER as the default; the migrated accounts are 42 CUSTOMER and 1 ADMIN.
+    plain_text: >
+      Every user is either a customer or an administrator; new users are customers.
+      Today there is one administrator.
+    technical_note: >
+      DDL check ck_signon_role and default 'CUSTOMER'; extract role counts CUSTOMER=42,
+      ADMIN=1 (the sample admin account).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL check constraint plus the extract values, which all satisfy it.
+    risk_class: regulated
+    basis: >
+      Role constraint in DDL; data distribution in signon.csv.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 73
+        line_end: 73
+        excerpt: |
+            role varchar(10) default 'CUSTOMER' not null,
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 80
+        line_end: 80
+        excerpt: |
+            constraint ck_signon_role check (role in ('CUSTOMER', 'ADMIN')),
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          username,password,role,failed_attempts,locked,locked_ts,last_signon,created_ts
+    stack_metadata:
+      db.constraint: ck_signon_role
+
+  - record_key: LOCK-BR-0001
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      The system SHALL keep an account's lock state consistent: an account is locked if
+      and only if it has a lock time, a locked account carries a failed-sign-in count of
+      3, and an account locked at cut-over SHALL be migrated with its lock time so the
+      automatic unlock still applies 30 minutes after it.
+    plain_text: >
+      A locked account always has the time it was locked and three recorded failures.
+      Two accounts are locked in the data being migrated; they must arrive still locked
+      with their lock time so they unlock on schedule.
+    technical_note: >
+      Extract: locked=Y for cal.ng41 (locked_ts 2026-10-29 23:39:00.0) and deekoh
+      (23:40:00.0), both failed_attempts=3; all 41 others locked=N, locked_ts empty,
+      failed_attempts=0. Each lock is preceded in signon_audit.csv by three SIGNON_FAIL
+      and an ACCOUNT_LOCKED at the same timestamp as locked_ts. The unlock job keys on
+      locked='Y' AND locked_ts < now-30min. signon.csv rows 10 and 17 are cited without
+      an excerpt because the rows contain a password.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL comment, admin guide R3 and the unlock SQL state the rule; a replay of the
+      whole audit log reproduces every account's final lock state with no mismatch.
+    risk_class: regulated
+    basis: >
+      Replay of the audit log against signon.csv; unlock job predicate.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1680
+        line_end: 1687
+        excerpt: |
+          1679,cal.ng41,SIGNON_FAIL,2026-10-29 23:38:00.0,10.11.113.89
+          1680,cal.ng41,SIGNON_FAIL,2026-10-29 23:38:20.0,10.11.113.89
+          1681,cal.ng41,SIGNON_FAIL,2026-10-29 23:38:40.0,10.11.113.89
+          1682,cal.ng41,ACCOUNT_LOCKED,2026-10-29 23:39:00.0,10.11.113.89
+          1683,deekoh,SIGNON_FAIL,2026-10-29 23:39:00.0,10.35.138.73
+          1684,deekoh,SIGNON_FAIL,2026-10-29 23:39:20.0,10.35.138.73
+          1685,deekoh,SIGNON_FAIL,2026-10-29 23:39:40.0,10.35.138.73
+          1686,deekoh,ACCOUNT_LOCKED,2026-10-29 23:40:00.0,10.35.138.73
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 10
+        line_end: 10
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 17
+        line_end: 17
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 12
+        line_end: 14
+        excerpt: |
+          UPDATE signon
+             SET locked = 'N', failed_attempts = 0, locked_ts = NULL
+           WHERE locked = 'Y'
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 52
+        line_end: 53
+        excerpt: |
+           <tr><td>R3</td><td>The 3rd failure in a row locks the account (LOCKED = Y) and records the time of the lock.</td></tr>
+           <tr><td>R4</td><td>A locked account cannot sign in, even with the right password. The attempt is recorded as SIGNON_LOCKED and the failed count does not change.</td></tr>
+    stack_metadata:
+      db.model: SIGNON.locked, SIGNON.locked_ts, SIGNON.failed_attempts
+      job.entrypoint: PSL_ACCT_UNLOCK
+
+  - record_key: LOCK-BR-0002
+    kind: business-rule
+    capability_key: account-lockout
+    requirement: >
+      GIVEN an account was locked at time T WHEN the next 15-minute unlock run after
+      T + 30 minutes occurs THEN the system SHALL unlock it and record an unlock event
+      attributed to the unlock job rather than to a client address.
+    plain_text: >
+      A locked account is unlocked automatically at the first quarter-hour run that is
+      more than 30 minutes after the lock, so in practice between 30 and 45 minutes.
+    technical_note: >
+      Across the 21 ACCOUNT_UNLOCKED events in the extract the delay from the matching
+      ACCOUNT_LOCKED is 30.4 to 44.9 minutes, every unlock falls on a :00/:15/:30/:45
+      boundary, and remote_addr is 'batch:PSL_ACCT_UNLOCK'. Example jo.das locked
+      14:30:06, unlocked 15:15:00 (the 15:00 run was 29m54s after, not yet over 30).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Unlock SQL, runbook schedule and the observed history agree.
+    risk_class: operational
+    basis: >
+      acct_unlock.sql predicate (strictly older than 30 minutes); runbook "every 15
+      minutes"; observed delays.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 84
+        line_end: 87
+        excerpt: |
+          83,jo.das,ACCOUNT_LOCKED,2026-08-14 14:30:06.0,10.15.45.49
+          84,admin,SIGNON_OK,2026-08-14 15:03:27.0,10.0.0.134
+          85,admin,SIGNOFF,2026-08-14 15:07:27.0,10.0.0.134
+          86,jo.das,ACCOUNT_UNLOCKED,2026-08-14 15:15:00.0,batch:PSL_ACCT_UNLOCK
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/acct_unlock.sql
+        line_start: 6
+        line_end: 9
+        excerpt: |
+          INSERT INTO signon_audit (username, event_type, event_ts, remote_addr)
+            SELECT username, 'ACCOUNT_UNLOCKED', CURRENT_TIMESTAMP, 'batch:PSL_ACCT_UNLOCK'
+              FROM signon
+             WHERE locked = 'Y'
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 72
+        line_end: 72
+        excerpt: |
+          <p>Every 15 minutes. Unlocks accounts locked more than 30 minutes ago, resets their failed attempts and writes ACCOUNT_UNLOCKED to the audit.</p>
+    stack_metadata:
+      job.entrypoint: PSL_ACCT_UNLOCK
+      schedule.trigger: every 15 minutes
+
+  - record_key: AUD-ENT-0001
+    kind: entity
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL record each sign-on event with a system-assigned increasing
+      event number, the user name as typed, one of the event types SIGNON_OK,
+      SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF or
+      USER_CREATED, the event time, and the client address (up to 45 characters) or a
+      batch-job marker.
+    plain_text: >
+      Every sign-in, failed sign-in, refused sign-in on a locked account, lock, unlock,
+      sign-out and new account is logged with a sequence number, the user name, the time
+      and where it came from.
+    technical_note: >
+      SIGNON_AUDIT (audit_id identity PK, username varchar(25), event_type check list,
+      event_ts not null, remote_addr varchar(45) nullable). username is not a foreign key
+      to SIGNON (unknown names are logged as typed, admin guide R6). Extract: 1686 rows,
+      audit_id 1..1686 contiguous, ordered by time; counts SIGNON_OK 791, SIGNOFF 553,
+      SIGNON_FAIL 247, USER_CREATED 40, ACCOUNT_LOCKED 23, ACCOUNT_UNLOCKED 21,
+      SIGNON_LOCKED 11. Migration must keep audit_id values because the daily extract
+      file is keyed and ordered by them.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      DDL, runbook column table and extract agree on fields and event types.
+    risk_class: regulated
+    basis: >
+      Security audit log; DDL and runbook define it.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 84
+        line_end: 94
+        excerpt: |
+          -- SIGNON_AUDIT: Transaction log of sign-on events. Extracted daily by PSL_AUDIT_EXTRACT, purged after 90 days by PSL_AUDIT_PURGE.
+          CREATE TABLE signon_audit (
+            audit_id bigint generated always as identity,
+            username varchar(25) not null,
+            event_type varchar(20) not null,
+            event_ts timestamp not null,
+            remote_addr varchar(45),
+            constraint pk_signon_audit primary key (audit_id),
+            constraint ck_signon_audit_event check (event_type in
+              ('SIGNON_OK', 'SIGNON_FAIL', 'SIGNON_LOCKED', 'ACCOUNT_LOCKED', 'SIGNOFF', 'USER_CREATED', 'ACCOUNT_UNLOCKED'))
+          );
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 51
+        line_end: 55
+        excerpt: |
+           <tr><td>1 audit_id</td><td>Event number</td></tr>
+           <tr><td>2 username</td><td>User name as typed</td></tr>
+           <tr><td>3 event_type</td><td>SIGNON_OK, SIGNON_FAIL, SIGNON_LOCKED, ACCOUNT_LOCKED, ACCOUNT_UNLOCKED, SIGNOFF, USER_CREATED</td></tr>
+           <tr><td>4 event_ts</td><td>Time of the event</td></tr>
+           <tr><td>5 remote_addr</td><td>Client address, or <code>batch:PSL_ACCT_UNLOCK</code></td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 1
+        line_end: 3
+        excerpt: |
+          audit_id,username,event_type,event_ts,remote_addr
+          1,jo.khan,USER_CREATED,2026-08-01 12:12:00.0,10.15.152.66
+          2,admin,SIGNON_OK,2026-08-02 15:15:41.0,10.0.0.134
+    stack_metadata:
+      db.model: SIGNON_AUDIT
+      migration.file: signon_audit.csv
+
+  - record_key: AUD-BR-0001
+    kind: business-rule
+    capability_key: sign-on-audit
+    requirement: >
+      The system SHALL retain sign-on audit events for 90 days; the migrated audit
+      history SHALL cover no more than the retention window (2026-08-01 to 2026-10-29 in
+      the extract).
+    plain_text: >
+      Sign-on history is kept for 90 days. The history being migrated covers the last
+      90 days only.
+    technical_note: >
+      audit_purge.sql deletes rows with event_ts before CURRENT_DATE - 90 days; runbook
+      settings table says 90 days. Extract earliest event 2026-08-01 12:12:00, latest
+      2026-10-29 23:40:00 (89 days).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Purge SQL and runbook agree; extract span is consistent with them.
+    risk_class: regulated
+    basis: >
+      Retention purge and documented setting.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/db/batch/audit_purge.sql
+        line_start: 5
+        line_end: 6
+        excerpt: |
+          DELETE FROM signon_audit
+           WHERE event_ts < {fn TIMESTAMPADD(SQL_TSI_DAY, -90, CAST(CURRENT_DATE AS TIMESTAMP))};
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/operations-runbook.html
+        line_start: 97
+        line_end: 97
+        excerpt: |
+           <tr><td>Audit retention</td><td>90 days</td></tr>
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 2
+        line_end: 2
+        excerpt: |
+          1,jo.khan,USER_CREATED,2026-08-01 12:12:00.0,10.15.152.66
+    stack_metadata:
+      job.entrypoint: PSL_AUDIT_PURGE
+
+  - record_key: REG-BR-0001
+    kind: business-rule
+    capability_key: account-registration
+    requirement: >
+      The system SHALL record an account-created event for every self-registered
+      account at the account's creation time; the three sample accounts loaded with the
+      sample data SHALL have no such event.
+    plain_text: >
+      Every customer who registers gets a "user created" entry in the sign-on history,
+      timed when the account was made. The built-in sample accounts have none.
+    technical_note: >
+      40 USER_CREATED rows, one per non-sample account, each with event_ts equal to
+      signon.created_ts (0 mismatches). j2ee, shopper and admin have no USER_CREATED.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Derived from cross-table consistency of the extract; the writing code is in another
+      shard and was not read here.
+    risk_class: regulated
+    basis: >
+      Cross-table check between signon.csv and signon_audit.csv; admin guide R7 says new
+      accounts are written to the audit.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+        line_start: 46
+        line_end: 46
+        excerpt: |
+          45,jo.das,USER_CREATED,2026-08-10 19:44:00.0,10.15.45.49
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 56
+        line_end: 56
+    stack_metadata:
+      db.model: SIGNON_AUDIT.event_type=USER_CREATED
+
+suspected_defects:
+  - capability_key: sign-on
+    record_keys: [SIGN-ENT-0001]
+    severity: high
+    category: other
+    title: Passwords are stored and extracted in clear text
+    description: >
+      The account table holds passwords as entered and the migration extract carries
+      all 43 of them as plain text. The sample administrator account still has the
+      documented default password, and two sample customer accounts share one password.
+      Anyone holding the extract can sign in as any user, including the administrator.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/signon.csv
+        line_start: 1
+        line_end: 1
+      - path: legacy-source/j2ee-pet-store-lite/db/schema/petstore_derby.sql
+        line_start: 72
+        line_end: 72
+      - path: legacy-source/j2ee-pet-store-lite/docs/guides/admin-guide.html
+        line_start: 45
+        line_end: 45
+  - capability_key: catalog-data-integrity
+    record_keys: [CDI-ENT-0003, SDP-BR-0001]
+    severity: low
+    category: other
+    title: Some item descriptions describe a different pet than their product
+    description: >
+      Items EST-1 and EST-2 belong to Angelfish ("Salt Water fish from Australia") but
+      are described "Fresh Water fish from Japan" with the Koi picture; EST-11 under
+      Rattlesnake reads "More Bark than bite". The same text is in the sample-data file,
+      so it is inherited, not introduced by the extract.
+    traces:
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 2
+        line_end: 3
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/item_details.csv
+        line_start: 12
+        line_end: 12
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product_details.csv
+        line_start: 2
+        line_end: 2
+      - path: legacy-source/j2ee-pet-store-lite/data/migration/product_details.csv
+        line_start: 12
+        line_end: 12
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/migration/signon_audit.csv
+    description: >
+      The audit and account extracts match the synthetic history generator's output in
+      shape and volume (40 accounts, 1686 events, the same window; seed header line 1 of
+      data/seed/signon_history.sql). A human needs to confirm whether these files are a
+      real production extract or a rehearsal set, because records SIGN-BR-0001 and
+      REG-BR-0001 are inferred from consistency of this data.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/migration/item.csv
+    description: >
+      Key columns are char(10) in the DDL (blank-padded), but the extract values are
+      unpadded and locale is 'en_US' without padding. The migration must decide whether
+      keys are trimmed in the target. Timestamps use 'YYYY-MM-DD HH:MM:SS.f' with no time
+      zone; the zone of the legacy server is not stated in this module.
+  - kind: ambiguity
+    path: legacy-source/j2ee-pet-store-lite/data/migration/product_details.csv
+    description: >
+      Image file names (for example fish1.jpg for FI-SW-01, the only .jpg among .gif
+      names) could not be checked against the image set because no image files are in
+      this checkout. Someone needs to confirm every referenced image exists before
+      migrating the image references.
