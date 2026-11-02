@@ -1,0 +1,649 @@
+# SX-0001 synthesize catalog-browsing: recommendations for SME review. Not decisions.
+# record_key is not unique across modules; pass_file identifies the record.
+recommendations:
+  - record_key: CATB-ENT-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-001/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: DDL constraint in both dialects.
+  - record_key: CATB-ENT-0002
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-001/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: DDL constraint in both dialects.
+  - record_key: CATB-BR-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-001/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: The SQL locale join confirms it, beyond the DDL alone.
+  - record_key: CATB-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-001/a.yaml
+    recommendation: edit
+    confidence: medium
+    reason: >-
+      The only evidence is the indexes, so this is a performance expectation, not behaviour. Keep it
+      as SHOULD.
+    edited_requirement: >-
+      The system SHOULD retrieve the products of a category and the items of a product by their
+      parent code without reading the whole catalog.
+  - record_key: CB-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-001/b.yaml
+    recommendation: edit
+    confidence: medium
+    reason: Same as CATB-REQ-0001 in this module.
+    edited_requirement: >-
+      The system SHOULD retrieve the products of a category and the items of a product by their
+      parent code without reading the whole catalog.
+  - record_key: CAT-ENT-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-002/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: The DDL foreign keys and detail tables confirm it.
+  - record_key: CATB-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-003/a.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      v_catalog_item has no reader. Same as CB-BR-0005. Reject unless an outside consumer is
+      confirmed.
+  - record_key: CBR-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/inventory/ddl-export-default-003/b.yaml
+    recommendation: reject
+    confidence: medium
+    reason: Same view as CATB-REQ-0001 in this module.
+  - record_key: CATALOG-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/Dockerfile/b.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      The Dockerfile and petstore.properties agree on the address. Whether the rebuild must keep
+      port 8080 and /petstore/ is a deployment decision for the SME.
+  - record_key: BROWSE-BR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/conf/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The property and CatalogHelper agree. Note that the JSPs hard-code 2 independently, so the
+      property is not authoritative.
+  - record_key: CATALOG-BROWSING-BR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/conf/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: category.jsp uses start and count from the request when present.
+  - record_key: CATALOG-BROWSING-BR-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/conf/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Duplicates the approved SWHR5-R-0008.
+  - record_key: CATB-ENT-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/data/migration/a.yaml
+    recommendation: edit
+    confidence: medium
+    reason: >-
+      The schema makes item image and description mandatory, and the CSV agrees. "Category
+      descriptions MAY be empty" matches the nullable DDL column. Keep the item part and move the
+      category note to the category record.
+    edited_requirement: >-
+      The system SHALL hold for each item a list price, unit cost, image and description, which are
+      always present, and up to five optional free-text attributes.
+  - record_key: CB-RULE-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/a.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      item.jsp confirms the labels. The question of which amount is the selling price goes to Intent
+      for the Business Owner.
+  - record_key: CB-RULE-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: The seed data and main.jsp both carry these five categories, which settles the low confidence.
+  - record_key: CB-ENT-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: DDL constraints in both dialects.
+  - record_key: CB-ENT-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: DDL constraints in both dialects.
+  - record_key: CB-ENT-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: DDL constraints in both dialects.
+  - record_key: CB-BR-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      DDL plus item.jsp. No member-price column exists. The intent conflict goes to the Business
+      Owner.
+  - record_key: CB-BR-0005
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/db/schema/b.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      v_catalog_item has no reader in the repository and is not recreated on reload. Reject unless a
+      DBA confirms an outside consumer.
+  - record_key: BROWSE-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The three levels are enforced by foreign keys in the DDL, and the five categories are in the
+      seed data and main.jsp. Doc and data agree.
+  - record_key: BROWSE-REQ-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      product.jsp shows attribute, product name, description and list price, paged two at a time, as
+      the guide states.
+  - record_key: BROWSE-REQ-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/a.yaml
+    recommendation: edit
+    confidence: high
+    reason: >-
+      Same Your Price conflict as BROW-SCR-0002 (docs). The code shows unit cost to everyone, and
+      the conflict goes to Intent.
+    edited_requirement: >-
+      The item page SHALL show the item picture, its List Price, its Your Price (the unit cost), its
+      description and its Item ID.
+  - record_key: BROWSE-REQ-0005
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/a.yaml
+    recommendation: edit
+    confidence: high
+    reason: >-
+      sidebar.jsp limits the list to five categories (count=5), which the guide omits. Add the
+      limit.
+    edited_requirement: >-
+      The system SHALL show on every page a side bar listing at most the first five categories, one
+      link each, in alphabetical order.
+  - record_key: BROWSE-SCR-0007
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      banner.jsp lines 9-30 confirm every banner element and the ADMIN-only Admin link that the user
+      and admin guides describe. Written as the "Store banner" and "Banner Admin link" requirements.
+  - record_key: BROW-SCR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Matches banner.jsp, sidebar.jsp and template.jsp exactly. The guide alone gave it medium
+      confidence, and the code is the second source.
+  - record_key: BROW-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with category.jsp and product.jsp and with the other passes.
+  - record_key: BROW-BR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Category.jsp and product.jsp implement exactly this. Same rule as the approved SWHR5-R-0018,
+      which also covers product item lists.
+  - record_key: BROW-SCR-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/b.yaml
+    recommendation: edit
+    confidence: high
+    reason: >-
+      The guide calls Your Price a member discount, but item.jsp shows the unit cost to every
+      visitor. Accept the code reading. The member-price question goes to Intent for the Business
+      Owner.
+    edited_requirement: >-
+      The item page SHALL show the item picture, "List Price" (the item's list price), "Your Price"
+      (the item's unit cost, shown to every visitor), the description and the Item ID.
+  - record_key: BROW-REQ-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Same rule as the approved SWHR5-R-0008, so accept it as a duplicate of that key rather than a
+      separate requirement.
+  - record_key: CB-SCR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same layout as BROW-SCR-0001 (docs), and confirmed by banner.jsp and sidebar.jsp.
+  - record_key: CB-REQ-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      This pass already states the code behaviour (unit cost shown to all) and records the dispute.
+      Trust it. The member-price question goes to Intent.
+  - record_key: CB-REQ-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: Duplicates SWHR5-R-0018 and extends it to item lists. product.jsp confirms the extension.
+  - record_key: CB-REQ-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/docs/guides/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: Duplicates the approved SWHR5-R-0008.
+  - record_key: CATB-REQ-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: GET_CATEGORIES in both dialects plus the DAO mapping. sidebar.jsp confirms the caller.
+  - record_key: CATB-REQ-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: GET_PRODUCTS in both dialects. category.jsp confirms reachability.
+  - record_key: CATB-REQ-0003
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      GET_ITEMS has no ORDER BY in either dialect. The no-order behaviour should be stated
+      explicitly so the rebuild knows any sort is a change.
+  - record_key: CATB-REQ-0004
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      GET_ITEM joins on the locale, so a missing detail row yields no item. Both catalog passes
+      agree.
+  - record_key: CATB-REQ-0005
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      CatalogHelper exposes no getCategory or getProduct, and no class calls the DAO methods. Reject
+      unless an outside caller is found.
+  - record_key: CATB-RULE-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Page.java and the DAO loop state it directly, and the catalog/b pass (BROWSE-RULE-0005) agrees
+      line for line.
+  - record_key: CATB-RULE-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: CatalogHelper 73-74, the JSP defaults and petstore.properties line 27 all say 0 and 2.
+  - record_key: CATB-RULE-0003
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      The do/while loop always reads one row. Confirm what the code does; whether it is right is a
+      Business Owner decision in the defect register.
+  - record_key: CATB-RULE-0004
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      GET_ITEM and GET_ITEMS join product_details on the same locale. BROWSE-RULE-0008 and
+      BROW-RUL-0006 agree.
+  - record_key: CATB-RULE-0005
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      CatalogHelper 295-322 implements this, but the storefront always passes en_US, so the rule
+      matters only if more locales are added.
+  - record_key: CATB-RULE-0006
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: reject
+    confidence: high
+    reason: DatabaseNames has no reference anywhere, and no _ja or _zh tables exist in either DDL.
+  - record_key: CATB-RULE-0007
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The DAO wraps SQLException and web.xml maps the failure to the General Error page. Both
+      catalog passes agree.
+  - record_key: CATB-ENT-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: Category.java fields match the DDL columns.
+  - record_key: CATB-ENT-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Product.java fields match the DDL, and the foreign key to category confirms the one-category
+      rule.
+  - record_key: CATB-ENT-0003
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: Item.java 109-118 returns attribute 1 for out-of-range positions. BROWSE-ENT-0007 agrees.
+  - record_key: CATB-REQ-0006
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/a.yaml
+    recommendation: edit
+    confidence: medium
+    reason: >-
+      This is deployment configuration of the legacy SQL dialects, not user behaviour. Keep only the
+      outcome the rebuild needs.
+    edited_requirement: >-
+      The system SHALL run the same catalog queries, with the same filters and ordering, on every
+      supported database.
+  - record_key: BROWSE-REQ-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with CATB-REQ-0001 (catalog pass a) on the same SQL.
+  - record_key: BROWSE-RULE-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: sidebar.jsp sets count=5 and has no paging links. Code confirms the low-confidence reading.
+  - record_key: BROWSE-REQ-0003
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with CATB-REQ-0002 and adds the page size of 2, which category.jsp confirms.
+  - record_key: BROWSE-REQ-0004
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with CATB-REQ-0003. Both passes read GET_ITEMS as having no order.
+  - record_key: BROWSE-RULE-0005
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Matches CATB-RULE-0001 exactly.
+  - record_key: BROWSE-REQ-0006
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Single-item lookup. Agrees with CATB-REQ-0004. This key collides with the approved docs record
+      BROWSE-REQ-0006 (en_US/USD); the platform should confirm which of the two the approval
+      SWHR5-R-0008 belongs to.
+  - record_key: BROWSE-ENT-0007
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Model classes and DDL agree. This duplicates the per-entity records.
+  - record_key: BROWSE-RULE-0008
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Matches CATB-RULE-0004, and the JSPs confirm the en_US request.
+  - record_key: BROWSE-RULE-0009
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/catalog/b.yaml
+    recommendation: edit
+    confidence: medium
+    reason: The error half duplicates CATB-RULE-0007. The dialect half is legacy deployment configuration.
+    edited_requirement: >-
+      GIVEN the catalog configuration or database cannot be reached WHEN a catalog request is made
+      THEN the system SHALL fail the request with a catalog error.
+  - record_key: CATALOG-BROWSING-SCREEN-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Duplicates the shared-layout record; template.jsp and the screen definitions confirm the five
+      regions and the default layout. Merged into the "Shared page layout" requirement.
+  - record_key: CATALOG-BROWSING-REQ-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      TemplateServlet.java 242-246 writes this text directly. Confirm what the code does. Whether
+      status 200 with a bare message is right is a Business Owner decision in the defect register.
+  - record_key: CATALOG-BROWSING-BR-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Both waf passes read the same lines of TemplateServlet and web.xml and agree. Only en_US is
+      configured.
+  - record_key: CATALOG-BROWSING-WF-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/a.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      No page, link or guide reaches PREVIOUS.screen. Reject unless access logs show it in use; keep
+      the dispute open until someone checks the logs.
+  - record_key: CATB-REQ-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The layout reading agrees with template.jsp and the other passes. In pass c this key is the
+      full screen list (all 15 named screens), which the screen definitions confirm. The non-catalog
+      screens belong to their own capabilities.
+  - record_key: CATB-SCR-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      screendefinitions_en_US.xml lines 13-117 state the names and titles verbatim. The other pass
+      of this module states the same layout as CATALOG-BROWSING-SCREEN-0001.
+  - record_key: CATB-REQ-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/b.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      Both readings are supported by TemplateServlet and ScreenDefinitionDAO: language fallback in
+      pass b, and start-up loading with first-duplicate-wins in pass c. These are operational
+      details with low user impact.
+  - record_key: CATB-REQ-0003
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same as CATALOG-BROWSING-REQ-0001.
+  - record_key: CATB-WF-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/b.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      Same PREVIOUS.screen behaviour as CATALOG-BROWSING-WF-0001, and nothing in the application
+      links to it. Reject unless the logs show use.
+  - record_key: CATB-SCR-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      screendefinitions_en_US.xml lines 13-117 state the names and titles verbatim. The other pass
+      of this module states the same layout as CATALOG-BROWSING-SCREEN-0001.
+  - record_key: CATB-REQ-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The layout reading agrees with template.jsp and the other passes. In pass c this key is the
+      full screen list (all 15 named screens), which the screen definitions confirm. The non-catalog
+      screens belong to their own capabilities.
+  - record_key: CATB-BR-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with CATALOG-BROWSING-BR-0001 on the same code lines.
+  - record_key: CATB-BR-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same undefined-screen behaviour as CATALOG-BROWSING-REQ-0001.
+  - record_key: CATB-WF-0001
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: reject
+    confidence: medium
+    reason: >-
+      Same PREVIOUS.screen behaviour as CATALOG-BROWSING-WF-0001, and nothing in the application
+      links to it. Reject unless the logs show use.
+  - record_key: CATB-REQ-0002
+    pass_file: >-
+      legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/java/com/sun/j2ee/blueprints/waf/c.yaml
+    recommendation: accept
+    confidence: medium
+    reason: >-
+      Both readings are supported by TemplateServlet and ScreenDefinitionDAO: language fallback in
+      pass b, and start-up loading with first-duplicate-wins in pass c. These are operational
+      details with low user impact.
+  - record_key: BROW-SCR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: category.jsp and the guide agree. CB-SCR-0003 is the same screen read by the other pass.
+  - record_key: BROW-SCR-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: product.jsp confirms it. CB-SCR-0004 agrees.
+  - record_key: BROW-SCR-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Accept what item.jsp shows: Your Price is the unit cost, shown to everyone. The member-price
+      conflict with the user guide goes to Intent for the Business Owner.
+  - record_key: BROW-RUL-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: Both SQL dialects ORDER BY name.
+  - record_key: BROW-RUL-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: There is no ORDER BY in either dialect, and the catalog passes agree.
+  - record_key: BROW-RUL-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: sidebar.jsp count=5. BROWSE-RULE-0002 agrees.
+  - record_key: BROW-RUL-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: Duplicates the approved SWHR5-R-0008, and the code (fmt:setLocale en_US) confirms it.
+  - record_key: BROW-RUL-0005
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      category.jsp and product.jsp hard-code count=2 on Previous. Confirm this as current behaviour;
+      whether the inconsistency is a defect is the Business Owner's decision.
+  - record_key: BROW-RUL-0006
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same as CATB-RULE-0004.
+  - record_key: BROW-SCR-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: main.jsp image map links to all five categories. Both passes agree.
+  - record_key: BROW-SCR-0005
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      Duplicates the shared-layout record; template.jsp and the screen definitions confirm the five
+      regions and the default layout. Merged into the "Shared page layout" requirement.
+  - record_key: BROW-SCR-0006
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: web.xml 131-134 and general_error.jsp confirm it. CB-REQ-0009 agrees.
+  - record_key: BROW-RUL-0007
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/a.yaml
+    recommendation: accept
+    confidence: high
+    reason: The web.xml filter sets UTF-8 on every request, and CB-BR-0010 agrees.
+  - record_key: CB-SCR-0001
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Home page image map. Agrees with BROW-SCR-0004.
+  - record_key: CB-REQ-0002
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: sidebar.jsp confirms the five-category limit and the links.
+  - record_key: CB-SCR-0003
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with BROW-SCR-0001 (webapp), and the SQL confirms name order.
+  - record_key: CB-SCR-0004
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Agrees with BROW-SCR-0002 (webapp).
+  - record_key: CB-SCR-0005
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same as BROW-SCR-0003. Accept the code reading; the Your Price conflict goes to Intent.
+  - record_key: CB-BR-0006
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Duplicates the approved SWHR5-R-0008.
+  - record_key: CB-BR-0007
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: >-
+      The worked example matches Page.java arithmetic and the hard-coded count=2. This is current
+      behaviour; whether it is right goes to the defect register.
+  - record_key: CB-WF-0008
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: No security constraint covers the catalog screens, and the links carry the identifiers.
+  - record_key: CB-REQ-0009
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: Same as BROW-SCR-0006.
+  - record_key: CB-BR-0010
+    pass_file: legacy-analysis/ir/_passes/j2ee-pet-store-lite/src/main/webapp/b.yaml
+    recommendation: accept
+    confidence: high
+    reason: The web.xml filter and the template.jsp charset confirm it.
