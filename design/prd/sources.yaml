@@ -1,0 +1,107 @@
+sections:
+  - section: Summary
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+  - section: Context
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+  - section: Goals
+    from:
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+  - section: Non-goals
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+  - section: Users
+    from:
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+  - section: User journeys
+    from:
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+  - section: Capability map
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+  - section: Screens
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+  - section: Constraints and assumptions
+    from:
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0012-catalog-data-integrity/specs/catalog-data-integrity/spec.md
+  - section: Open questions
+    from:
+      - build/manifest.yaml
+      - openspec/changes/swhr5-i-0005-sign-on-and-sign-off/specs/sign-on/spec.md
+      - openspec/changes/swhr5-i-0007-account-registration/specs/account-registration/spec.md
+      - openspec/changes/swhr5-i-0004-catalog-search/specs/catalog-search/spec.md
+      - openspec/changes/swhr5-i-0006-account-lockout/specs/account-lockout/spec.md
+      - openspec/changes/swhr5-i-0009-sign-on-audit-trail/specs/sign-on-audit/spec.md
+      - openspec/changes/swhr5-i-0011-batch-operations/specs/batch-operations/spec.md
+      - openspec/changes/swhr5-i-0010-sample-data-population/specs/sample-data-population/spec.md
+      - openspec/changes/swhr5-i-0003-catalog-browsing/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr5-i-0008-access-control/specs/access-control/spec.md
+      - openspec/changes/swhr5-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
