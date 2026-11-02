@@ -1,0 +1,343 @@
+# Recommendations for sample-data-population records not yet approved.
+# Record keys repeat across modules (each pass numbers its own records); where a key is used by
+# more than one module, one entry per module is given and the module is named in the reason.
+# POP-REQ-0003 is approved (SWHR5-R-0022) and is not listed.
+recommendations:
+  - record_key: SDP-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp b) index.jsp is the web.xml welcome file and its text matches the User Guide
+      §2. The copy is the visible contract of the entry page.
+  - record_key: SDP-SCR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp b) populate_admin.jsp carries exactly this warning text and a hidden
+      forcefully=true form. It agrees with POP-SCR-0002 from pass A.
+  - record_key: POP-SCR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp a) This is the same screen as SDP-SCR-0004 and both passes agree word for
+      word with populate_admin.jsp. Approve one and merge the other into it.
+  - record_key: POP-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp a, kind workflow) The entry flow through populating.jsp matches SDP-WF-0002.
+      (waf b, kind screen) The Catalog Administration title and shared layout come from the screen
+      definitions and are folded into the Catalog Administration requirement.
+  - record_key: SDP-WF-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp b) The populating.jsp refresh URL, the unprotected /Populate mapping and
+      Admin Guide §3.1 all agree.
+  - record_key: SDP-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (src/main/webapp b, disputed) PopulateServlet invalidates the session on every accepted request,
+      so the code is unambiguous. It contradicts Admin Guide §3.1 ("nothing happens"), and that
+      conflict goes to Intent for the Business Owner. (tools/populate b) The same key there states
+      that a refused forced reload leaves the session intact, which lines 122-125 confirm. Accept it.
+  - record_key: BO-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (src/main/webapp b) The database location and pool limits come from the server data source
+      configuration. This is deployment configuration rather than sample data population, so the
+      SME should consider re-homing it.
+  - record_key: POP-RUL-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp a) It restates POP-REQ-0003 (approved) plus the reload effects. Merge it into
+      the forced reload requirement rather than approving it separately.
+  - record_key: POP-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (src/main/webapp a; tools/populate a) /Populate has no security constraint and the batch script
+      calls it with forcefully=false. The tools/populate a variant adds dialect and file configuration,
+      which the servlet init parameters confirm.
+  - record_key: SDP-WF-0001
+    recommendation: edit
+    confidence: high
+    reason: >
+      (webapp/populate b) The check covers seven tables, each with at least one row, not four.
+      CatalogPopulator.check includes the details tables. (tools/populate b; db/batch b; data/seed b)
+      Those variants agree with the code or the batch scripts and can be accepted as written.
+    edited_requirement: >
+      On a first-load request the system SHALL treat the store as already populated only when the
+      category, category details, product, product details, item, item details and sign-on tables each
+      hold at least one row; otherwise it SHALL drop, recreate and reload every catalog and sign-on table.
+  - record_key: SDP-WF-0005
+    recommendation: edit
+    confidence: high
+    reason: >
+      (webapp/populate a) The code checks for at least one row, not "can be read", and signon_audit is
+      not checked (CatalogPopulator.check && UserPopulator.check). The drop and recreate part is correct.
+    edited_requirement: >
+      The system SHALL treat the store as already populated only when the seven checked tables
+      (category, category details, product, product details, item, item details, sign-on) each hold at
+      least one row; WHEN it (re)populates THEN it SHALL drop and recreate all eight tables, including
+      sign-on accounts and the sign-on audit history.
+  - record_key: POP-WF-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      This key names different records in different modules. (tools/populate a) The populated check
+      matches PopulateServlet lines 160-166. (batch a/b; db/batch a; scheduler/control-m a) The
+      06:00 catalog check calling the first load with exit 8 on failure agrees across the script and
+      the Control-M definition. (docs/guides b) It agrees with the code. (data/seed a) The history seed
+      counts were verified against the SQL file.
+  - record_key: POP-REQ-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      (docs/guides a, disputed) The guide omits that the session is ended even when nothing loads.
+      Keep the load behaviour and send the session conflict to Intent with SDP-BR-0003.
+      (scheduler/control-m b) "Finds the catalog empty" is looser than the script, which triggers on
+      missing tables only. Edit it to say "tables do not exist".
+    edited_requirement: >
+      GIVEN the catalog tables do not exist when the daily 06:00 catalog check runs THEN the system SHALL
+      perform a first load of the sample data (not a forced reload) and then check the catalog again.
+  - record_key: SDP-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides c) It agrees with populating.jsp and PopulateServlet, including the session end.
+      The guide's "nothing changes" refers to data only.
+  - record_key: SDP-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides c) The admin guide §3.2 and the servlet forced branch agree. (webapp/populate a) The
+      same key there lists the sample catalog content, which matches Populate-UTF8.xml. Accept it.
+  - record_key: SDP-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (webapp/populate a) The three accounts in Populate-UTF8.xml match Admin Guide §1.2.
+  - record_key: POP-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides a) The guide procedure and the forced branch of PopulateServlet agree on the eight
+      tables, the session end and the home page.
+  - record_key: POP-WF-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides b) Forced reload and Access Denied agree with the servlet gate. (tools/populate a)
+      The step order matches dropTables/createTables in the populators.
+  - record_key: POP-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides b) The sample counts match the data file. (tools/populate a) Account defaults on
+      load match UserPopulator and the signon DDL defaults.
+  - record_key: POP-ENT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides a; tools/populate a) The data file contents and the catalog insert structure match
+      the populators and Populate-UTF8.xml.
+  - record_key: POP-ENT-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (docs/guides a) The guide table matches Populate-UTF8.xml. Plain-text sample passwords are a
+      regulated risk the Business Owner should note, but they are what the legacy store loads.
+  - record_key: SDP-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (docs/guides c) Counts and accounts agree with the data file and the other passes.
+  - record_key: SDP-ENT-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      (tools/populate b) It matches the XMLDBHandler subclasses and agrees with POP-ENT-0002 from
+      pass A.
+  - record_key: SDP-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (webapp/populate b; data/migration b) The accounts and catalog of record match the data file.
+      (webapp/populate a) Validation of localized text and references comes from the DTD in
+      Populate-UTF8.xml, but a DTD violation is only logged (see POP-BR-0006), so the word "require"
+      overstates it. Consider merging into the validation requirement.
+  - record_key: SDP-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      (webapp/populate b) The catalog shape and price >= cost hold in the data file.
+      (tools/populate b) A failed check counting as not populated matches the swallowed
+      PopulateException.
+  - record_key: SDP-BR-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (tools/populate b) First load open to any caller: confirmed. (webapp/populate a) The hyphen to
+      underscore transform is confirmed in the populators. (webapp/populate b) Derby and Oracle
+      defining the same tables is mostly true, but the Oracle signon_audit lacks the identity clause
+      (see SAUD-BR-0002). Edit that variant to note the exception.
+  - record_key: SDP-BR-0003
+    recommendation: edit
+    confidence: medium
+    reason: >
+      (webapp/populate b) "Reject the file and load nothing" is not what the code does. The SAX parser
+      validates while loading: non-fatal validity errors are logged and loading continues, and a fatal
+      error stops a load that has already inserted rows. Pass A (POP-BR-0006) reads the code correctly.
+    edited_requirement: >
+      The system SHALL validate the sample data file against its declared structure while loading; a
+      structural violation SHALL be logged and loading SHALL continue; a malformed file SHALL stop the load.
+  - record_key: SDP-BR-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      (tools/populate b) userPopulator drops and recreates signon and signon_audit on every population.
+  - record_key: SDP-BR-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (tools/populate b) It agrees with POP-BR-0003 and the code. The doc conflict is tracked under
+      SDP-BR-0003 (webapp b) and goes to Intent.
+  - record_key: SDP-WF-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      (tools/populate b) The drop and create order matches the populators, and the no-restore clause
+      agrees with POP-BR-0004.
+  - record_key: SDP-BR-0009
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Agrees with POP-BR-0005 and the populator code.
+  - record_key: SDP-REQ-0010
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Matches the doPost success branch.
+  - record_key: SDP-REQ-0011
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (tools/populate b) It matches the code as written, but with an error page set the servlet
+      redirects twice (suspected defect, see design.md). Confirm on a running instance what the
+      caller actually receives.
+  - record_key: SDP-INT-0012
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Agrees with POP-INT-0002 and the batch script.
+  - record_key: SDP-BR-0013
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Boolean.valueOf semantics; agrees with POP-BR-0002.
+  - record_key: SDP-BR-0014
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Servlet init parameters in web.xml; agrees with POP-INT-0001.
+  - record_key: SDP-BR-0015
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate b) Agrees with POP-BR-0006 and the setValidating(true) parser.
+  - record_key: POP-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (tools/populate a) Matches the empty catch around check(). (data/migration a) The same key there
+      says sample accounts have no account-created audit event, which is consistent with the populator
+      writing no audit rows. Accept it.
+  - record_key: POP-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate a) Boolean.valueOf parsing, confirmed at PopulateServlet line 121.
+  - record_key: POP-BR-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      (tools/populate a) The code is unambiguous. The conflict with the guide goes to Intent together
+      with SDP-BR-0003.
+  - record_key: POP-BR-0004
+    recommendation: accept
+    confidence: low
+    reason: >
+      (tools/populate a) No transaction wraps the reload, so no rollback is visible in the code. Whether
+      Derby autocommit is on for the pooled connection decides the exact state. Confirm what the code
+      does on a failed load; whether that is acceptable is a Business Owner decision.
+  - record_key: POP-BR-0005
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate a) The replace('-', '_') in the populators.
+  - record_key: POP-BR-0006
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate a) The validating SAX parser and error handler behaviour; agrees with SDP-BR-0015.
+  - record_key: POP-BR-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (tools/populate a) Matches redirect() resolution. The error page path has the double-redirect
+      issue noted in design.md.
+  - record_key: POP-INT-0002
+    recommendation: accept
+    confidence: high
+    reason: (tools/populate a) Agrees with SDP-INT-0012 and the PSL_CATALOG_CHECK script.
+  - record_key: SAUD-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (webapp/populate a, disputed) Derby populate DDL and the Oracle schema script generate the id.
+      The Oracle populate DDL does not. Recommend that the generated id is the intended behaviour. The
+      Oracle gap is a suspected legacy defect for the defect register, and whether any deployment uses
+      Oracle settles its impact.
+  - record_key: SDP-INT-0006
+    recommendation: accept
+    confidence: high
+    reason: (webapp/populate a) PopulateSQL.xml defines derby and oracle sets; the dialect defaults to derby.
+  - record_key: SDP-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: (data/seed b) The seed only UPDATEs the three accounts and inserts CUSTOMER rows.
+  - record_key: SAMP-WF-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (data/seed c) It matches the SQL file. No caller loads the seed, so whether it is a supported
+      procedure is an open question for the SME.
+  - record_key: SAMPLE-WF-0001
+    recommendation: accept
+    confidence: medium
+    reason: (data/generate_history.py a) The generator uses a fixed seed and an end-date parameter, and agrees with SEED-REQ-0001.
+  - record_key: SEED-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (data/generate_history.py b) Deterministic generation and the two locked accounts at period end
+      were verified by pass B. This is test-data tooling, so the SME may treat it as non-product.
+  - record_key: BAT-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      (db/batch b) The backup script and retention are clear, but this is backup behaviour and belongs
+      to a batch/operations capability. Recommend re-homing.
+  - record_key: BAT-BR-0005
+    recommendation: accept
+    confidence: medium
+    reason: (db/batch a) The Control-M retry settings are clear. This belongs to batch operations; recommend re-homing.
+  - record_key: BATCH-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: (docs/guides a) Job logging, not population; recommend re-homing to the batch capability.
+  - record_key: BAT-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      (docs/guides b) The restore procedure is from the guide only, with no code. It agrees with
+      BO-REQ-0002. Recommend re-homing to operations.
+  - record_key: BO-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: (docs/guides c) Duplicate of BAT-REQ-0001; approve one.
