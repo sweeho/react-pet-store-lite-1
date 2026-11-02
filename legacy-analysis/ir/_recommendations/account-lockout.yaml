@@ -1,0 +1,222 @@
+recommendations:
+  - record_key: LOCK-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Lock on the 3rd consecutive failure, lock time recorded, SIGNON_FAIL then ACCOUNT_LOCKED,
+      locked page for that attempt. Both signon passes read UserDAO.authenticate lines 141-155 and
+      the admin guide R3, schema comment and properties agree. The batch/b record with the same key
+      (one ACCOUNT_UNLOCKED event per unlocked account, committed with the release under AUTOCOMMIT
+      OFF in acct_unlock.sql) is also correct and backs the atomic-unlock draft requirement.
+  - record_key: AL-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same rule as LOCK-BR-0002 stated from the guides; matches the code. Accept as corroboration
+      of the lock-on-third-failure requirement rather than a separate requirement.
+  - record_key: LOCK-BR-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Unknown user name writes SIGNON_FAIL and returns before any counter update (UserDAO lines
+      114-119); both signon passes agree. The variant in data/migration and data/seed with the same
+      key is the administrator rule and should be reviewed under LOCK-RULE-0005.
+  - record_key: LOCKOUT-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      A blank password is just an unequal string for String.equals, so it counts as a failure;
+      samples pass A (LOCK-BR-0004) and signon pass B (LOCK-BR-0001) say the same. Confirm the
+      sign-on form does not reject a blank password before it reaches the check.
+  - record_key: LOCK-RULE-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The code has no role check in authenticate and the batch predicate has no role filter, so
+      administrators are locked and unlocked like customers. Seed and migration passes agree; no
+      document says otherwise.
+  - record_key: LOCK-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL lines 69-81 give failed_attempts, locked char(1) default 'N' not null with check Y/N, and
+      nullable locked_ts. Five entity records from schema, inventory and populate agree.
+  - record_key: ACCTLOCK-BR-0001
+    recommendation: edit
+    confidence: medium
+    reason: >
+      The lock and the stored count of 3 match the code, but "an account is locked if and only if it
+      has a lock time" is not enforced by the schema and is contradicted by the db/batch record about
+      locked rows with no lock time. Approve the observed lock behaviour; send the invariant to the
+      Business Owner as a target-state decision.
+    edited_requirement: >
+      The system SHALL, on the third consecutive failed sign-in, mark the account locked, keep its
+      failed count at 3 and record the lock time; an account locked at data migration SHALL keep its
+      lock time so the automatic unlock still applies 30 minutes after it.
+  - record_key: LOCK-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      acct_unlock.sql uses strict locked_ts < now - 30 minutes and Control-M runs it every 15 minutes,
+      giving a 30-45 minute window; db/batch passes A and B and the user guide warning agree. Records
+      that say "at least 30 minutes" (ACCTLOCK-BR-0004, LOCK-RULE-0004) are inferred from samples and
+      should be rejected in favour of this one.
+  - record_key: LOCK-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      db/batch: a row with locked='Y' and locked_ts NULL never matches the unlock predicate, so it is
+      never released. Both db/batch passes read the SQL the same way. This is a suspected legacy
+      defect: recommend confirming the code behaviour; whether the rebuild should keep it is the
+      Business Owner's decision in the defect register. (Key collides with the approved signon record.)
+  - record_key: LOCK-BR-0008
+    recommendation: edit
+    confidence: low
+    reason: >
+      The code writes SIGNON_FAIL and ACCOUNT_LOCKED in the same call with the same time; the sample
+      extract and generate_history.py show ACCOUNT_LOCKED about 20 seconds later. The code is what
+      runs in production, but an external consumer may have been built against the sample. Settle with
+      a real production extract; the conflict goes to Intent for the Business Owner.
+    edited_requirement: >
+      GIVEN an account with two consecutive failed sign-ins WHEN a third consecutive sign-in with a
+      wrong password is made THEN the system SHALL record a SIGNON_FAIL event followed by an
+      ACCOUNT_LOCKED event for that user, both carrying the time and client address of the attempt.
+  - record_key: LOCK-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      The JSP copy (signon_locked.jsp lines 5-9), the screen definition title "Account Locked" and the
+      user guide agree on the content and the catalog link. The waf/b record with the same key is a
+      subset (title and layout only) and merges into this one.
+  - record_key: AL-SCR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same page as LOCK-SCR-0001 from webapp pass B; identical sources. Merge into LOCK-SCR-0001.
+  - record_key: LOCK-SCR-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      SignOnFilter lines 221-223 redirect every SIGNON_LOCKED outcome, including the locking attempt,
+      to the locked page; the guide states browsing continues. Accept as the routing half of the screen.
+  - record_key: LOCK-REQ-0005
+    recommendation: reject
+    confidence: high
+    reason: >
+      Duplicate of the approved LOCK-REQ-0002 and LOCK-BR-0005 (no unlock screen, on-demand job keeps
+      the 30-minute threshold, manual SQL with source 'admin'). Same applies to AL-REQ-0001 and the
+      docs/guides LOCK-REQ-0001.
+  - record_key: AL-REQ-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-REQ-0002 / LOCK-BR-0005.
+  - record_key: LOCK-REQ-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Two records share this key: scheduler/control-m (15-minute schedule, all day) and docs/guides
+      (no unlock screen). Both are covered by approved LOCK-WF-0004 and LOCK-REQ-0002.
+  - record_key: LOCK-WF-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-WF-0004; same sources.
+  - record_key: AL-WF-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-WF-0004; same sources.
+  - record_key: ACCTLOCK-BR-0004
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Says "at least 30 minutes" and "on the quarter hour", inferred from sample data; the SQL is
+      strictly more than 30 minutes and Control-M runs a cyclic interval, not wall-clock quarters.
+      Covered correctly by LOCK-WF-0004 and LOCK-RULE-0001.
+  - record_key: LOCK-RULE-0004
+    recommendation: reject
+    confidence: medium
+    reason: Same inference as ACCTLOCK-BR-0004 ("at least about 30 minutes"); superseded by the code-read records.
+  - record_key: LOCK-BR-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      The samples/a record with this key (locks cleared only by the scheduled job, attributed to the
+      batch source) agrees with the approved signon record and adds nothing; treat as corroboration.
+  - record_key: LOCK-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      The many non-signon records with this key (batch, db/batch, conf, seed, migration, guides,
+      samples, inventory) restate either the count/reset rule or the scheduled unlock, both already
+      approved (SWHR5-R-0003, SWHR5-R-0006). Treat as corroboration, not new requirements.
+  - record_key: ACCOUNT-LOCKOUT-BR-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of the lock-on-third-failure rule (LOCK-BR-0002 / AL-BR-0001).
+  - record_key: ACCOUNT-LOCKOUT-BR-0002
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-WF-0004.
+  - record_key: ACCTLOCK-BR-0002
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-BR-0001 (reset on success).
+  - record_key: ACCTLOCK-BR-0003
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-BR-0003 (refusal while locked).
+  - record_key: ACCTLOCK-BR-0005
+    recommendation: reject
+    confidence: medium
+    reason: Duplicate of LOCK-RULE-0005 (lockout applies to administrators).
+  - record_key: LOCK-RULE-0002
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-BR-0001.
+  - record_key: LOCK-RULE-0003
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-BR-0003.
+  - record_key: LOCK-RUL-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of the lock-on-third-failure rule.
+  - record_key: AL-BR-0002
+    recommendation: reject
+    confidence: high
+    reason: Both records with this key (webapp lock at 3; guides refusal while locked) duplicate approved or accepted rules.
+  - record_key: AL-BR-0003
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-WF-0004.
+  - record_key: AL-RULE-0002
+    recommendation: reject
+    confidence: high
+    reason: Combines lock, reset and unlock already covered; its "after 30 minutes" omits the strict boundary.
+  - record_key: LOCKOUT-BR-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of the lock-on-third-failure rule.
+  - record_key: LOCKOUT-BR-0002
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-BR-0003.
+  - record_key: LOCKOUT-BR-0004
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of approved LOCK-WF-0004.
+  - record_key: ALK-ENT-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of LOCK-ENT-0001.
+  - record_key: AL-ENT-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of LOCK-ENT-0001.
+  - record_key: AL-RULE-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of LOCK-ENT-0001.
+  - record_key: ALCK-ENT-0001
+    recommendation: reject
+    confidence: high
+    reason: Duplicate of LOCK-ENT-0001.
